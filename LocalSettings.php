@@ -124,6 +124,7 @@ $wgResourceLoaderMaxQueryLength = -1;
 $wgGroupPermissions['*']['createaccount'] = false;
 $wgGroupPermissions['*']['edit'] = false;
 $wgGroupPermissions['*']['read'] = false;
+$wgGroupPermissions['sysop']['masseditregex'] = true;
 
 # Enabled Extensions. Most extensions are enabled by including the base extension file here
 # but check specific extension documentation for more details
