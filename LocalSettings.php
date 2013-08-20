@@ -146,8 +146,12 @@ require_once( "$IP/extensions/SyntaxHighlight_GeSHi/SyntaxHighlight_GeSHi.php" )
 require_once( "$IP/extensions/TitleBlacklist/TitleBlacklist.php" );
 require_once( "$IP/extensions/Vector/Vector.php" );
 require_once( "$IP/extensions/WikiEditor/WikiEditor.php" );
+require_once( "$IP/extensions/Scribunto/Scribunto.php" );
 require_once( "$IP/extensions/MassEditRegex/MassEditRegex.php" );
 //require_once( "$IP/extensions/Math/Math.php" );
+
+$wgPFEnableStringFunctions = true;
+$wgScribuntoDefaultEngine = 'luastandalone';
 
 # Enabled Skins.
 require_once( "$IP/skins/strapping/strapping.php" );
