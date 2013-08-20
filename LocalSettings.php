@@ -147,6 +147,7 @@ require_once( "$IP/extensions/TitleBlacklist/TitleBlacklist.php" );
 require_once( "$IP/extensions/Vector/Vector.php" );
 require_once( "$IP/extensions/WikiEditor/WikiEditor.php" );
 require_once( "$IP/extensions/Scribunto/Scribunto.php" );
+require_once( "$IP/extensions/Deleteuser.php" );
 require_once( "$IP/extensions/MassEditRegex/MassEditRegex.php" );
 //require_once( "$IP/extensions/Math/Math.php" );
 
