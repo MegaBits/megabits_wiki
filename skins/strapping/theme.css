@@ -3,7 +3,9 @@
 .infobox
 {
     background-color: #F7F7F9;
-    border-color: #FFFFE8;
+    border-color: #E1E1E8;
     border-radius: 4px;
     border-width: 1px;
+    
+    padding: 20px;
 }
