@@ -2,6 +2,8 @@
 
 .infobox
 {
+    float: right;
+
     background-color: #F7F7F9;
     border-color: #E1E1E8;
     border-radius: 4px;
