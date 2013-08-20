@@ -125,6 +125,7 @@ $wgGroupPermissions['*']['createaccount'] = false;
 $wgGroupPermissions['*']['edit'] = false;
 $wgGroupPermissions['*']['read'] = false;
 $wgGroupPermissions['sysop']['masseditregex'] = true;
+$wgGroupPermissions['bureaucrat']['usermerge'] = true;
 
 # Enabled Extensions. Most extensions are enabled by including the base extension file here
 # but check specific extension documentation for more details
@@ -147,7 +148,7 @@ require_once( "$IP/extensions/TitleBlacklist/TitleBlacklist.php" );
 require_once( "$IP/extensions/Vector/Vector.php" );
 require_once( "$IP/extensions/WikiEditor/WikiEditor.php" );
 require_once( "$IP/extensions/Scribunto/Scribunto.php" );
-require_once( "$IP/extensions/Deleteuser.php" );
+require_once( "$IP/extensions/UserMerge/UserMerge.php" );
 require_once( "$IP/extensions/MassEditRegex/MassEditRegex.php" );
 //require_once( "$IP/extensions/Math/Math.php" );
 
