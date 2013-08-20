@@ -156,7 +156,14 @@ $wgScribuntoDefaultEngine = 'luastandalone';
 # Enabled Skins.
 require_once( "$IP/skins/strapping/strapping.php" );
 
-
-# End of automatically generated settings.
 # Add more configuration options below.
 
+# Add Mail
+$wgSMTP = array(
+    'host' => 'ssl://smtp.gmail.com',
+    'IDHost' => 'gmail.com',
+    'port' => 465,
+    'username' => getenv("GMAIL_USERNAME"), 
+    'password' => getenv("GMAIL_PASSWORD"),
+    'auth' => true
+);
