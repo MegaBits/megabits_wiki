@@ -145,7 +145,7 @@ require_once( "$IP/extensions/SyntaxHighlight_GeSHi/SyntaxHighlight_GeSHi.php" )
 require_once( "$IP/extensions/TitleBlacklist/TitleBlacklist.php" );
 require_once( "$IP/extensions/Vector/Vector.php" );
 require_once( "$IP/extensions/WikiEditor/WikiEditor.php" );
-require_once( __DIR__ . "/skins/strapping/strapping.php" );
+require_once( "skins/strapping/strapping.php" );
 
 
 # End of automatically generated settings.
