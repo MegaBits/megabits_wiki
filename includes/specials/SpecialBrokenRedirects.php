@@ -27,60 +27,41 @@
  *
  * @ingroup SpecialPage
  */
-class BrokenRedirectsPage extends QueryPage {
+class BrokenRedirectsPage extends PageQueryPage {
 
 	function __construct( $name = 'BrokenRedirects' ) {
 		parent::__construct( $name );
 	}
 
-	function isExpensive() {
-		return true;
-	}
-
-	function isSyndicated() {
-		return false;
-	}
-
-	function sortDescending() {
-		return false;
-	}
+	function isExpensive() { return true; }
+	function isSyndicated() { return false; }
+	function sortDescending() { return false; }
 
 	function getPageHeader() {
 		return $this->msg( 'brokenredirectstext' )->parseAsBlock();
 	}
 
 	function getQueryInfo() {
-		$dbr = wfGetDB( DB_SLAVE );
 		return array(
-			'tables' => array(
-				'redirect',
-				'p1' => 'page',
-				'p2' => 'page',
+			'tables' => array( 'redirect', 'p1' => 'page',
+					'p2' => 'page' ),
+			'fields' => array( 'p1.page_namespace AS namespace',
+					'p1.page_title AS title',
+					'p1.page_title AS value',
+					'rd_namespace',
+					'rd_title'
 			),
-			'fields' => array(
-				'namespace' => 'p1.page_namespace',
-				'title' => 'p1.page_title',
-				'value' => 'p1.page_title',
-				'rd_namespace',
-				'rd_title',
+			'conds' => array( 'rd_namespace >= 0',
+					'p2.page_namespace IS NULL'
 			),
-			'conds' => array(
-				// Exclude pages that don't exist locally as wiki pages,
-				// but aren't "broken" either.
-				// Special pages and interwiki links
-				'rd_namespace >= 0',
-				'rd_interwiki IS NULL OR rd_interwiki = ' . $dbr->addQuotes( '' ),
-				'p2.page_namespace IS NULL',
-			),
-			'join_conds' => array(
-				'p1' => array( 'JOIN', array(
-					'rd_from=p1.page_id',
-				) ),
-				'p2' => array( 'LEFT JOIN', array(
-					'rd_namespace=p2.page_namespace',
-					'rd_title=p2.page_title'
-				) ),
-			),
+			'join_conds' => array( 'p1' => array( 'JOIN', array(
+						'rd_from=p1.page_id',
+					) ),
+					'p2' => array( 'LEFT JOIN', array(
+						'rd_namespace=p2.page_namespace',
+						'rd_title=p2.page_title'
+					) )
+			)
 		);
 	}
 
@@ -150,9 +131,5 @@ class BrokenRedirectsPage extends QueryPage {
 		$out .= $this->msg( 'parentheses' )->rawParams( $this->getLanguage()->pipeList( $links ) )->escaped();
 		$out .= " {$arr} {$to}";
 		return $out;
-	}
-
-	protected function getGroupName() {
-		return 'maintenance';
 	}
 }

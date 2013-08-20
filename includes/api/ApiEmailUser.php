@@ -30,6 +30,10 @@
  */
 class ApiEmailUser extends ApiBase {
 
+	public function __construct( $main, $action ) {
+		parent::__construct( $main, $action );
+	}
+
 	public function execute() {
 		$params = $this->extractRequestParams();
 
@@ -51,7 +55,7 @@ class ApiEmailUser extends ApiBase {
 			'Subject' => $params['subject'],
 			'CCMe' => $params['ccme'],
 		);
-		$retval = SpecialEmailUser::submit( $data, $this->getContext() );
+		$retval = SpecialEmailUser::submit( $data );
 
 		if ( $retval instanceof Status ) {
 			// SpecialEmailUser sometimes returns a status
@@ -94,10 +98,7 @@ class ApiEmailUser extends ApiBase {
 				ApiBase::PARAM_TYPE => 'string',
 				ApiBase::PARAM_REQUIRED => true
 			),
-			'token' => array(
-				ApiBase::PARAM_TYPE => 'string',
-				ApiBase::PARAM_REQUIRED => true
-			),
+			'token' => null,
 			'ccme' => false,
 		);
 	}
@@ -109,23 +110,6 @@ class ApiEmailUser extends ApiBase {
 			'text' => 'Mail body',
 			'token' => 'A token previously acquired via prop=info',
 			'ccme' => 'Send a copy of this mail to me',
-		);
-	}
-
-	public function getResultProperties() {
-		return array(
-			'' => array(
-				'result' => array(
-					ApiBase::PROP_TYPE => array(
-						'Success',
-						'Failure'
-					),
-				),
-				'message' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				)
-			)
 		);
 	}
 
@@ -154,6 +138,10 @@ class ApiEmailUser extends ApiBase {
 	}
 
 	public function getHelpUrls() {
-		return 'https://www.mediawiki.org/wiki/API:Email';
+		return 'https://www.mediawiki.org/wiki/API:E-mail';
+	}
+
+	public function getVersion() {
+		return __CLASS__ . ': $Id$';
 	}
 }

@@ -64,32 +64,28 @@ class MostlinkedTemplatesPage extends QueryPage {
 	public function getQueryInfo() {
 		return array (
 			'tables' => array ( 'templatelinks' ),
-			'fields' => array ( 'namespace' => 'tl_namespace',
-					'title' => 'tl_title',
-					'value' => 'COUNT(*)' ),
+			'fields' => array ( 'tl_namespace AS namespace',
+					'tl_title AS title',
+					'COUNT(*) AS value' ),
 			'conds' => array ( 'tl_namespace' => NS_TEMPLATE ),
-			'options' => array( 'GROUP BY' => array( 'tl_namespace', 'tl_title' ) )
+			'options' => array( 'GROUP BY' => 'tl_namespace, tl_title' )
 		);
 	}
 
 	/**
 	 * Pre-cache page existence to speed up link generation
 	 *
-	 * @param $db DatabaseBase connection
+	 * @param $db Database connection
 	 * @param $res ResultWrapper
 	 */
 	public function preprocessResults( $db, $res ) {
-		if ( !$res->numRows() ) {
-			return;
-		}
-
 		$batch = new LinkBatch();
 		foreach ( $res as $row ) {
 			$batch->add( $row->namespace, $row->title );
 		}
 		$batch->execute();
-
-		$res->seek( 0 );
+		if( $db->numRows( $res ) > 0 )
+			$db->dataSeek( $res, 0 );
 	}
 
 	/**
@@ -100,11 +96,7 @@ class MostlinkedTemplatesPage extends QueryPage {
 	 * @return String
 	 */
 	public function formatResult( $skin, $result ) {
-		$title = Title::makeTitleSafe( $result->namespace, $result->title );
-		if ( !$title ) {
-			return Html::element( 'span', array( 'class' => 'mw-invalidtitle' ),
-				Linker::getInvalidTitleDescription( $this->getContext(), $result->namespace, $result->title ) );
-		}
+		$title = Title::makeTitle( $result->namespace, $result->title );
 
 		return $this->getLanguage()->specialList(
 			Linker::link( $title ),
@@ -124,8 +116,5 @@ class MostlinkedTemplatesPage extends QueryPage {
 		$label = $this->msg( 'ntransclusions' )->numParams( $result->value )->escaped();
 		return Linker::link( $wlh, $label );
 	}
-
-	protected function getGroupName() {
-		return 'highuse';
-	}
 }
+

@@ -82,7 +82,7 @@ class WikiError {
  */
 class WikiErrorMsg extends WikiError {
 	/**
-	 * @param string $message wiki message name
+	 * @param $message String: wiki message name
 	 * @param ... parameters to pass to wfMsg()
 	 *
 	 * @deprecated since 1.17
@@ -91,22 +91,22 @@ class WikiErrorMsg extends WikiError {
 		wfDeprecated( __METHOD__, '1.17' );
 		$args = func_get_args();
 		array_shift( $args );
-		$this->mMessage = wfMessage( $message )->rawParams( $args )->text();
+		$this->mMessage = wfMsgReal( $message, $args, true );
 		$this->mMsgKey = $message;
 		$this->mMsgArgs = $args;
 	}
-
+	
 	function getMessageKey() {
 		return $this->mMsgKey;
 	}
-
+	
 	function getMessageArgs() {
 		return $this->mMsgArgs;
 	}
 }
 
 /**
- * Error class designed to handle errors involved with
+ * Error class designed to handle errors involved with 
  * XML parsing
  * @ingroup Exception
  */
@@ -134,12 +134,12 @@ class WikiXmlError extends WikiError {
 	/** @return string */
 	function getMessage() {
 		// '$1 at line $2, col $3 (byte $4): $5',
-		return wfMessage( 'xml-error-string',
+		return wfMsgHtml( 'xml-error-string',
 			$this->mMessage,
 			$this->mLine,
 			$this->mColumn,
 			$this->mByte . $this->mContext,
-			xml_error_string( $this->mXmlError ) )->escaped();
+			xml_error_string( $this->mXmlError ) );
 	}
 
 	function _extractContext( $context, $offset ) {

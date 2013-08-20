@@ -1,28 +1,25 @@
 /* Preview module for wikiEditor */
-( function ( $, mw ) {
-
-$.wikiEditor.modules.preview = {
+( function( $ ) { $.wikiEditor.modules.preview = {
 
 /**
  * Compatability map
  */
-browsers: {
+'browsers': {
 	// Left-to-right languages
-	ltr: {
-		msie: [['>=', 7]],
-		firefox: [['>=', 3]],
-		opera: [['>=', 9.6]],
-		safari: [['>=', 4]]
+	'ltr': {
+		'msie': [['>=', 7]],
+		'firefox': [['>=', 3]],
+		'opera': [['>=', 9.6]],
+		'safari': [['>=', 4]]
 	},
 	// Right-to-left languages
-	rtl: {
-		msie: [['>=', 8]],
-		firefox: [['>=', 3]],
-		opera: [['>=', 9.6]],
-		safari: [['>=', 4]]
+	'rtl': {
+		'msie': [['>=', 8]],
+		'firefox': [['>=', 3]],
+		'opera': [['>=', 9.6]],
+		'safari': [['>=', 4]]
 	}
 },
-
 /**
  * Internally used functions
  */
@@ -32,7 +29,7 @@ fn: {
 	 * @param context Context object of editor to create module in
 	 * @param config Configuration object to create module from
 	 */
-	create: function ( context, config ) {
+	create: function( context, config ) {
 		if ( 'initialized' in context.modules.preview ) {
 			return;
 		}
@@ -44,11 +41,11 @@ fn: {
 		context.modules.preview.$preview = context.fn.addView( {
 			'name': 'preview',
 			'titleMsg': 'wikieditor-preview-tab',
-			'init': function ( context ) {
+			'init': function( context ) {
 				// Gets the latest copy of the wikitext
 				var wikitext = context.$textarea.textSelection( 'getContents' );
 				// Aborts when nothing has changed since the last preview
-				if ( context.modules.preview.previewText === wikitext ) {
+				if ( context.modules.preview.previewText == wikitext ) {
 					return;
 				}
 				context.modules.preview.$preview.find( '.wikiEditor-preview-contents' ).empty();
@@ -56,14 +53,14 @@ fn: {
 				$.post(
 					mw.util.wikiScript( 'api' ),
 					{
-						format: 'json',
-						action: 'parse',
-						title: mw.config.get( 'wgPageName' ),
-						text: wikitext,
-						prop: 'text',
-						pst: ''
+						'action': 'parse',
+						'title': mw.config.get( 'wgPageName' ),
+						'text': wikitext,
+						'prop': 'text',
+						'pst': '',
+						'format': 'json'
 					},
-					function ( data ) {
+					function( data ) {
 						if (
 							typeof data.parse == 'undefined' ||
 							typeof data.parse.text == 'undefined' ||
@@ -75,7 +72,7 @@ fn: {
 						context.modules.preview.$preview.find( '.wikiEditor-preview-loading' ).hide();
 						context.modules.preview.$preview.find( '.wikiEditor-preview-contents' )
 							.html( data.parse.text['*'] )
-							.find( 'a:not([href^=#])' ).click( false );
+							.find( 'a:not([href^=#])' ).click( function() { return false; } );
 					},
 					'json'
 				);
@@ -85,7 +82,7 @@ fn: {
 		context.$changesTab = context.fn.addView( {
 			'name': 'changes',
 			'titleMsg': 'wikieditor-preview-changes-tab',
-			'init': function ( context ) {
+			'init': function( context ) {
 				// Gets the latest copy of the wikitext
 				var wikitext = context.$textarea.textSelection( 'getContents' );
 				// Aborts when nothing has changed since the last time
@@ -97,28 +94,28 @@ fn: {
 
 				// Call the API. First PST the input, then diff it
 				var postdata = {
-					format: 'json',
-					action: 'parse',
-					onlypst: '',
-					text: wikitext
+					'action': 'parse',
+					'onlypst': '',
+					'text': wikitext,
+					'format': 'json'
 				};
 
-				$.post( mw.util.wikiScript( 'api' ), postdata, function ( data ) {
+				$.post( mw.util.wikiScript( 'api' ), postdata, function( data ) {
 					try {
 						var postdata2 = {
-							format: 'json',
-							action: 'query',
-							indexpageids: '',
-							prop: 'revisions',
-							titles: mw.config.get( 'wgPageName' ),
-							rvdifftotext: data.parse.text['*'],
-							rvprop: ''
+							'action': 'query',
+							'indexpageids': '',
+							'prop': 'revisions',
+							'titles': mw.config.get( 'wgPageName' ),
+							'rvdifftotext': data.parse.text['*'],
+							'rvprop': '',
+							'format': 'json'
 						};
-						var section = $( '[name="wpSection"]' ).val();
-						if ( section !== '' )
-							postdata2.rvsection = section;
+						var section = $( '[name=wpSection]' ).val();
+						if ( section != '' )
+							postdata2['rvsection'] = section;
 
-						$.post( mw.util.wikiScript( 'api' ), postdata2, function ( data ) {
+						$.post( mw.util.wikiScript( 'api' ), postdata2, function( data ) {
 								// Add diff CSS
 								mw.loader.load( 'mediawiki.action.history.diff' );
 								try {
@@ -132,17 +129,17 @@ fn: {
 								} catch ( e ) { } // "blah is undefined" error, ignore
 							}, 'json'
 						);
-					} catch ( e ) { } // "blah is undefined" error, ignore
+					} catch( e ) { } // "blah is undefined" error, ignore
 				}, 'json' );
 			}
 		} );
 
-		var loadingMsg = mw.msg( 'wikieditor-preview-loading' );
+		var loadingMsg = mediaWiki.msg( 'wikieditor-preview-loading' );
 		context.modules.preview.$preview
 			.add( context.$changesTab )
-			.append( $( '<div>' )
+			.append( $( '<div />' )
 				.addClass( 'wikiEditor-preview-loading' )
-				.append( $( '<img>' )
+				.append( $( '<img />' )
 					.addClass( 'wikiEditor-preview-spinner' )
 					.attr( {
 						'src': $.wikiEditor.imgPath + 'dialogs/loading.gif',
@@ -152,18 +149,16 @@ fn: {
 					} )
 				)
 				.append(
-					$( '<span>' ).text( loadingMsg )
+					$( '<span></span>' ).text( loadingMsg )
 				)
 			)
-			.append( $( '<div>' )
+			.append( $( '<div />' )
 				.addClass( 'wikiEditor-preview-contents' )
 			);
 		context.$changesTab.find( '.wikiEditor-preview-contents' )
-			.html( '<table class="diff"><col class="diff-marker"/><col class="diff-content"/>' +
-				'<col class="diff-marker"/><col class="diff-content"/><tbody/></table>' );
+			.html( '<table class="diff"><col class="diff-marker" /><col class="diff-content" />' +
+				'<col class="diff-marker" /><col class="diff-content" /><tbody /></table>' );
 	}
 }
 
-};
-
-}( jQuery, mediaWiki ) );
+}; } )( jQuery );

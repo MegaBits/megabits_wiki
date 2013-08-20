@@ -1,34 +1,10 @@
 <?php
 /**
- * Extraction of JPEG image metadata.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- * @ingroup Media
- */
-
-/**
- * Class for reading jpegs and extracting metadata.
- * see also BitmapMetadataHandler.
- *
- * Based somewhat on GIFMetadataExtractor.
- *
- * @ingroup Media
- */
+* Class for reading jpegs and extracting metadata.
+* see also BitmapMetadataHandler.
+*
+* Based somewhat on GIFMetadataExtrator.
+*/
 class JpegMetadataExtractor {
 
 	const MAX_JPEG_SEGMENTS = 200;
@@ -37,16 +13,16 @@ class JpegMetadataExtractor {
 	// that many segments. Your average file has about 10.
 
 	/** Function to extract metadata segments of interest from jpeg files
-	 * based on GIFMetadataExtractor.
-	 *
-	 * we can almost use getimagesize to do this
-	 * but gis doesn't support having multiple app1 segments
-	 * and those can't extract xmp on files containing both exif and xmp data
-	 *
-	 * @param string $filename name of jpeg file
-	 * @return Array of interesting segments.
-	 * @throws MWException if given invalid file.
-	 */
+	* based on GIFMetadataExtractor.
+	*
+	* we can almost use getimagesize to do this
+	* but gis doesn't support having multiple app1 segments
+	* and those can't extract xmp on files containing both exif and xmp data
+	*
+	* @param String $filename name of jpeg file
+	* @return Array of interesting segments.
+	* @throws MWException if given invalid file.
+	*/
 	static function segmentSplitter ( $filename ) {
 		$showXMP = function_exists( 'xml_parser_create_ns' );
 
@@ -129,7 +105,7 @@ class JpegMetadataExtractor {
 					// whatever...
 					$segments["XMP"] = substr( $temp, 29 );
 					wfDebug( __METHOD__ . ' Found XMP section with wrong app identifier '
-						. "Using anyways.\n" );
+						. "Using anyways.\n" ); 
 				} elseif ( substr( $temp, 0, 6 ) === "Exif\0\0" ) {
 					// Just need to find out what the byte order is.
 					// because php's exif plugin sucks...
@@ -165,36 +141,31 @@ class JpegMetadataExtractor {
 	}
 
 	/**
-	 * Helper function for jpegSegmentSplitter
-	 * @param &$fh FileHandle for jpeg file
-	 * @throws MWException
-	 * @return string data content of segment.
-	 */
+	* Helper function for jpegSegmentSplitter
+	* @param &$fh FileHandle for jpeg file
+	* @return data content of segment.
+	*/
 	private static function jpegExtractMarker( &$fh ) {
 		$size = wfUnpack( "nint", fread( $fh, 2 ), 2 );
-		if ( $size['int'] <= 2 ) {
-			throw new MWException( "invalid marker size in jpeg" );
-		}
+		if ( $size['int'] <= 2 ) throw new MWException( "invalid marker size in jpeg" );
 		$segment = fread( $fh, $size['int'] - 2 );
-		if ( strlen( $segment ) !== $size['int'] - 2 ) {
-			throw new MWException( "Segment shorter than expected" );
-		}
+		if ( strlen( $segment ) !== $size['int'] - 2 ) throw new MWException( "Segment shorter than expected" );
 		return $segment;
 	}
 
 	/**
-	 * This reads the photoshop image resource.
-	 * Currently it only compares the iptc/iim hash
-	 * with the stored hash, which is used to determine the precedence
-	 * of the iptc data. In future it may extract some other info, like
-	 * url of copyright license.
-	 *
-	 * This should generally be called by BitmapMetadataHandler::doApp13()
-	 *
-	 * @param string $app13 photoshop psir app13 block from jpg.
-	 * @throws MWException (It gets caught next level up though)
-	 * @return String if the iptc hash is good or not.
-	 */
+	* This reads the photoshop image resource.
+	* Currently it only compares the iptc/iim hash
+	* with the stored hash, which is used to determine the precedence
+	* of the iptc data. In future it may extract some other info, like
+	* url of copyright license.
+	*
+	* This should generally be called by BitmapMetadataHandler::doApp13()
+	*
+	* @param String $app13 photoshop psir app13 block from jpg.
+	* @throws MWException (It gets caught next level up though)
+	* @return String if the iptc hash is good or not.
+	*/
 	public static function doPSIR ( $app13 ) {
 		if ( !$app13 ) {
 			throw new MWException( "No App13 segment given" );

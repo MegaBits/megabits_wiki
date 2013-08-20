@@ -1,27 +1,26 @@
 /*
  * JavaScript backwards-compatibility alternatives and other convenience functions
  */
-( function ( $ ) {
+( function( $ ) {
 
 	$.extend({
-		trimLeft: function ( str ) {
+		trimLeft: function( str ) {
 			return str === null ? '' : str.toString().replace( /^\s+/, '' );
 		},
-		trimRight: function ( str ) {
+		trimRight: function( str ) {
 			return str === null ?
 					'' : str.toString().replace( /\s+$/, '' );
 		},
-		ucFirst: function ( str ) {
+		ucFirst: function( str ) {
 			return str.charAt( 0 ).toUpperCase() + str.substr( 1 );
 		},
-		escapeRE: function ( str ) {
-			return str.replace ( /([\\{}()|.?*+\-\^$\[\]])/g, '\\$1' );
+		escapeRE: function( str ) {
+			return str.replace ( /([\\{}()|.?*+\-^$\[\]])/g, "\\$1" );
 		},
-		isDomElement: function ( el ) {
+		isDomElement: function( el ) {
 			return !!el && !!el.nodeType;
 		},
-		isEmpty: function ( v ) {
-			var key;
+		isEmpty: function( v ) {
 			if ( v === '' || v === 0 || v === '0' || v === null
 				|| v === false || v === undefined )
 			{
@@ -33,15 +32,15 @@
 				return true;
 			}
 			if ( typeof v === 'object' ) {
-				for ( key in v ) {
+				for ( var key in v ) {
 					return false;
 				}
 				return true;
 			}
 			return false;
 		},
-		compareArray: function ( arrThis, arrAgainst ) {
-			if ( arrThis.length !== arrAgainst.length ) {
+		compareArray: function( arrThis, arrAgainst ) {
+			if ( arrThis.length != arrAgainst.length ) {
 				return false;
 			}
 			for ( var i = 0; i < arrThis.length; i++ ) {
@@ -55,25 +54,25 @@
 			}
 			return true;
 		},
-		compareObject: function ( objectA, objectB ) {
-			var prop, type;
+		compareObject: function( objectA, objectB ) {
 
 			// Do a simple check if the types match
-			if ( typeof objectA === typeof objectB ) {
+			if ( typeof objectA == typeof objectB ) {
 
 				// Only loop over the contents if it really is an object
-				if ( typeof objectA === 'object' ) {
+				if ( typeof objectA == 'object' ) {
 					// If they are aliases of the same object (ie. mw and mediaWiki) return now
 					if ( objectA === objectB ) {
 						return true;
 					} else {
+						var prop;
 						// Iterate over each property
 						for ( prop in objectA ) {
 							// Check if this property is also present in the other object
 							if ( prop in objectB ) {
 								// Compare the types of the properties
-								type = typeof objectA[prop];
-								if ( type === typeof objectB[prop] ) {
+								var type = typeof objectA[prop];
+								if ( type == typeof objectB[prop] ) {
 									// Recursively check objects inside this one
 									switch ( type ) {
 										case 'object' :
@@ -119,4 +118,4 @@
 		}
 	});
 
-}( jQuery ) );
+} )( jQuery );

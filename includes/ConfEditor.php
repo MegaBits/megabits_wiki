@@ -1,24 +1,4 @@
 <?php
-/**
- * Configuration file editor.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- */
 
 /**
  * This is a state machine style parser with two internal stacks:
@@ -65,6 +45,7 @@ class ConfEditor {
 	 * element will be popped off and become the next parser state.
 	 */
 	var $stateStack;
+
 
 	/**
 	 * The path stack is a stack of associative arrays with the following elements:
@@ -127,7 +108,7 @@ class ConfEditor {
 
 	/**
 	 * Edit the text. Returns the edited text.
-	 * @param array $ops of operations.
+	 * @param $ops Array of operations.
 	 *
 	 * Operations are given as an associative array, with members:
 	 *    type:     One of delete, set, append or insert (required)
@@ -158,8 +139,6 @@ class ConfEditor {
 	 * insert
 	 *    Insert a new element at the start of the array.
 	 *
-	 * @throws MWException
-	 * @return string
 	 */
 	public function edit( $ops ) {
 		$this->parse();
@@ -306,7 +285,7 @@ class ConfEditor {
 	 * setVar( $arr, 'foo/bar', 'baz', 3 ); will set
 	 * $arr['foo']['bar']['baz'] = 3;
 	 * @param $array array
-	 * @param string $path slash-delimited path
+	 * @param $path string slash-delimited path
 	 * @param $key mixed Key
 	 * @param $value mixed Value
 	 */
@@ -392,9 +371,6 @@ class ConfEditor {
 	 * Finds the source byte region which you would want to delete, if $pathName
 	 * was to be deleted. Includes the leading spaces and tabs, the trailing line
 	 * break, and any comments in between.
-	 * @param $pathName
-	 * @throws MWException
-	 * @return array
 	 */
 	function findDeletionRegion( $pathName ) {
 		if ( !isset( $this->pathInfo[$pathName] ) ) {
@@ -452,9 +428,6 @@ class ConfEditor {
 	 * or semicolon.
 	 *
 	 * The end position is the past-the-end (end + 1) value as per convention.
-	 * @param $pathName
-	 * @throws MWException
-	 * @return array
 	 */
 	function findValueRegion( $pathName ) {
 		if ( !isset( $this->pathInfo[$pathName] ) ) {
@@ -471,7 +444,6 @@ class ConfEditor {
 	 * Find the path name of the last element in the array.
 	 * If the array is empty, this will return the \@extra interstitial element.
 	 * If the specified path is not found or is not an array, it will return false.
-	 * @return bool|int|string
 	 */
 	function findLastArrayElement( $path ) {
 		// Try for a real element
@@ -508,7 +480,6 @@ class ConfEditor {
 	 * Find the path name of first element in the array.
 	 * If the array is empty, this will return the \@extra interstitial element.
 	 * If the specified path is not found or is not an array, it will return false.
-	 * @return bool|int|string
 	 */
 	function findFirstArrayElement( $path ) {
 		// Try for an ordinary element
@@ -533,7 +504,6 @@ class ConfEditor {
 	/**
 	 * Get the indent string which sits after a given start position.
 	 * Returns false if the position is not at the start of the line.
-	 * @return array
 	 */
 	function getIndent( $pos, $key = false, $arrowPos = false ) {
 		$arrowIndent = ' ';
@@ -755,7 +725,6 @@ class ConfEditor {
 
 	/**
 	 * Create a ConfEditorToken from an element of token_get_all()
-	 * @return ConfEditorToken
 	 */
 	function newTokenObj( $internalToken ) {
 		if ( is_array( $internalToken ) ) {
@@ -807,7 +776,6 @@ class ConfEditor {
 	/**
 	 * Get the token $offset steps ahead of the current position.
 	 * $offset may be negative, to get tokens behind the current position.
-	 * @return ConfEditorToken
 	 */
 	function getTokenAhead( $offset ) {
 		$pos = $this->pos + $offset;
@@ -853,7 +821,6 @@ class ConfEditor {
 
 	/**
 	 * Pop a state from the state stack.
-	 * @return mixed
 	 */
 	function popState() {
 		return array_pop( $this->stateStack );
@@ -862,7 +829,6 @@ class ConfEditor {
 	/**
 	 * Returns true if the user input path is valid.
 	 * This exists to allow "/" and "@" to be reserved for string path keys
-	 * @return bool
 	 */
 	function validatePath( $path ) {
 		return strpos( $path, '/' ) === false && substr( $path, 0, 1 ) != '@';
@@ -983,7 +949,6 @@ class ConfEditor {
 
 	/**
 	 * Get a readable name for the given token type.
-	 * @return string
 	 */
 	function getTypeName( $type ) {
 		if ( is_int( $type ) ) {
@@ -997,7 +962,6 @@ class ConfEditor {
 	 * Looks ahead to see if the given type is the next token type, starting
 	 * from the current position plus the given offset. Skips any intervening
 	 * whitespace.
-	 * @return bool
 	 */
 	function isAhead( $type, $offset = 0 ) {
 		$ahead = $offset;
@@ -1059,7 +1023,6 @@ class ConfEditorParseError extends MWException {
 				return "$line\n" .str_repeat( ' ', $this->colNum - 1 ) . "^\n";
 			}
 		}
-		return '';
 	}
 
 }
@@ -1094,3 +1057,4 @@ class ConfEditorToken {
 		return $this->type == 'END';
 	}
 }
+

@@ -5,7 +5,7 @@
  * Created on May 14, 2010
  *
  * Copyright © 2010 Sam Reed
- * Copyright © 2006 Yuri Astrakhan "<Firstname><Lastname>@gmail.com"
+ * Copyright © 2006 Yuri Astrakhan <Firstname><Lastname>@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,41 +58,42 @@ class ApiQueryIWLinks extends ApiQueryBase {
 
 		if ( !is_null( $params['continue'] ) ) {
 			$cont = explode( '|', $params['continue'] );
-			$this->dieContinueUsageIf( count( $cont ) != 3 );
-			$op = $params['dir'] == 'descending' ? '<' : '>';
-			$db = $this->getDB();
+			if ( count( $cont ) != 3 ) {
+				$this->dieUsage( 'Invalid continue param. You should pass the ' .
+					'original value returned by the previous query', '_badcontinue' );
+			}
 			$iwlfrom = intval( $cont[0] );
-			$iwlprefix = $db->addQuotes( $cont[1] );
-			$iwltitle = $db->addQuotes( $cont[2] );
+			$iwlprefix = $this->getDB()->strencode( $cont[1] );
+			$iwltitle = $this->getDB()->strencode( $this->titleToKey( $cont[2] ) );
 			$this->addWhere(
-				"iwl_from $op $iwlfrom OR " .
+				"iwl_from > $iwlfrom OR " .
 				"(iwl_from = $iwlfrom AND " .
-				"(iwl_prefix $op $iwlprefix OR " .
-				"(iwl_prefix = $iwlprefix AND " .
-				"iwl_title $op= $iwltitle)))"
+				"(iwl_prefix > '$iwlprefix' OR " .
+				"(iwl_prefix = '$iwlprefix' AND " .
+				"iwl_title >= '$iwltitle')))"
 			);
 		}
 
-		$sort = ( $params['dir'] == 'descending' ? ' DESC' : '' );
+		$dir = ( $params['dir'] == 'descending' ? ' DESC' : '' );
 		if ( isset( $params['prefix'] ) ) {
 			$this->addWhereFld( 'iwl_prefix', $params['prefix'] );
 			if ( isset( $params['title'] ) ) {
 				$this->addWhereFld( 'iwl_title', $params['title'] );
-				$this->addOption( 'ORDER BY', 'iwl_from' . $sort );
+				$this->addOption( 'ORDER BY', 'iwl_from' . $dir );
 			} else {
 				$this->addOption( 'ORDER BY', array(
-						'iwl_title' . $sort,
-						'iwl_from' . $sort
+						'iwl_title' . $dir,
+						'iwl_from' . $dir
 				));
 			}
 		} else {
 			// Don't order by iwl_from if it's constant in the WHERE clause
 			if ( count( $this->getPageSet()->getGoodTitles() ) == 1 ) {
-				$this->addOption( 'ORDER BY', 'iwl_prefix' . $sort );
+				$this->addOption( 'ORDER BY', 'iwl_prefix' . $dir );
 			} else {
 				$this->addOption( 'ORDER BY', array (
-						'iwl_from' . $sort,
-						'iwl_prefix' . $sort
+						'iwl_from' . $dir,
+						'iwl_prefix' . $dir
 				));
 			}
 		}
@@ -164,19 +165,6 @@ class ApiQueryIWLinks extends ApiQueryBase {
 		);
 	}
 
-	public function getResultProperties() {
-		return array(
-			'' => array(
-				'prefix' => 'string',
-				'url' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				),
-				'*' => 'string'
-			)
-		);
-	}
-
 	public function getDescription() {
 		return 'Returns all interwiki links from the given page(s)';
 	}
@@ -184,6 +172,7 @@ class ApiQueryIWLinks extends ApiQueryBase {
 	public function getPossibleErrors() {
 		return array_merge( parent::getPossibleErrors(), array(
 			array( 'missingparam', 'prefix' ),
+			array( 'code' => '_badcontinue', 'info' => 'Invalid continue param. You should pass the original value returned by the previous query' ),
 		) );
 	}
 
@@ -191,5 +180,9 @@ class ApiQueryIWLinks extends ApiQueryBase {
 		return array(
 			'api.php?action=query&prop=iwlinks&titles=Main%20Page' => 'Get interwiki links from the [[Main Page]]',
 		);
+	}
+
+	public function getVersion() {
+		return __CLASS__ . ': $Id$';
 	}
 }

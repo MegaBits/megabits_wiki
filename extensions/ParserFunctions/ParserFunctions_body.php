@@ -452,10 +452,10 @@ class ExtParserFunctions {
 				} else {
 					$tz = new DateTimeZone( date_default_timezone_get() );
 				}
+				$dateObject->setTimezone( $tz );
 			} else {
-				$tz = $utc;
+				$dateObject->setTimezone( $utc );
 			}
-			$dateObject->setTimezone( $tz );
 			# Generate timestamp
 			$ts = $dateObject->format( 'YmdHis' );
 
@@ -471,16 +471,14 @@ class ExtParserFunctions {
 			if ( self::$mTimeChars > self::$mMaxTimeChars ) {
 				return '<strong class="error">' . wfMessage( 'pfunc_time_too_long' )->inContentLanguage()->escaped() . '</strong>';
 			} else {
-				if ( $ts < 0 ) { // Language can't deal with BC years
-					return '<strong class="error">' . wfMessage( 'pfunc_time_too_small' )->inContentLanguage()->escaped() . '</strong>';
-				} elseif ( $ts < 100000000000000 ) { // Language can't deal with years after 9999
+				if ( $ts < 100000000000000 ) { // Language can't deal with years after 9999
 					if ( $language !== '' && Language::isValidBuiltInCode( $language ) ) {
 						// use whatever language is passed as a parameter
 						$langObject = Language::factory( $language );
-						$result = $langObject->sprintfDate( $format, $ts, $tz );
+						$result = $langObject->sprintfDate( $format, $ts );
 					} else {
 						// use wiki's content language
-						$result = $parser->getFunctionLang()->sprintfDate( $format, $ts, $tz );
+						$result = $parser->getFunctionLang()->sprintfDate( $format, $ts );
 					}
 				} else {
 					return '<strong class="error">' . wfMessage( 'pfunc_time_too_big' )->inContentLanguage()->escaped() . '</strong>';

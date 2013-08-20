@@ -2,71 +2,104 @@
  * Footer cleanup
  */
 
-/* General layout */
-#wpTextbox1 {
-	margin: 0;
-	display: block;
-}
-
-.editOptions {
-	background-color: #F0F0F0;
+#editpage-bottom {
+	background-color: #F3F3F3;
 	border: 1px solid silver;
 	border-top: none;
-	padding: 1em 1em 1.5em 1em;
-	margin-bottom: 2em;
+	padding: 20px 170px 20px 170px;
+	margin-right: -2px;
 }
 
-/* Styles for collapsible lists of templates used and hidden categories */
+#editpage-bottom input.inline-hint {
+	color: #999999;
+	font-style: italic;
+}
+
 .collapsible-list {
-	display: inline;
-	cursor: pointer;
-	min-width: 400px;
+	border-top: 1px solid silver;
+	border-bottom: 1px solid silver;
 }
 
-.collapsible-list span {
+.collapsible-list {
+	border-top: 1px solid silver;
+	border-bottom: 1px solid silver;
+	padding: 3px 2px;
+}
+
+.collapsible-list ul {
+	display: block;
+	padding: 0 0 0 14px;
+}
+
+.collapsible-list.collapsed label {
+	/* @embed */
+	background: url(../images/vector/collapsibleNav/arrow-down.png) 0 50% no-repeat;
+	padding: 4px 0 3px 1.5em;
+	margin-bottom: 0;
+}
+
+.collapsible-list.expanded label {
+	/* @embed */
+	background: url(../images/vector/collapsibleNav/arrow-right.png) 0 50% no-repeat;
+	padding: 4px 0 3px 1.5em;
+	margin-bottom: 0;
+}
+
+#editpage-bottom .editOptions {
+	width: 100%;
+}
+
+#editpage-bottom #wpSummaryLabel,
+#editpage-bottom #editpage-summary-fields,
+#editpage-bottom .editButtons {
 	float: left;
-	/* @embed */
-	background-image: url(./images/open.png);
-	background-repeat: no-repeat;
-	background-position: 50% 50%;
+}
+
+#editpage-bottom #wpSummaryLabel {
+	width: 150px;
+	margin-left: -150px;
+	position: relative;
+}
+
+#editpage-bottom #editpage-summary-fields {
+	width: 100%;
+	margin-right: -100%;
+}
+
+#editpage-bottom #editpage-summary-fields input.mw-summary {
+	width: 95%;
+}
+
+#editpage-bottom .editButtons {
+	width: 150px;
+	margin-right: -150px;
+	float: right;
+	position: relative;
+}
+
+#editpage-bottom #editpage-copywarn {
+	margin-left: -150px;
+	margin-right: 10px;
+}
+
+/* Why don't we use self clearing floats anywhere? */
+
+#editpage-bottom .editOptions:after {
+	content: ".";
 	display: block;
-	height: 16px;
-	width: 16px;
+	height: 0;
+	clear: both;
+	visibility: hidden;
 }
 
-.collapsible-list span.collapsed {
-	/* @embed */
-	background-image: url(./images/closed-ltr.png);
+#editpage-bottom .editOptions {
+	display: inline-block;
 }
 
-.hiddencats ul, .templatesUsed ul {
-	margin-bottom: 1em;
-	margin-left: 2.5em;
+* html #editpage-bottom .editOptions {
+	height: 1%;
 }
 
-/* Adjustments to edit form elements */
-.editCheckboxes {
-	margin-bottom: 1em;
-}
-
-.editCheckboxes input:first-child {
-	margin-left: 0;
-}
-
-.cancelLink {
-	margin-left: 0.5em;
-}
-
-#editpage-copywarn {
-	font-size: 0.9em;
-}
-
-#wpSummary {
+#editpage-bottom .editOptions {
 	display: block;
-	margin-top: 0;
-	margin-bottom: 0.5em;
-}
-
-.editButtons input:first-child {
-	margin-left: .1em;
 }

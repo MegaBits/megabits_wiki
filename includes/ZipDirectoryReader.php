@@ -1,24 +1,4 @@
 <?php
-/**
- * ZIP file directories reader, for the purposes of upload verification.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- */
 
 /**
  * A class for reading ZIP file directories, for the purposes of upload
@@ -34,10 +14,10 @@ class ZipDirectoryReader {
 	 *
 	 * Because this class is aimed at verification, an error is raised on
 	 * suspicious or ambiguous input, instead of emulating some standard
-	 * behavior.
+	 * behaviour.
 	 *
-	 * @param string $fileName The archive file name
-	 * @param array $callback The callback function. It will be called for each file
+	 * @param $fileName string The archive file name
+	 * @param $callback Array The callback function. It will be called for each file
 	 *   with a single associative array each time, with members:
 	 *
 	 *      - name: The file name. Directories conventionally have a trailing
@@ -47,7 +27,7 @@ class ZipDirectoryReader {
 	 *
 	 *      - size: The uncompressed file size
 	 *
-	 * @param array $options An associative array of read options, with the option
+	 * @param $options Array An associative array of read options, with the option
 	 *    name in the key. This may currently contain:
 	 *
 	 *      - zip64: If this is set to true, then we will emulate a
@@ -181,7 +161,7 @@ class ZipDirectoryReader {
 	 * Throw an error, and log a debug message
 	 */
 	function error( $code, $debugMessage ) {
-		wfDebug( __CLASS__ . ": Fatal error: $debugMessage\n" );
+		wfDebug( __CLASS__.": Fatal error: $debugMessage\n" );
 		throw new ZipDirectoryReaderError( $code );
 	}
 
@@ -220,7 +200,7 @@ class ZipDirectoryReader {
 		if ( $structSize + $this->eocdr['file comment length'] != strlen( $block ) - $sigPos ) {
 			$this->error( 'zip-bad', 'trailing bytes after the end of the file comment' );
 		}
-		if ( $this->eocdr['disk'] !== 0
+		if (   $this->eocdr['disk'] !== 0
 			|| $this->eocdr['CD start disk'] !== 0 )
 		{
 			$this->error( 'zip-unsupported', 'more than one disk (in EOCDR)' );
@@ -262,7 +242,7 @@ class ZipDirectoryReader {
 	 * may replace the regular "end of central directory record" in ZIP64 files.
 	 */
 	function readZip64EndOfCentralDirectoryRecord() {
-		if ( $this->eocdr64Locator['eocdr64 start disk'] != 0
+		if (   $this->eocdr64Locator['eocdr64 start disk'] != 0
 			|| $this->eocdr64Locator['number of disks'] != 0 )
 		{
 			$this->error( 'zip-unsupported', 'more than one disk (in EOCDR64 locator)' );
@@ -286,7 +266,7 @@ class ZipDirectoryReader {
 		if ( $data['signature'] !== "PK\x06\x06" ) {
 			$this->error( 'zip-bad', 'wrong signature on Zip64 end of central directory record' );
 		}
-		if ( $data['disk'] !== 0
+		if (   $data['disk'] !== 0
 			|| $data['CD start disk'] !== 0 )
 		{
 			$this->error( 'zip-unsupported', 'more than one disk (in EOCDR64)' );
@@ -317,7 +297,7 @@ class ZipDirectoryReader {
 	 * Find the location of the central directory, as would be seen by a
 	 * ZIP64-compliant reader.
 	 *
-	 * @return array List containing offset, size and end position.
+	 * @return List containing offset, size and end position.
 	 */
 	function findZip64CentralDirectory() {
 		// The spec is ambiguous about the exact rules of precedence between the
@@ -327,7 +307,7 @@ class ZipDirectoryReader {
 		$offset = $this->eocdr['CD offset'];
 		$numEntries = $this->eocdr['CD entries total'];
 		$endPos = $this->eocdr['position'];
-		if ( $size == 0xffffffff
+		if (   $size == 0xffffffff
 			|| $offset == 0xffffffff
 			|| $numEntries == 0xffff )
 		{
@@ -395,7 +375,7 @@ class ZipDirectoryReader {
 			$data += $this->unpack( $block, $variableInfo, $pos );
 			$pos += $this->getStructSize( $variableInfo );
 
-			if ( $this->zip64 && (
+			if (   $this->zip64 && (
 				   $data['compressed size'] == 0xffffffff
 				|| $data['uncompressed size'] == 0xffffffff
 				|| $data['local header offset'] == 0xffffffff ) )
@@ -446,7 +426,6 @@ class ZipDirectoryReader {
 
 	/**
 	 * Interpret ZIP64 "extra field" data and return an associative array.
-	 * @return array|bool
 	 */
 	function unpackZip64Extra( $extraField ) {
 		$extraHeaderInfo = array(
@@ -494,8 +473,8 @@ class ZipDirectoryReader {
 	 * Get the file contents from a given offset. If there are not enough bytes
 	 * in the file to satisfy the request, an exception will be thrown.
 	 *
-	 * @param int $start The byte offset of the start of the block.
-	 * @param int $length The number of bytes to return. If omitted, the remainder
+	 * @param $start The byte offset of the start of the block.
+	 * @param $length The number of bytes to return. If omitted, the remainder
 	 *    of the file will be returned.
 	 *
 	 * @return string
@@ -538,10 +517,9 @@ class ZipDirectoryReader {
 	 * of length self::SEGSIZE. The result is cached. This is a helper function
 	 * for getBlock().
 	 *
-	 * If there are not enough bytes in the file to satisfy the request, the
+	 * If there are not enough bytes in the file to satsify the request, the
 	 * return value will be truncated. If a request is made for a segment beyond
 	 * the end of the file, an empty string will be returned.
-	 * @return string
 	 */
 	function getSegment( $segIndex ) {
 		if ( !isset( $this->buffer[$segIndex] ) ) {
@@ -564,13 +542,12 @@ class ZipDirectoryReader {
 
 	/**
 	 * Get the size of a structure in bytes. See unpack() for the format of $struct.
-	 * @return int
 	 */
 	function getStructSize( $struct ) {
 		$size = 0;
 		foreach ( $struct as $type ) {
 			if ( is_array( $type ) ) {
-				list( , $fieldSize ) = $type;
+				list( $typeName, $fieldSize ) = $type;
 				$size += $fieldSize;
 			} else {
 				$size += $type;
@@ -583,9 +560,9 @@ class ZipDirectoryReader {
 	 * Unpack a binary structure. This is like the built-in unpack() function
 	 * except nicer.
 	 *
-	 * @param string $string The binary data input
+	 * @param $string The binary data input
 	 *
-	 * @param array $struct An associative array giving structure members and their
+	 * @param $struct An associative array giving structure members and their
 	 *    types. In the key is the field name. The value may be either an
 	 *    integer, in which case the field is a little-endian unsigned integer
 	 *    encoded in the given number of bytes, or an array, in which case the
@@ -594,10 +571,9 @@ class ZipDirectoryReader {
 	 *       - "string": The second array element gives the length of string.
 	 *          Not null terminated.
 	 *
-	 * @param int $offset The offset into the string at which to start unpacking.
+	 * @param $offset The offset into the string at which to start unpacking.
 	 *
-	 * @throws MWException
-	 * @return array Unpacked associative array. Note that large integers in the input
+	 * @return Unpacked associative array. Note that large integers in the input
 	 *    may be represented as floating point numbers in the return value, so
 	 *    the use of weak comparison is advised.
 	 */
@@ -618,11 +594,12 @@ class ZipDirectoryReader {
 					$pos += $fieldSize;
 					break;
 				default:
-					throw new MWException( __METHOD__ . ": invalid type \"$typeName\"" );
+					throw new MWException( __METHOD__.": invalid type \"$typeName\"" );
 				}
 			} else {
 				// Unsigned little-endian integer
 				$length = intval( $type );
+				$bytes = substr( $string, $pos, $length );
 
 				// Calculate the value. Use an algorithm which automatically
 				// upgrades the value to floating point if necessary.
@@ -651,8 +628,7 @@ class ZipDirectoryReader {
 	 * boolean.
 	 *
 	 * @param $value integer
-	 * @param int $bitIndex The index of the bit, where 0 is the LSB.
-	 * @return bool
+	 * @param $bitIndex The index of the bit, where 0 is the LSB.
 	 */
 	function testBit( $value, $bitIndex ) {
 		return (bool)( ( $value >> $bitIndex ) & 1 );
@@ -696,10 +672,10 @@ class ZipDirectoryReader {
  * Internal exception class. Will be caught by private code.
  */
 class ZipDirectoryReaderError extends Exception {
-	var $errorCode;
+	var $code;
 
 	function __construct( $code ) {
-		$this->errorCode = $code;
+		$this->code = $code;
 		parent::__construct( "ZipDirectoryReader error: $code" );
 	}
 
@@ -707,6 +683,6 @@ class ZipDirectoryReaderError extends Exception {
 	 * @return mixed
 	 */
 	function getErrorCode() {
-		return $this->errorCode;
+		return $this->code;
 	}
 }

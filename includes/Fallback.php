@@ -1,7 +1,6 @@
 <?php
+
 /**
- * Fallback functions for PHP installed without mbstring support.
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -17,7 +16,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @file
  */
 
 /**
@@ -149,12 +147,13 @@ class Fallback {
 		return $total;
 	}
 
+
 	/**
 	 * Fallback implementation of mb_strpos, hardcoded to UTF-8.
 	 * @param $haystack String
 	 * @param $needle String
-	 * @param string $offset optional start position
-	 * @param string $encoding optional encoding; ignored
+	 * @param $offset String: optional start position
+	 * @param $encoding String: optional encoding; ignored
 	 * @return int
 	 */
 	public static function mb_strpos( $haystack, $needle, $offset = 0, $encoding = '' ) {
@@ -174,8 +173,8 @@ class Fallback {
 	 * Fallback implementation of mb_strrpos, hardcoded to UTF-8.
 	 * @param $haystack String
 	 * @param $needle String
-	 * @param string $offset optional start position
-	 * @param string $encoding optional encoding; ignored
+	 * @param $offset String: optional start position
+	 * @param $encoding String: optional encoding; ignored
 	 * @return int
 	 */
 	public static function mb_strrpos( $haystack, $needle, $offset = 0, $encoding = '' ) {
@@ -191,4 +190,22 @@ class Fallback {
 			return false;
 		}
 	}
+
+	/**
+	 * Fallback implementation of stream_resolve_include_path()
+	 * Native stream_resolve_include_path is available for PHP 5 >= 5.3.2
+	 * @param $filename String
+	 * @return String
+	 */
+	public static function stream_resolve_include_path( $filename ) {
+		$pathArray = explode( PATH_SEPARATOR, get_include_path() );
+		foreach ( $pathArray as $path ) {
+			$fullFilename = $path . DIRECTORY_SEPARATOR . $filename;
+			if ( file_exists( $fullFilename ) ) {
+				return $fullFilename;
+			}
+		}
+		return false;
+	}
+
 }

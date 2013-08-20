@@ -33,15 +33,6 @@ class SpecialEmailUser extends UnlistedSpecialPage {
 		parent::__construct( 'Emailuser' );
 	}
 
-	public function getDescription() {
-		$target = self::getTarget( $this->mTarget );
-		if( !$target instanceof User ) {
-			return $this->msg( 'emailuser-title-notarget' )->text();
-		}
-
-		return $this->msg( 'emailuser-title-target', $target->getName() )->text();
-	}
-
 	protected function getFormFields() {
 		return array(
 			'From' => array(
@@ -70,19 +61,18 @@ class SpecialEmailUser extends UnlistedSpecialPage {
 			),
 			'Subject' => array(
 				'type' => 'text',
-				'default' => $this->msg( 'defemailsubject',
-					$this->getUser()->getName() )->inContentLanguage()->text(),
+				'default' => wfMsgExt( 'defemailsubject', array( 'content', 'parsemag' ), $this->getUser()->getName() ),
 				'label-message' => 'emailsubject',
 				'maxlength' => 200,
 				'size' => 60,
-				'required' => true,
+				'required' => 1,
 			),
 			'Text' => array(
 				'type' => 'textarea',
 				'rows' => 20,
 				'cols' => 80,
 				'label-message' => 'emailmessage',
-				'required' => true,
+				'required' => 1,
 			),
 			'CCMe' => array(
 				'type' => 'check',
@@ -93,18 +83,13 @@ class SpecialEmailUser extends UnlistedSpecialPage {
 	}
 
 	public function execute( $par ) {
+		$this->setHeaders();
+		$this->outputHeader();
 		$out = $this->getOutput();
 		$out->addModuleStyles( 'mediawiki.special' );
-
 		$this->mTarget = is_null( $par )
 			? $this->getRequest()->getVal( 'wpTarget', $this->getRequest()->getVal( 'target', '' ) )
 			: $par;
-
-		// This needs to be below assignment of $this->mTarget because
-		// getDescription() needs it to determine the correct page title.
-		$this->setHeaders();
-		$this->outputHeader();
-
 		// error out if sending user cannot do this
 		$error = self::getPermissionsError( $this->getUser(), $this->getRequest()->getVal( 'wpEditToken' ) );
 		switch ( $error ) {
@@ -139,18 +124,18 @@ class SpecialEmailUser extends UnlistedSpecialPage {
 		$this->mTargetObj = $ret;
 
 		$form = new HTMLForm( $this->getFormFields(), $this->getContext() );
-		// By now we are supposed to be sure that $this->mTarget is a user name
-		$form->addPreText( $this->msg( 'emailpagetext', $this->mTarget )->parse() );
-		$form->setSubmitTextMsg( 'emailsend' );
+		$form->addPreText( wfMsgExt( 'emailpagetext', 'parseinline' ) );
+		$form->setSubmitText( wfMsg( 'emailsend' ) );
 		$form->setTitle( $this->getTitle() );
-		$form->setSubmitCallback( array( __CLASS__, 'uiSubmit' ) );
-		$form->setWrapperLegendMsg( 'email-legend' );
+		$form->setSubmitCallback( array( __CLASS__, 'submit' ) );
+		$form->setWrapperLegend( wfMsgExt( 'email-legend', 'parsemag' ) );
 		$form->loadData();
 
 		if( !wfRunHooks( 'EmailUserForm', array( &$form ) ) ) {
 			return false;
 		}
 
+		$out->setPageTitle( $this->msg( 'emailpage' ) );
 		$result = $form->show();
 
 		if( $result === true || ( $result instanceof Status && $result->isGood() ) ) {
@@ -163,7 +148,7 @@ class SpecialEmailUser extends UnlistedSpecialPage {
 	/**
 	 * Validate target User
 	 *
-	 * @param string $target target user name
+	 * @param $target String: target user name
 	 * @return User object on success or a string on error
 	 */
 	public static function getTarget( $target ) {
@@ -191,7 +176,7 @@ class SpecialEmailUser extends UnlistedSpecialPage {
 	 * Check whether a user is allowed to send email
 	 *
 	 * @param $user User object
-	 * @param string $editToken edit token
+	 * @param $editToken String: edit token
 	 * @return null on success or string on error
 	 */
 	public static function getPermissionsError( $user, $editToken ) {
@@ -231,7 +216,7 @@ class SpecialEmailUser extends UnlistedSpecialPage {
 	/**
 	 * Form to ask for target user name.
 	 *
-	 * @param string $name user name submitted.
+	 * @param $name String: user name submitted.
 	 * @return String: form asking for user name.
 	 */
 	protected function userForm( $name ) {
@@ -239,24 +224,12 @@ class SpecialEmailUser extends UnlistedSpecialPage {
 		$string = Xml::openElement( 'form', array( 'method' => 'get', 'action' => $wgScript, 'id' => 'askusername' ) ) .
 			Html::hidden( 'title', $this->getTitle()->getPrefixedText() ) .
 			Xml::openElement( 'fieldset' ) .
-			Html::rawElement( 'legend', null, $this->msg( 'emailtarget' )->parse() ) .
-			Xml::inputLabel( $this->msg( 'emailusername' )->text(), 'target', 'emailusertarget', 30, $name ) . ' ' .
-			Xml::submitButton( $this->msg( 'emailusernamesubmit' )->text() ) .
+			Html::rawElement( 'legend', null, wfMessage( 'emailtarget' )->parse() ) .
+			Xml::inputLabel( wfMessage( 'emailusername' )->text(), 'target', 'emailusertarget', 30, $name ) . ' ' .
+			Xml::submitButton( wfMessage( 'emailusernamesubmit' )->text() ) .
 			Xml::closeElement( 'fieldset' ) .
 			Xml::closeElement( 'form' ) . "\n";
 		return $string;
-	}
-
-	/**
-	 * Submit callback for an HTMLForm object, will simply call submit().
-	 *
-	 * @since 1.20
-	 * @param $data array
-	 * @param $form HTMLForm object
-	 * @return Status|string|bool
-	 */
-	public static function uiSubmit( array $data, HTMLForm $form ) {
-		return self::submit( $data, $form->getContext() );
 	}
 
 	/**
@@ -267,22 +240,25 @@ class SpecialEmailUser extends UnlistedSpecialPage {
 	 * @return Mixed: Status object, or potentially a String on error
 	 * or maybe even true on success if anything uses the EmailUser hook.
 	 */
-	public static function submit( array $data, IContextSource $context ) {
-		global $wgUserEmailUseReplyTo;
+	public static function submit( $data ) {
+		global $wgUser, $wgUserEmailUseReplyTo;
 
 		$target = self::getTarget( $data['Target'] );
 		if( !$target instanceof User ) {
-			return $context->msg( $target . 'text' )->parseAsBlock();
+			return wfMsgExt( $target . 'text', 'parse' );
 		}
 		$to = new MailAddress( $target );
-		$from = new MailAddress( $context->getUser() );
+		$from = new MailAddress( $wgUser );
 		$subject = $data['Subject'];
 		$text = $data['Text'];
 
 		// Add a standard footer and trim up trailing newlines
 		$text = rtrim( $text ) . "\n\n-- \n";
-		$text .= $context->msg( 'emailuserfooter',
-			$from->name, $to->name )->inContentLanguage()->text();
+		$text .= wfMsgExt(
+			'emailuserfooter',
+			array( 'content', 'parsemag' ),
+			array( $from->name, $to->name )
+		);
 
 		$error = '';
 		if( !wfRunHooks( 'EmailUser', array( &$to, &$from, &$subject, &$text, &$error ) ) ) {
@@ -326,8 +302,11 @@ class SpecialEmailUser extends UnlistedSpecialPage {
 			// unless they are emailing themselves, in which case one
 			// copy of the message is sufficient.
 			if ( $data['CCMe'] && $to != $from ) {
-				$cc_subject = $context->msg( 'emailccsubject' )->rawParams(
-					$target->getName(), $subject )->text();
+				$cc_subject = wfMsg(
+					'emailccsubject',
+					$target->getName(),
+					$subject
+				);
 				wfRunHooks( 'EmailUserCC', array( &$from, &$from, &$cc_subject, &$text ) );
 				$ccStatus = UserMailer::send( $from, $from, $cc_subject, $text );
 				$status->merge( $ccStatus );
@@ -336,9 +315,5 @@ class SpecialEmailUser extends UnlistedSpecialPage {
 			wfRunHooks( 'EmailUserComplete', array( $to, $from, $subject, $text ) );
 			return $status;
 		}
-	}
-
-	protected function getGroupName() {
-		return 'users';
 	}
 }

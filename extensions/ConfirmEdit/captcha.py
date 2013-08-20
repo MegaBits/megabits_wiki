@@ -124,32 +124,12 @@ def gen_subdir(basedir, md5hash, levels):
 			os.mkdir(fulldir)
 	return subdir
 
-def try_pick_word(words, blacklist, verbose, nwords, min_length, max_length):
-	if words is not None:
-		word = words[random.randint(0,len(words)-1)]
-		while nwords > 1:
-			word2 = words[random.randint(0,len(words)-1)]
-			word = word + word2
-			nwords = nwords - 1
-	else:
-		word = ''
-		max_length = max_length if max_length > 0 else 10
-		for i in range(0, random.randint(min_length, max_length)):
-			word = word + chr(97 + random.randint(0,25))
-
+def try_pick_word(words, blacklist, verbose):
+	word1 = words[random.randint(0,len(words)-1)]
+	word2 = words[random.randint(0,len(words)-1)]
+	word = word1+word2
 	if verbose:
 		print "word is %s" % word
-
-	if len(word) < min_length:
-		if verbose:
-			print "skipping word pair '%s' because it has fewer than %d characters" % (word, min_length)
-		return None
-
-	if max_length > 0 and len(word) > max_length:
-		if verbose:
-			print "skipping word pair '%s' because it has more than %d characters" % (word, max_length)
-		return None
-
 	if nonalpha.search(word):
 		if verbose:
 			print "skipping word pair '%s' because it contains non-alphabetic characters" % word
@@ -162,18 +142,15 @@ def try_pick_word(words, blacklist, verbose, nwords, min_length, max_length):
 			return None
 	return word
 
-def pick_word(words, blacklist, verbose, nwords, min_length, max_length):
+def pick_word(words, blacklist, verbose):
 	for x in range(1000): # If we can't find a valid combination in 1000 tries, just give up
-		word = try_pick_word(words, blacklist, verbose, nwords, min_length, max_length)
+		word = try_pick_word(words, blacklist, verbose)
 		if word:
 			return word
 	sys.exit("Unable to find valid word combinations")
 
 def read_wordlist(filename):
-	f = open(filename)
-	words = [x.strip().lower() for x in f.readlines()]
-	f.close()
-	return words
+	return [x.strip().lower() for x in open(wordlist).readlines()]
 
 if __name__ == '__main__':
 	"""This grabs random words from the dictionary 'words' (one
@@ -185,7 +162,6 @@ if __name__ == '__main__':
 	"""
 	parser = OptionParser()
 	parser.add_option("--wordlist", help="A list of words (required)", metavar="WORDS.txt")
-	parser.add_option("--random", help="Use random charcters instead of a wordlist", action="store_true")
 	parser.add_option("--key", help="The passphrase set as $wgCaptchaSecret (required)", metavar="KEY")
 	parser.add_option("--output", help="The directory to put the images in - $wgCaptchaDirectory (required)", metavar="DIR")
 	parser.add_option("--font", help="The font to use (required)", metavar="FONT.ttf")
@@ -194,17 +170,12 @@ if __name__ == '__main__':
 	parser.add_option("--blacklist", help="A blacklist of words that should not be used", metavar="FILE")
 	parser.add_option("--fill", help="Fill the output directory to contain N files, overrides count, cannot be used with --dirs", metavar="N", type='int')
 	parser.add_option("--dirs", help="Put the images into subdirectories N levels deep - $wgCaptchaDirectoryLevels", metavar="N", type='int')
-	parser.add_option("--verbose", "-v", help="Show debugging information", action='store_true')
-	parser.add_option("--number-words", help="Number of words from the wordlist which make a captcha challenge (default 2)", type='int', default=2)
-	parser.add_option("--min-length", help="Minimum length for a captcha challenge", type='int', default=1)
-	parser.add_option("--max-length", help="Maximum length for a captcha challenge", type='int', default=-1)
+	parser.add_option("--verbose", "-v", help="Show debugging information", action='store_true')	
 	
 	opts, args = parser.parse_args()
 
 	if opts.wordlist:
 		wordlist = opts.wordlist
-	elif opts.random:
-		wordlist = None
 	else:
 		sys.exit("Need to specify a wordlist")
 	if opts.key:
@@ -226,16 +197,14 @@ if __name__ == '__main__':
 	dirs = opts.dirs
 	verbose = opts.verbose
 	fontsize = opts.font_size
-
+	
 	if fill:
 		count = max(0, fill - len(os.listdir(output)))
-
-	words = None
-	if wordlist:
-		words = read_wordlist(wordlist)
-		words = [x for x in words
-			if len(x) in (4,5) and x[0] != "f"
-			and x[0] != x[1] and x[-1] != x[-2]]
+	
+	words = read_wordlist(wordlist)
+	words = [x for x in words
+		if len(x) in (4,5) and x[0] != "f"
+		and x[0] != x[1] and x[-1] != x[-2]]
 	
 	if blacklistfile:
 		blacklist = read_wordlist(blacklistfile)
@@ -243,7 +212,7 @@ if __name__ == '__main__':
 		blacklist = []
 	
 	for i in range(count):
-		word = pick_word(words, blacklist, verbose, opts.number_words, opts.min_length, opts.max_length)
+		word = pick_word(words, blacklist, verbose)
 		salt = "%08x" % random.randrange(2**32)
 		# 64 bits of hash is plenty for this purpose
 		md5hash = hashlib.md5(key+salt+word+key+salt).hexdigest()[:16]

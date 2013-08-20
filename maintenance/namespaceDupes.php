@@ -2,7 +2,7 @@
 /**
  * Check for articles to fix after adding/deleting namespaces
  *
- * Copyright © 2005-2007 Brion Vibber <brion@pobox.com>
+ * Copyright (C) 2005-2007 Brion Vibber <brion@pobox.com>
  * http://www.mediawiki.org/
  *
  * This program is free software; you can redistribute it and/or modify
@@ -20,18 +20,11 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @file
  * @ingroup Maintenance
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script that checks for articles to fix after
- * adding/deleting namespaces.
- *
- * @ingroup Maintenance
- */
 class NamespaceConflictChecker extends Maintenance {
 
 	/**
@@ -147,13 +140,14 @@ class NamespaceConflictChecker extends Maintenance {
 	/**
 	 * Get the interwiki list
 	 *
+	 * @todo Needs to respect interwiki cache!
 	 * @return Array
 	 */
 	private function getInterwikiList() {
-		$result = Interwiki::getAllPrefixes();
+		$result = $this->db->select( 'interwiki', array( 'iw_prefix' ) );
 		$prefixes = array();
 		foreach ( $result as $row ) {
-			$prefixes[] = $row['iw_prefix'];
+			$prefixes[] = $row->iw_prefix;
 		}
 		return $prefixes;
 	}
@@ -263,7 +257,7 @@ class NamespaceConflictChecker extends Maintenance {
 			$newTitle->getDBkey(),
 			$newTitle->getPrefixedText() ) );
 
-		$id = $newTitle->getArticleID();
+		$id = $newTitle->getArticleId();
 		if ( $id ) {
 			$this->output( "...  *** cannot resolve automatically; page exists with ID $id ***\n" );
 			return false;
@@ -291,7 +285,7 @@ class NamespaceConflictChecker extends Maintenance {
 					$this->output( "... !!! invalid title\n" );
 					return false;
 				}
-				$id = $title->getArticleID();
+				$id = $title->getArticleId();
 				if ( $id ) {
 					$this->output( "...  *** page exists with ID $id ***\n" );
 				} else {

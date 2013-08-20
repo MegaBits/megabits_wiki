@@ -1,6 +1,6 @@
 <?php
 /**
- * Cleanup all spam from a given hostname.
+ * Cleanup all spam from a given hostname
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,30 +21,23 @@
  * @ingroup Maintenance
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script to cleanup all spam from a given hostname.
- *
- * @ingroup Maintenance
- */
 class CleanupSpam extends Maintenance {
-
 	public function __construct() {
 		parent::__construct();
 		$this->mDescription = "Cleanup all spam from a given hostname";
 		$this->addOption( 'all', 'Check all wikis in $wgLocalDatabases' );
-		$this->addOption( 'delete', 'Delete pages containing only spam instead of blanking them' );
-		$this->addArg( 'hostname', 'Hostname that was spamming, single * wildcard in the beginning allowed' );
+		$this->addArg( 'hostname', 'Hostname that was spamming' );
 	}
 
 	public function execute() {
 		global $wgLocalDatabases, $wgUser;
 
-		$username = wfMessage( 'spambot_username' )->text();
+		$username = wfMsg( 'spambot_username' );
 		$wgUser = User::newFromName( $username );
 		if ( !$wgUser ) {
-			$this->error( "Invalid username specified in 'spambot_username' message: $username", true );
+			$this->error( "Invalid username", true );
 		}
 		// Create the user if necessary
 		if ( !$wgUser->getId() ) {
@@ -103,8 +96,7 @@ class CleanupSpam extends Maintenance {
 		$rev = Revision::newFromTitle( $title );
 		$currentRevId = $rev->getId();
 
-		while ( $rev && ( $rev->isDeleted( Revision::DELETED_TEXT )
-						|| LinkFilter::matchEntry( $rev->getContent( Revision::RAW ), $domain ) ) ) {
+		while ( $rev && ( $rev->isDeleted( Revision::DELETED_TEXT ) || LinkFilter::matchEntry( $rev->getText() , $domain ) ) ) {
 			$rev = $rev->getPrevious();
 		}
 
@@ -114,28 +106,19 @@ class CleanupSpam extends Maintenance {
 			$this->output( "False match\n" );
 		} else {
 			$dbw = wfGetDB( DB_MASTER );
-			$dbw->begin( __METHOD__ );
+			$dbw->begin();
 			$page = WikiPage::factory( $title );
-			if ( $rev ) {
-				// Revert to this revision
-				$content = $rev->getContent( Revision::RAW );
-
-				$this->output( "reverting\n" );
-				$page->doEditContent( $content, wfMessage( 'spam_reverting', $domain )->inContentLanguage()->text(),
-					EDIT_UPDATE, $rev->getId() );
-			} elseif ( $this->hasOption( 'delete' ) ) {
+			if ( !$rev ) {
 				// Didn't find a non-spammy revision, blank the page
-				$this->output( "deleting\n" );
-				$page->doDeleteArticle( wfMessage( 'spam_deleting', $domain )->inContentLanguage()->text() );
-			} else {
-				// Didn't find a non-spammy revision, blank the page
-				$handler = ContentHandler::getForTitle( $title );
-				$content = $handler->makeEmptyContent();
-
 				$this->output( "blanking\n" );
-				$page->doEditContent( $content, wfMessage( 'spam_blanking', $domain )->inContentLanguage()->text() );
+				$page->doEdit( '', wfMsgForContent( 'spam_blanking', $domain ) );
+			} else {
+				// Revert to this revision
+				$this->output( "reverting\n" );
+				$page->doEdit( $rev->getText(), wfMsgForContent( 'spam_reverting', $domain ),
+					EDIT_UPDATE, $rev->getId() );
 			}
-			$dbw->commit( __METHOD__ );
+			$dbw->commit();
 		}
 	}
 }

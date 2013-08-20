@@ -239,13 +239,12 @@ $messages['de'] = array(
 
 /** Zazaki (Zazaki)
  * @author Aspar
- * @author Mirzali
  */
 $messages['diq'] = array(
 	'syntaxhighlight-desc' => 'pê şuxulnayişê [http://qbnz.com/highlighter/ GeSHi Highlighter] i rêza <code>&lt;syntaxhighlight&gt;</code> i işaret beno',
 	'syntaxhighlight-specify' => 'zey ıni yew zıwan bıvıcinê:',
-	'syntaxhighlight-supported' => 'Zıwanê ke rêzerêzê desteg benê:',
-	'syntaxhighlight-err-loading' => '(lista zıwananê ke xetaya barkerdışi desteg gêna)',
+	'syntaxhighlight-supported' => 'zıwanê ke rêzvateyê eyi destek beni',
+	'syntaxhighlight-err-loading' => '(zıwanê ke destek geni, wexata bar biyene xeta da)',
 	'syntaxhighlight-err-language' => 'zıwano nemeqbul',
 	'geshi.css' => 'CSS o ke tiya /* de yo, işaretê rêzvateyê GeSHi tetbiq beno */',
 );
@@ -660,7 +659,7 @@ $messages['ko'] = array(
 	'syntaxhighlight-desc' => '<code>&lt;syntaxhighlight&gt;</code> 태그로 [http://qbnz.com/highlighter/ GeSHi Highlighter]를 이용해 문법 강조 기능을 지원합니다.',
 	'syntaxhighlight-specify' => '오른쪽과 같이 언어를 설정해야 합니다:',
 	'syntaxhighlight-supported' => '문법 강조가 지원되는 언어 목록',
-	'syntaxhighlight-err-loading' => '(지원하는 언어 목록을 불러오는 중 오류 발생)',
+	'syntaxhighlight-err-loading' => '(지원 언어 목록을 불러오는 중 오류 발생)',
 	'syntaxhighlight-err-language' => '잘못된 언어입니다.',
 	'geshi.css' => '/* 이 문서에서 설정한 CSS는 GeSHi에 적용됩니다. */',
 );
@@ -683,7 +682,7 @@ $messages['ksh'] = array(
  */
 $messages['lb'] = array(
 	'syntaxhighlight-desc' => "Syntax-Ervirhiewung <code>&lt;syntaxhighlight&gt;</code> mat Hëllef vu [http://qbnz.com/highlighter/ 'GeSHi Highlighter']",
-	'syntaxhighlight-specify' => 'Déi gewënscht Sprooch muss esou definéiert ginn:',
+	'syntaxhighlight-specify' => 'Déi gewënschte Sprooch muss esou definéiert ginn:',
 	'syntaxhighlight-supported' => "Ënnerstëtzte Sprooche fir d'Syntax faarweg ze markéieren",
 	'syntaxhighlight-err-loading' => '(Feeler beim Luede vun der Lëscht vun den ënnerstëtzte Sproochen)',
 	'syntaxhighlight-err-language' => 'Net valabel Sprooch.',

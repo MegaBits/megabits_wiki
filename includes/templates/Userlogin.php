@@ -1,21 +1,6 @@
 <?php
 /**
- * Html form for user login.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
+ * Html form for user login
  *
  * @file
  * @ingroup Templates
@@ -24,6 +9,8 @@
 /**
  * @defgroup Templates Templates
  */
+
+if( !defined( 'MEDIAWIKI' ) ) die( -1 );
 
 /**
  * HTML template for Special:Userlogin form
@@ -106,10 +93,9 @@ class UserloginTemplate extends QuickTemplate {
 			<td></td>
 			<td class="mw-input">
 				<?php
-				global $wgCookieExpiration;
-				$expirationDays = ceil( $wgCookieExpiration / ( 3600 * 24 ) );
+				global $wgCookieExpiration, $wgLang;
 				echo Xml::checkLabel(
-					wfMessage( 'remembermypassword' )->numParams( $expirationDays )->text(),
+					wfMsgExt( 'remembermypassword', 'parsemag', $wgLang->formatNum( ceil( $wgCookieExpiration / ( 3600 * 24 ) ) ) ),
 					'wpRemember',
 					'wpRemember',
 					$this->data['remember'],
@@ -125,7 +111,7 @@ class UserloginTemplate extends QuickTemplate {
 			<td class="mw-input">
 			<?php
 			echo Xml::checkLabel(
-				wfMessage( 'securelogin-stick-https' )->text(),
+				wfMsg( 'securelogin-stick-https' ),
 				'wpStickHTTPS',
 				'wpStickHTTPS',
 				$this->data['stickHTTPS'],
@@ -139,12 +125,12 @@ class UserloginTemplate extends QuickTemplate {
 			<td></td>
 			<td class="mw-submit">
 				<?php
-		echo Html::input( 'wpLoginAttempt', wfMessage( 'login' )->text(), 'submit', array(
+		echo Html::input( 'wpLoginAttempt', wfMsg( 'login' ), 'submit', array(
 			'id' => 'wpLoginAttempt',
 			'tabindex' => '9'
 		) );
 		if ( $this->data['useemail'] && $this->data['canreset'] ) {
-			if( $this->data['resetlink'] === true ) {
+			if( $this->data['resetlink'] === true ){
 				echo '&#160;';
 				echo Linker::link(
 					SpecialPage::getTitleFor( 'PasswordReset' ),
@@ -152,14 +138,10 @@ class UserloginTemplate extends QuickTemplate {
 				);
 			} elseif( $this->data['resetlink'] === null ) {
 				echo '&#160;';
-				echo Html::input(
-					'wpMailmypassword',
-					wfMessage( 'mailmypassword' )->text(),
-					'submit', array(
-						'id' => 'wpMailmypassword',
-						'tabindex' => '10'
-					)
-				);
+				echo Html::input( 'wpMailmypassword', wfMsg( 'mailmypassword' ), 'submit', array(
+					'id' => 'wpMailmypassword',
+					'tabindex' => '10'
+				) );
 			}
 		} ?>
 

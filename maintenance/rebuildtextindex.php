@@ -20,18 +20,12 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @file
  * @ingroup Maintenance
  * @todo document
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script that rebuilds search index table from scratch.
- *
- * @ingroup Maintenance
- */
 class RebuildTextIndex extends Maintenance {
 	const RTI_CHUNK_SIZE = 500;
 
@@ -92,37 +86,22 @@ class RebuildTextIndex extends Maintenance {
 		$this->output( "Rebuilding index fields for {$count} pages...\n" );
 		$n = 0;
 
-		$fields = array_merge(
-			Revision::selectPageFields(),
-			Revision::selectFields(),
-			Revision::selectTextFields()
-		);
-
 		while ( $n < $count ) {
 			if ( $n ) {
 				$this->output( $n . "\n" );
 			}
 			$end = $n + self::RTI_CHUNK_SIZE - 1;
 
-			$res = $this->db->select( array( 'page', 'revision', 'text' ), $fields,
+			$res = $this->db->select( array( 'page', 'revision', 'text' ),
+				array( 'page_id', 'page_namespace', 'page_title', 'old_flags', 'old_text' ),
 				array( "page_id BETWEEN $n AND $end", 'page_latest = rev_id', 'rev_text_id = old_id' ),
 				__METHOD__
-			);
+				);
 
 			foreach ( $res as $s ) {
-				try {
-					$title = Title::makeTitle( $s->page_namespace, $s->page_title );
-
-					$rev = new Revision( $s );
-					$content = $rev->getContent();
-					$text = $content->getTextForSearchIndex();
-
-					$u = new SearchUpdate( $s->page_id, $title, $text );
-					$u->doUpdate();
-				} catch ( MWContentSerializationException $ex ) {
-					$this->output( "Failed to deserialize content of revision {$s->rev_id} of page "
-						. "`" . $title->getPrefixedDBkey() . "`!\n" );
-				}
+				$revtext = Revision::getRevisionText( $s );
+				$u = new SearchUpdate( $s->page_id, $s->page_title, $revtext );
+				$u->doUpdate();
 			}
 			$n += self::RTI_CHUNK_SIZE;
 		}

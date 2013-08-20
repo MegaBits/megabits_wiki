@@ -28,11 +28,11 @@
  * @ingroup SpecialPage
  */
 class RandomPage extends SpecialPage {
-	private $namespaces; // namespaces to select pages from
+	private $namespaces;  // namespaces to select pages from
 	protected $isRedir = false; // should the result be a redirect?
 	protected $extra = array(); // Extra SQL statements
 
-	public function __construct( $name = 'Randompage' ) {
+	public function __construct( $name = 'Randompage' ){
 		$this->namespaces = MWNamespace::getContentNamespaces();
 		parent::__construct( $name );
 	}
@@ -49,7 +49,7 @@ class RandomPage extends SpecialPage {
 	}
 
 	// select redirects instead of normal pages?
-	public function isRedirect() {
+	public function isRedirect(){
 		return $this->isRedir;
 	}
 
@@ -85,7 +85,7 @@ class RandomPage extends SpecialPage {
 		$nsNames = array();
 		foreach( $this->namespaces as $n ) {
 			if( $n === NS_MAIN ) {
-				$nsNames[] = $this->msg( 'blanknamespace' )->plain();
+				$nsNames[] = wfMsgNoTrans( 'blanknamespace' );
 			} else {
 				$nsNames[] = $wgContLang->getNsText( $n );
 			}
@@ -158,9 +158,5 @@ class RandomPage extends SpecialPage {
 		);
 
 		return $dbr->fetchObject( $res );
-	}
-
-	protected function getGroupName() {
-		return 'redirects';
 	}
 }

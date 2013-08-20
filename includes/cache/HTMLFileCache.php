@@ -1,31 +1,7 @@
 <?php
 /**
- * Page view caching in the file system.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
+ * Contain the HTMLFileCache class
  * @file
- * @ingroup Cache
- */
-
-/**
- * Page view caching in the file system.
- * The only cacheable actions are "view" and "history". Also special pages
- * will not be cached.
- *
  * @ingroup Cache
  */
 class HTMLFileCache extends FileCacheBase {
@@ -33,7 +9,6 @@ class HTMLFileCache extends FileCacheBase {
 	 * Construct an ObjectFileCache from a Title and an action
 	 * @param $title Title|string Title object or prefixed DB key string
 	 * @param $action string
-	 * @throws MWException
 	 * @return HTMLFileCache
 	 */
 	public static function newFromTitle( $title, $action ) {
@@ -128,24 +103,21 @@ class HTMLFileCache extends FileCacheBase {
 	public function loadFromFileCache( IContextSource $context ) {
 		global $wgMimeType, $wgLanguageCode;
 
-		wfDebug( __METHOD__ . "()\n" );
+		wfDebug( __METHOD__ . "()\n");
 		$filename = $this->cachePath();
-
 		$context->getOutput()->sendCacheControl();
 		header( "Content-Type: $wgMimeType; charset=UTF-8" );
 		header( "Content-Language: $wgLanguageCode" );
 		if ( $this->useGzip() ) {
 			if ( wfClientAcceptsGzip() ) {
 				header( 'Content-Encoding: gzip' );
-				readfile( $filename );
 			} else {
 				/* Send uncompressed */
-				wfDebug( __METHOD__ . " uncompressing cache file and sending it\n" );
 				readgzfile( $filename );
+				return;
 			}
-		} else {
-			readfile( $filename );
 		}
+		readfile( $filename );
 		$context->getOutput()->disable(); // tell $wgOut that output is taken care of
 	}
 
@@ -168,10 +140,10 @@ class HTMLFileCache extends FileCacheBase {
 		$now = wfTimestampNow();
 		if ( $this->useGzip() ) {
 			$text = str_replace(
-				'</html>', '<!-- Cached/compressed ' . $now . " -->\n</html>", $text );
+				'</html>', '<!-- Cached/compressed '.$now." -->\n</html>", $text );
 		} else {
 			$text = str_replace(
-				'</html>', '<!-- Cached ' . $now . " -->\n</html>", $text );
+				'</html>', '<!-- Cached '.$now." -->\n</html>", $text );
 		}
 
 		// Store text to FS...

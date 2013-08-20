@@ -2,22 +2,6 @@
 /**
  * Standard (a.k.a. Classic) skin: old MediaWiki default skin
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- *
  * @file
  * @ingroup Skins
  */
@@ -37,7 +21,7 @@ class SkinStandard extends SkinLegacy {
 	/**
 	 * @param $out OutputPage
 	 */
-	function setupSkinUserCss( OutputPage $out ) {
+	function setupSkinUserCss( OutputPage $out ){
 		parent::setupSkinUserCss( $out );
 		$out->addModuleStyles( 'skins.standard' );
 
@@ -78,12 +62,12 @@ class StandardTemplate extends LegacyTemplate {
 
 		$s = "\n</div><br style=\"clear:both\" />\n";
 		$s .= "\n<div id='footer'>";
-		$s .= '<table cellspacing="0"><tr>';
+		$s .= '<table border="0" cellspacing="0"><tr>';
 
 		wfProfileOut( __METHOD__ . '-1' );
 		wfProfileIn( __METHOD__ . '-2' );
 		$l = $this->getSkin()->getLanguage()->alignStart();
-		$s .= "<td class='bottom' style='text-align: $l; vertical-align: top;'>";
+		$s .= "<td class='bottom' align='$l' valign='top'>";
 
 		$s .= $this->bottomLinks();
 		$s .= "\n<br />" . $this->getSkin()->getLanguage()->pipeList( array(
@@ -149,7 +133,7 @@ class StandardTemplate extends LegacyTemplate {
 					$s.= Linker::specialLink( 'Watchlist' ) ;
 					$s .= $sep . Linker::linkKnown(
 						SpecialPage::getTitleFor( 'Contributions' ),
-						wfMessage( 'mycontris' )->escaped(),
+						wfMsg( 'mycontris' ),
 						array(),
 						array( 'target' => $this->data['username'] )
 					);
@@ -159,7 +143,7 @@ class StandardTemplate extends LegacyTemplate {
 		}
 
 		$s .= "\n<hr class='sep' />";
-		$articleExists = $title->getArticleID();
+		$articleExists = $title->getArticleId();
 		if ( $this->data['isarticle'] || $action == 'edit' || $action == 'history' || $wpPreview ) {
 			if( $this->data['isarticle'] ) {
 				$s .= '<strong>' . $this->editThisPage() . '</strong>';
@@ -174,34 +158,34 @@ class StandardTemplate extends LegacyTemplate {
 						case NS_TEMPLATE_TALK:
 						case NS_HELP_TALK:
 						case NS_CATEGORY_TALK:
-							$text = wfMessage('viewtalkpage');
+							$text = wfMsg('viewtalkpage');
 							break;
 						case NS_MAIN:
-							$text = wfMessage( 'articlepage' );
+							$text = wfMsg( 'articlepage' );
 							break;
 						case NS_USER:
-							$text = wfMessage( 'userpage' );
+							$text = wfMsg( 'userpage' );
 							break;
 						case NS_PROJECT:
-							$text = wfMessage( 'projectpage' );
+							$text = wfMsg( 'projectpage' );
 							break;
 						case NS_FILE:
-							$text = wfMessage( 'imagepage' );
+							$text = wfMsg( 'imagepage' );
 							break;
 						case NS_MEDIAWIKI:
-							$text = wfMessage( 'mediawikipage' );
+							$text = wfMsg( 'mediawikipage' );
 							break;
 						case NS_TEMPLATE:
-							$text = wfMessage( 'templatepage' );
+							$text = wfMsg( 'templatepage' );
 							break;
 						case NS_HELP:
-							$text = wfMessage( 'viewhelppage' );
+							$text = wfMsg( 'viewhelppage' );
 							break;
 						case NS_CATEGORY:
-							$text = wfMessage( 'categorypage' );
+							$text = wfMsg( 'categorypage' );
 							break;
 						default:
-							$text = wfMessage( 'articlepage' );
+							$text = wfMsg( 'articlepage' );
 					}
 
 					$link = $title->getText();
@@ -210,11 +194,11 @@ class StandardTemplate extends LegacyTemplate {
 						$link = $nstext . ':' . $link;
 					}
 
-					$s .= Linker::link( Title::newFromText( $link ), $text->escaped() );
+					$s .= Linker::link( Title::newFromText( $link ), $text );
 				} elseif( $title->getNamespace() != NS_SPECIAL ) {
 					# we just throw in a "New page" text to tell the user that he's in edit mode,
 					# and to avoid messing with the separator that is prepended to the next item
-					$s .= '<strong>' . wfMessage( 'newpage' )->escaped() . '</strong>';
+					$s .= '<strong>' . wfMsg( 'newpage' ) . '</strong>';
 				}
 			}
 
@@ -222,7 +206,7 @@ class StandardTemplate extends LegacyTemplate {
 			if( ( $title->isTalkPage() || $this->getSkin()->getOutput()->showNewSectionLink() ) && $action != 'edit' && !$wpPreview )
 				$s .= '<br />' . Linker::link(
 					$title,
-					wfMessage( 'postcomment' )->escaped(),
+					wfMsg( 'postcomment' ),
 					array(),
 					array(
 						'action' => 'edit',
@@ -284,11 +268,12 @@ class StandardTemplate extends LegacyTemplate {
 		global $wgSiteSupportPage;
 		if( $wgSiteSupportPage ) {
 			$s .= "\n<br /><a href=\"" . htmlspecialchars( $wgSiteSupportPage ) .
-			'" class="internal">' . wfMessage( 'sitesupport' )->escaped() . '</a>';
+			'" class="internal">' . wfMsg( 'sitesupport' ) . '</a>';
 		}
 
 		$s .= "\n<br /></div>\n";
 		wfProfileOut( __METHOD__ );
 		return $s;
 	}
+
 }

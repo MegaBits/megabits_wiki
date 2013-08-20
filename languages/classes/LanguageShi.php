@@ -1,45 +1,30 @@
 <?php
 /**
- * Shilha specific code.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- * @ingroup Language
- */
+  * @addtogroup Language
+  */
 
-require_once( __DIR__ . '/../LanguageConverter.php' );
+/*
+* Conversion script between Latin and Tifinagh for Tachelhit.
+* - Tifinagh -> lowercase Latin
+* - lowercase/uppercase Latin -> Tifinagh
+*
+*
+* Based on:
+*   - http://en.wikipedia.org/wiki/Shilha_language
+*   - LanguageSr.php
+*
+* @ingroup Language
+*/
+require_once( dirname( __FILE__ ) . '/../LanguageConverter.php' );
 
 /**
- * Conversion script between Latin and Tifinagh for Tachelhit.
- * - Tifinagh -> lowercase Latin
- * - lowercase/uppercase Latin -> Tifinagh
  *
- *
- * Based on:
- *   - http://en.wikipedia.org/wiki/Shilha_language
- *   - LanguageSr.php
- *
- * @ingroup Language
  */
 class ShiConverter extends LanguageConverter {
 
 	protected $mDoContentConvert;
 
-	public $mToLatin = array(
+	var $mToLatin = array(
 		'ⴰ' => 'a', 'ⴱ' => 'b', 'ⴳ' => 'g', 'ⴷ' => 'd', 'ⴹ' => 'ḍ', 'ⴻ' => 'e',
 		'ⴼ' => 'f', 'ⴽ' => 'k', 'ⵀ' => 'h', 'ⵃ' => 'ḥ', 'ⵄ' => 'ε', 'ⵅ' => 'x',
 		'ⵇ' => 'q', 'ⵉ' => 'i', 'ⵊ' => 'j',  'ⵍ' => 'l', 'ⵎ' => 'm', 'ⵏ' => 'n',
@@ -48,7 +33,7 @@ class ShiConverter extends LanguageConverter {
 		'ⵥ' => 'ẓ', 'ⵯ' => 'ʷ', 'ⵖ' => 'ɣ', 'ⵠ' => 'v', 'ⵒ' => 'p',
 	);
 
-	public $mUpperToLowerCaseLatin = array(
+	var $mUpperToLowerCaseLatin = array(
 		'A' => 'a',	'B' => 'b',	'C' => 'c',	'D' => 'd',	'E' => 'e',
 		'F' => 'f',	'G' => 'g',	'H' => 'h',	'I' => 'i',	'J' => 'j',
 		'K' => 'k',	'L' => 'l',	'M' => 'm',	'N' => 'n',	'O' => 'o',
@@ -57,7 +42,7 @@ class ShiConverter extends LanguageConverter {
 		'Z' => 'z', 'Ɣ' => 'ɣ',
 	);
 
-	public $mToTifinagh = array(
+	var $mToTifinagh = array(
 		'a' => 'ⴰ', 'b' => 'ⴱ', 'g' => 'ⴳ', 'd' => 'ⴷ', 'ḍ' => 'ⴹ', 'e' => 'ⴻ',
 		'f' => 'ⴼ', 'k' => 'ⴽ', 'h' => 'ⵀ', 'ḥ' => 'ⵃ', 'ε' => 'ⵄ', 'x' => 'ⵅ',
 		'q' => 'ⵇ', 'i' => 'ⵉ', 'j' => 'ⵊ',  'l' => 'ⵍ', 'm' => 'ⵎ', 'n' => 'ⵏ',
@@ -137,6 +122,21 @@ class ShiConverter extends LanguageConverter {
 	}
 
 	/**
+	 * We want our external link captions to be converted in variants,
+	 * so we return the original text instead -{$text}-, except for URLs
+	 *
+	 * @param $text string
+	 * @param $noParse bool
+	 *
+	 * @return string
+	 */
+	function markNoConversion( $text, $noParse = false ) {
+		if ( $noParse || preg_match( "/^https?:\/\/|ftp:\/\/|irc:\/\//", $text ) )
+			return parent::markNoConversion( $text );
+		return $text;
+	}
+
+	/**
 	 * An ugly function wrapper for parsing Image titles
 	 * (to prevent image name conversion)
 	 *
@@ -197,6 +197,6 @@ class LanguageShi extends Language {
 
 		$flags = array();
 		$this->mConverter = new ShiConverter( $this, 'shi', $variants, $variantfallbacks, $flags );
-		$wgHooks['PageContentSaveComplete'][] = $this->mConverter;
+		$wgHooks['ArticleSaveComplete'][] = $this->mConverter;
 	}
 }

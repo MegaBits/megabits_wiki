@@ -3,21 +3,6 @@
  * Local repository that stores files in the local filesystem and registers them
  * in the wiki's own database.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
  * @file
  * @ingroup FileRepo
  */
@@ -39,7 +24,7 @@ class LocalRepo extends FileRepo {
 	/**
 	 * @throws MWException
 	 * @param $row
-	 * @return LocalFile
+	 * @return File
 	 */
 	function newFileFromRow( $row ) {
 		if ( isset( $row->img_name ) ) {
@@ -70,7 +55,7 @@ class LocalRepo extends FileRepo {
 	 *
 	 * @return FileRepoStatus
 	 */
-	function cleanupDeletedBatch( array $storageKeys ) {
+	function cleanupDeletedBatch( $storageKeys ) {
 		$backend = $this->backend; // convenience
 		$root = $this->getZonePath( 'deleted' );
 		$dbw = $this->getMasterDB();
@@ -79,7 +64,7 @@ class LocalRepo extends FileRepo {
 		foreach ( $storageKeys as $key ) {
 			$hashPath = $this->getDeletedHashPath( $key );
 			$path = "$root/$hashPath$key";
-			$dbw->begin( __METHOD__ );
+			$dbw->begin();
 			// Check for usage in deleted/hidden files and pre-emptively
 			// lock the key to avoid any future use until we are finished.
 			$deleted = $this->deletedFileHasKey( $key, 'lock' );
@@ -95,7 +80,7 @@ class LocalRepo extends FileRepo {
 				wfDebug( __METHOD__ . ": $key still in use\n" );
 				$status->successCount++;
 			}
-			$dbw->commit( __METHOD__ );
+			$dbw->commit();
 		}
 		return $status;
 	}
@@ -103,8 +88,8 @@ class LocalRepo extends FileRepo {
 	/**
 	 * Check if a deleted (filearchive) file has this sha1 key
 	 *
-	 * @param string $key File storage key (base-36 sha1 key with file extension)
-	 * @param string|null $lock Use "lock" to lock the row via FOR UPDATE
+	 * @param $key String File storage key (base-36 sha1 key with file extension)
+	 * @param $lock String|null Use "lock" to lock the row via FOR UPDATE
 	 * @return bool File with this key is in use
 	 */
 	protected function deletedFileHasKey( $key, $lock = null ) {
@@ -120,8 +105,8 @@ class LocalRepo extends FileRepo {
 	/**
 	 * Check if a hidden (revision delete) file has this sha1 key
 	 *
-	 * @param string $key File storage key (base-36 sha1 key with file extension)
-	 * @param string|null $lock Use "lock" to lock the row via FOR UPDATE
+	 * @param $key String File storage key (base-36 sha1 key with file extension)
+	 * @param $lock String|null Use "lock" to lock the row via FOR UPDATE
 	 * @return bool File with this key is in use
 	 */
 	protected function hiddenFileHasKey( $key, $lock = null ) {
@@ -148,7 +133,7 @@ class LocalRepo extends FileRepo {
 	public static function getHashFromKey( $key ) {
 		return strtok( $key, '.' );
 	}
-
+	
 	/**
 	 * Checks if there is a redirect named as $title
 	 *
@@ -168,7 +153,7 @@ class LocalRepo extends FileRepo {
 			$expiry = 86400; // has invalidation, 1 day
 		}
 		$cachedValue = $wgMemc->get( $memcKey );
-		if ( $cachedValue === ' ' || $cachedValue === '' ) {
+		if ( $cachedValue === ' '  || $cachedValue === '' ) {
 			// Does not exist
 			return false;
 		} elseif ( strval( $cachedValue ) !== '' ) {
@@ -198,12 +183,12 @@ class LocalRepo extends FileRepo {
 		}
 	}
 
+
 	/**
 	 * Function link Title::getArticleID().
 	 * We can't say Title object, what database it should use, so we duplicate that function here.
 	 *
 	 * @param $title Title
-	 * @return bool|int|mixed
 	 */
 	protected function getArticleID( $title ) {
 		if( !$title instanceof Title ) {
@@ -212,12 +197,12 @@ class LocalRepo extends FileRepo {
 		$dbr = $this->getSlaveDB();
 		$id = $dbr->selectField(
 			'page', // Table
-			'page_id', //Field
-			array( //Conditions
+			'page_id',  //Field
+			array(  //Conditions
 				'page_namespace' => $title->getNamespace(),
 				'page_title' => $title->getDBkey(),
 			),
-			__METHOD__ //Function name
+			__METHOD__  //Function name
 		);
 		return $id;
 	}
@@ -226,7 +211,7 @@ class LocalRepo extends FileRepo {
 	 * Get an array or iterator of file objects for files that have a given
 	 * SHA-1 content hash.
 	 *
-	 * @param string $hash a sha1 hash to look for
+	 * @param $hash String a sha1 hash to look for
 	 * @return Array
 	 */
 	function findBySha1( $hash ) {
@@ -234,11 +219,9 @@ class LocalRepo extends FileRepo {
 		$res = $dbr->select(
 			'image',
 			LocalFile::selectFields(),
-			array( 'img_sha1' => $hash ),
-			__METHOD__,
-			array( 'ORDER BY' => 'img_name' )
+			array( 'img_sha1' => $hash )
 		);
-
+		
 		$result = array();
 		foreach ( $res as $row ) {
 			$result[] = $this->newFileFromRow( $row );
@@ -249,69 +232,7 @@ class LocalRepo extends FileRepo {
 	}
 
 	/**
-	 * Get an array of arrays or iterators of file objects for files that
-	 * have the given SHA-1 content hashes.
-	 *
-	 * Overrides generic implementation in FileRepo for performance reason
-	 *
-	 * @param array $hashes An array of hashes
-	 * @return array An Array of arrays or iterators of file objects and the hash as key
-	 */
-	function findBySha1s( array $hashes ) {
-		if( !count( $hashes ) ) {
-			return array(); //empty parameter
-		}
-
-		$dbr = $this->getSlaveDB();
-		$res = $dbr->select(
-			'image',
-			LocalFile::selectFields(),
-			array( 'img_sha1' => $hashes ),
-			__METHOD__,
-			array( 'ORDER BY' => 'img_name' )
-		);
-
-		$result = array();
-		foreach ( $res as $row ) {
-			$file = $this->newFileFromRow( $row );
-			$result[$file->getSha1()][] = $file;
-		}
-		$res->free();
-
-		return $result;
-	}
-
-	/**
-	 * Return an array of files where the name starts with $prefix.
-	 *
-	 * @param string $prefix The prefix to search for
-	 * @param int $limit The maximum amount of files to return
-	 * @return array
-	 */
-	public function findFilesByPrefix( $prefix, $limit ) {
-		$selectOptions = array( 'ORDER BY' => 'img_name', 'LIMIT' => intval( $limit ) );
-
-		// Query database
-		$dbr = $this->getSlaveDB();
-		$res = $dbr->select(
-			'image',
-			LocalFile::selectFields(),
-			'img_name ' . $dbr->buildLike( $prefix, $dbr->anyString() ),
-			__METHOD__,
-			$selectOptions
-			);
-
-		// Build file objects
-		$files = array();
-		foreach ( $res as $row ) {
-			$files[] = $this->newFileFromRow( $row );
-		}
-		return $files;
-	}
-
-	/**
 	 * Get a connection to the slave DB
-	 * @return DatabaseBase
 	 */
 	function getSlaveDB() {
 		return wfGetDB( DB_SLAVE );
@@ -319,7 +240,6 @@ class LocalRepo extends FileRepo {
 
 	/**
 	 * Get a connection to the master DB
-	 * @return DatabaseBase
 	 */
 	function getMasterDB() {
 		return wfGetDB( DB_MASTER );
@@ -327,7 +247,7 @@ class LocalRepo extends FileRepo {
 
 	/**
 	 * Get a key on the primary cache for this repository.
-	 * Returns false if the repository's cache is not accessible at this site.
+	 * Returns false if the repository's cache is not accessible at this site. 
 	 * The parameters are the parts of the key, as for wfMemcKey().
 	 *
 	 * @return string
@@ -351,3 +271,4 @@ class LocalRepo extends FileRepo {
 		}
 	}
 }
+

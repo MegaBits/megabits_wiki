@@ -15,7 +15,7 @@ subdirectories, all of which have unique purposes.
 level /maintenance directory.
 
 Example:
-  php clearCacheStats.php
+  php clear_stats.php
   
 The following parameters are available to all maintenance scripts
 --help   : Print a help message

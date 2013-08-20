@@ -4,7 +4,7 @@
  *
  * Created on Sep 25, 2006
  *
- * Copyright © 2006 Yuri Astrakhan "<Firstname><Lastname>@gmail.com"
+ * Copyright © 2006 Yuri Astrakhan <Firstname><Lastname>@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@
  *
  * @ingroup API
  */
-class ApiQueryAllPages extends ApiQueryGeneratorBase {
+class ApiQueryAllpages extends ApiQueryGeneratorBase {
 
 	public function __construct( $query, $moduleName ) {
 		parent::__construct( $query, $moduleName, 'ap' );
@@ -66,14 +66,6 @@ class ApiQueryAllPages extends ApiQueryGeneratorBase {
 
 		// Page filters
 		$this->addTables( 'page' );
-
-		if ( !is_null( $params['continue'] ) ) {
-			$cont = explode( '|', $params['continue'] );
-			$this->dieContinueUsageIf( count( $cont ) != 1 );
-			$op = $params['dir'] == 'descending' ? '<' : '>';
-			$cont_from = $db->addQuotes( $cont[0] );
-			$this->addWhere( "page_title $op= $cont_from" );
-		}
 
 		if ( $params['filterredir'] == 'redirects' ) {
 			$this->addWhereFld( 'page_is_redirect', 1 );
@@ -117,7 +109,7 @@ class ApiQueryAllPages extends ApiQueryGeneratorBase {
 		if ( count( $params['prtype'] ) || $params['prexpiry'] != 'all' ) {
 			$this->addTables( 'page_restrictions' );
 			$this->addWhere( 'page_id=pr_page' );
-			$this->addWhere( "pr_expiry > {$db->addQuotes( $db->timestamp() )} OR pr_expiry IS NULL" );
+			$this->addWhere( 'pr_expiry>' . $db->addQuotes( $db->timestamp() ) );
 
 			if ( count( $params['prtype'] ) ) {
 				$this->addWhereFld( 'pr_type', $params['prtype'] );
@@ -135,6 +127,8 @@ class ApiQueryAllPages extends ApiQueryGeneratorBase {
 				} elseif ( $params['prfiltercascade'] == 'noncascading' ) {
 					$this->addWhereFld( 'pr_cascade', 0 );
 				}
+
+				$this->addOption( 'DISTINCT' );
 			}
 			$forceNameTitleIndex = false;
 
@@ -143,8 +137,6 @@ class ApiQueryAllPages extends ApiQueryGeneratorBase {
 			} elseif ( $params['prexpiry'] == 'definite' ) {
 				$this->addWhere( "pr_expiry != {$db->addQuotes( $db->getInfinity() )}" );
 			}
-
-			$this->addOption( 'DISTINCT' );
 
 		} elseif ( isset( $params['prlevel'] ) ) {
 			$this->dieUsage( 'prlevel may not be used without prtype', 'params' );
@@ -161,7 +153,7 @@ class ApiQueryAllPages extends ApiQueryGeneratorBase {
 			$this->addOption( 'STRAIGHT_JOIN' );
 			// We have to GROUP BY all selected fields to stop
 			// PostgreSQL from whining
-			$this->addOption( 'GROUP BY', $selectFields );
+			$this->addOption( 'GROUP BY', implode( ', ', $selectFields ) );
 			$forceNameTitleIndex = false;
 		}
 
@@ -173,22 +165,13 @@ class ApiQueryAllPages extends ApiQueryGeneratorBase {
 		$this->addOption( 'LIMIT', $limit + 1 );
 		$res = $this->select( __METHOD__ );
 
-		//Get gender information
-		if( MWNamespace::hasGenderDistinction( $params['namespace'] ) ) {
-			$users = array();
-			foreach ( $res as $row ) {
-				$users[] = $row->page_title;
-			}
-			GenderCache::singleton()->doQuery( $users, __METHOD__ );
-			$res->rewind(); //reset
-		}
-
 		$count = 0;
 		$result = $this->getResult();
 		foreach ( $res as $row ) {
 			if ( ++ $count > $limit ) {
 				// We've reached the one extra which shows that there are additional pages to be had. Stop here...
-				$this->setContinueEnumParameter( 'continue', $row->page_title );
+				// TODO: Security issue - if the user has no right to view next title, it will still be shown
+				$this->setContinueEnumParameter( 'from', $this->keyToTitle( $row->page_title ) );
 				break;
 			}
 
@@ -201,7 +184,7 @@ class ApiQueryAllPages extends ApiQueryGeneratorBase {
 				);
 				$fit = $result->addValue( array( 'query', $this->getModuleName() ), null, $vals );
 				if ( !$fit ) {
-					$this->setContinueEnumParameter( 'continue', $row->page_title );
+					$this->setContinueEnumParameter( 'from', $this->keyToTitle( $row->page_title ) );
 					break;
 				}
 			} else {
@@ -219,11 +202,10 @@ class ApiQueryAllPages extends ApiQueryGeneratorBase {
 
 		return array(
 			'from' => null,
-			'continue' => null,
 			'to' => null,
 			'prefix' => null,
 			'namespace' => array(
-				ApiBase::PARAM_DFLT => NS_MAIN,
+				ApiBase::PARAM_DFLT => 0,
 				ApiBase::PARAM_TYPE => 'namespace',
 			),
 			'filterredir' => array(
@@ -293,7 +275,6 @@ class ApiQueryAllPages extends ApiQueryGeneratorBase {
 		$p = $this->getModulePrefix();
 		return array(
 			'from' => 'The page title to start enumerating from',
-			'continue' => 'When more results are available, use this to continue',
 			'to' => 'The page title to stop enumerating at',
 			'prefix' => 'Search for all page titles that begin with this value',
 			'namespace' => 'The namespace to enumerate',
@@ -312,16 +293,6 @@ class ApiQueryAllPages extends ApiQueryGeneratorBase {
 				' definite - Get only pages with a definite (specific) protection expiry',
 				' all - Get pages with any protections expiry'
 			),
-		);
-	}
-
-	public function getResultProperties() {
-		return array(
-			'' => array(
-				'pageid' => 'integer',
-				'ns' => 'namespace',
-				'title' => 'string'
-			)
 		);
 	}
 
@@ -347,12 +318,16 @@ class ApiQueryAllPages extends ApiQueryGeneratorBase {
 				'Show info about 4 pages starting at the letter "T"',
 			),
 			'api.php?action=query&generator=allpages&gaplimit=2&gapfilterredir=nonredirects&gapfrom=Re&prop=revisions&rvprop=content' => array(
-				'Show content of first 2 non-redirect pages beginning at "Re"',
+				'Show content of first 2 non-redirect pages begining at "Re"',
 			)
 		);
 	}
 
 	public function getHelpUrls() {
 		return 'https://www.mediawiki.org/wiki/API:Allpages';
+	}
+
+	public function getVersion() {
+		return __CLASS__ . ': $Id$';
 	}
 }

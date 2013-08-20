@@ -1,32 +1,16 @@
 <?php
 /**
- * Recent changes tagging.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
+ * Functions related to change tags.
  *
  * @file
  */
-
 class ChangeTags {
 
 	/**
 	 * Creates HTML for the given tags
 	 *
-	 * @param string $tags Comma-separated list of tags
-	 * @param string $page A label for the type of action which is being displayed,
+	 * @param $tags String: Comma-separated list of tags
+	 * @param $page String: A label for the type of action which is being displayed,
 	 *                     for example: 'history', 'contributions' or 'newpages'
 	 *
 	 * @return Array with two items: (html, classes)
@@ -35,8 +19,6 @@ class ChangeTags {
 	 *
 	 */
 	static function formatSummaryRow( $tags, $page ) {
-		global $wgLang;
-
 		if( !$tags )
 			return array( '', array() );
 
@@ -53,7 +35,7 @@ class ChangeTags {
 			);
 			$classes[] = Sanitizer::escapeClass( "mw-tag-$tag" );
 		}
-		$markers = wfMessage( 'parentheses' )->rawParams( $wgLang->commaList( $displayTags ) )->text();
+		$markers = '(' . implode( ', ', $displayTags ) . ')';
 		$markers = Xml::tags( 'span', array( 'class' => 'mw-tag-markers' ), $markers );
 
 		return array( $markers, $classes );
@@ -62,7 +44,7 @@ class ChangeTags {
 	/**
 	 * Get a short description for a tag
 	 *
-	 * @param string $tag tag
+	 * @param $tag String: tag
 	 *
 	 * @return String: Short description of the tag from "mediawiki:tag-$tag" if this message exists,
 	 *                 html-escaped version of $tag otherwise
@@ -75,13 +57,12 @@ class ChangeTags {
 	/**
 	 * Add tags to a change given its rc_id, rev_id and/or log_id
 	 *
-	 * @param string|array $tags Tags to add to the change
+	 * @param $tags String|Array: Tags to add to the change
 	 * @param $rc_id int: rc_id of the change to add the tags to
 	 * @param $rev_id int: rev_id of the change to add the tags to
 	 * @param $log_id int: log_id of the change to add the tags to
-	 * @param string $params params to put in the ct_params field of table 'change_tag'
+	 * @param $params String: params to put in the ct_params field of tabel 'change_tag'
 	 *
-	 * @throws MWException
 	 * @return bool: false if no changes are made, otherwise true
 	 *
 	 * @exception MWException when $rc_id, $rev_id and $log_id are all null
@@ -160,16 +141,17 @@ class ChangeTags {
 	 * Handles selecting tags, and filtering.
 	 * Needs $tables to be set up properly, so we can figure out which join conditions to use.
 	 *
-	 * @param string|array $tables Table names, see DatabaseBase::select
-	 * @param string|array $fields Fields used in query, see DatabaseBase::select
-	 * @param string|array $conds conditions used in query, see DatabaseBase::select
+	 * @param $tables String|Array: Tabel names, see DatabaseBase::select
+	 * @param $fields String|Array: Fields used in query, see DatabaseBase::select
+	 * @param $conds String|Array: conditions used in query, see DatabaseBase::select
 	 * @param $join_conds Array: join conditions, see DatabaseBase::select
-	 * @param array $options options, see Database::select
-	 * @param bool|string $filter_tag Tag to select on
+	 * @param $options Array: options, see Database::select
+	 * @param $filter_tag String: tag to select on
 	 *
-	 * @throws MWException When unable to determine appropriate JOIN condition for tagging
+	 * @exception MWException when unable to determine appropriate JOIN condition for tagging
+	 *
 	 */
-	static function modifyDisplayQuery( &$tables, &$fields, &$conds,
+	static function modifyDisplayQuery( &$tables, &$fields,  &$conds,
 										&$join_conds, &$options, $filter_tag = false ) {
 		global $wgRequest, $wgUseTagFilter;
 
@@ -211,7 +193,7 @@ class ChangeTags {
 	/**
 	 * Build a text box to select a change tag
 	 *
-	 * @param string $selected tag to select by default
+	 * @param $selected String: tag to select by default
 	 * @param $fullForm Boolean:
 	 *        - if false, then it returns an array of (label, form).
 	 *        - if true, it returns an entire form around the selector.
@@ -221,24 +203,23 @@ class ChangeTags {
 	 *        - if $fullForm is false: Array with
 	 *        - if $fullForm is true: String, html fragment
 	 */
-	public static function buildTagFilterSelector( $selected = '', $fullForm = false, Title $title = null ) {
+	public static function buildTagFilterSelector( $selected='', $fullForm = false, Title $title = null ) {
 		global $wgUseTagFilter;
 
-		if ( !$wgUseTagFilter || !count( self::listDefinedTags() ) ) {
+		if ( !$wgUseTagFilter || !count( self::listDefinedTags() ) )
 			return $fullForm ? '' : array();
-		}
 
-		$data = array( Html::rawElement( 'label', array( 'for' => 'tagfilter' ), wfMessage( 'tag-filter' )->parse() ),
-			Xml::input( 'tagfilter', 20, $selected, array( 'class' => 'mw-tagfilter-input' ) ) );
+		$data = array( Html::rawElement( 'label', array( 'for' => 'tagfilter' ), wfMsgExt( 'tag-filter', 'parseinline' ) ),
+			Xml::input( 'tagfilter', 20, $selected ) );
 
 		if ( !$fullForm ) {
 			return $data;
 		}
 
 		$html = implode( '&#160;', $data );
-		$html .= "\n" . Xml::element( 'input', array( 'type' => 'submit', 'value' => wfMessage( 'tag-filter-submit' )->text() ) );
+		$html .= "\n" . Xml::element( 'input', array( 'type' => 'submit', 'value' => wfMsg( 'tag-filter-submit' ) ) );
 		$html .= "\n" . Html::hidden( 'title', $title->getPrefixedText() );
-		$html = Xml::tags( 'form', array( 'action' => $title->getLocalURL(), 'class' => 'mw-tagfilter-form', 'method' => 'get' ), $html );
+		$html = Xml::tags( 'form', array( 'action' => $title->getLocalURL(), 'method' => 'get' ), $html );
 
 		return $html;
 	}

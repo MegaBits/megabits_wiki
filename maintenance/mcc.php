@@ -23,64 +23,13 @@
  */
 
 /** */
-require_once( __DIR__ . '/commandLine.inc' );
+require_once( dirname( __FILE__ ) . '/commandLine.inc' );
 
-$options = getopt( '', array( 'debug', 'help', 'cache:' ) );
+$mcc = new MWMemcached( array( 'persistent' => true/*, 'debug' => true*/ ) );
+$mcc->set_servers( $wgMemCachedServers );
+# $mcc->set_debug( true );
 
-$debug = isset( $options['debug'] );
-$help = isset( $options['help'] );
-$cache = isset( $options['cache'] ) ? $options['cache'] : null;
-
-if ( $help ) {
-	mccShowUsage();
-	exit( 0 );
-}
-$mcc = new MWMemcached( array(
-	'persistent' => true,
-	'debug' => $debug,
-) );
-
-if ( $cache ) {
-	if ( !isset( $wgObjectCaches[$cache] ) ) {
-		print "MediaWiki isn't configured with a cache named '$cache'";
-		exit( 1 );
-	}
-	$servers = $wgObjectCaches[$cache]['servers'];
-} elseif ( $wgMainCacheType === CACHE_MEMCACHED ) {
-	$mcc->set_servers( $wgMemCachedServers );
-} elseif( isset( $wgObjectCaches[$wgMainCacheType]['servers'] ) ) {
-	$mcc->set_servers( $wgObjectCaches[$wgMainCacheType]['servers'] );
-} else {
-	print "MediaWiki isn't configured for Memcached usage\n";
-	exit( 1 );
-}
-
-/**
- * Show this command line tool usage.
- */
-function mccShowUsage() {
-	echo <<<EOF
-Usage:
-	mcc.php [--debug]
-	mcc.php --help
-
-MemCached Command (mcc) is an interactive command tool that let you interact
-with the MediaWiki memcached cache.
-
-Options:
-	--debug Set debug mode on the memcached connection.
-	--help  This help screen.
-
-Interactive commands:
-
-EOF;
-	print "\t";
-	print str_replace( "\n", "\n\t", mccGetHelp( false ) );
-	print "\n";
-}
-
-function mccGetHelp( $command ) {
-	$output = '';
+function mccShowHelp( $command ) {
 	$commandList = array(
 		'get' => 'grabs something',
 		'getsock' => 'lists sockets',
@@ -99,15 +48,13 @@ function mccGetHelp( $command ) {
 	if ( $command === 'fullhelp' ) {
 		$max_cmd_len = max( array_map( 'strlen', array_keys( $commandList ) ) );
 		foreach ( $commandList as $cmd => $desc ) {
-			$output .= sprintf( "%-{$max_cmd_len}s: %s\n", $cmd, $desc );
+			printf( "%-{$max_cmd_len}s: %s\n", $cmd, $desc );
 		}
 	} elseif ( isset( $commandList[$command] ) ) {
-		$output .= "$command: $commandList[$command]\n";
+		print "$command: $commandList[$command]\n";
 	} else {
-		$output .= "$command: command does not exist or no help for it\n";
+		print "$command: command does not exist or no help for it\n";
 	}
-
-	return $output;
 }
 
 do {
@@ -125,8 +72,8 @@ do {
 	switch ( $command ) {
 		case 'help':
 			// show an help message
-			print mccGetHelp( array_shift( $args ) );
-			break;
+			mccShowHelp( array_shift( $args ) );
+		break;
 
 		case 'get':
 			$sub = '';
@@ -146,7 +93,7 @@ do {
 			} else {
 				var_dump( $res );
 			}
-			break;
+		break;
 
 		case 'getsock':
 			$res = $mcc->get( $args[0] );

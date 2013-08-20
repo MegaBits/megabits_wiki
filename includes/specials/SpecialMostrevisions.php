@@ -31,8 +31,4 @@ class MostrevisionsPage extends FewestrevisionsPage {
 	function sortDescending() {
 		return true;
 	}
-
-	protected function getGroupName() {
-		return 'highuse';
-	}
 }

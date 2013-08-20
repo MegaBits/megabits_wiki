@@ -1,6 +1,7 @@
 <?php
 /**
- * Corrects wrong values in the `page_latest` field in the database.
+ * quick hackjob to fix damages imports on wikisource
+ * page records have page_latest wrong
  *
  * Copyright © 2005 Brion Vibber <brion@pobox.com>
  * http://www.mediawiki.org/
@@ -24,14 +25,8 @@
  * @ingroup Maintenance
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script to correct wrong values in the `page_latest` field
- * in the database.
- *
- * @ingroup Maintenance
- */
 class AttachLatest extends Maintenance {
 
 	public function __construct() {

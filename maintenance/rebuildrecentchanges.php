@@ -1,7 +1,7 @@
 <?php
 /**
- * Rebuild recent changes from scratch.  This takes several hours,
- * depending on the database size and server configuration.
+ * Rebuild link tracking tables from scratch.  This takes several
+ * hours, depending on the database size and server configuration.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,18 +18,12 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @file
  * @ingroup Maintenance
  * @todo Document
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script that rebuilds recent changes from scratch.
- *
- * @ingroup Maintenance
- */
 class RebuildRecentchanges extends Maintenance {
 	public function __construct() {
 		parent::__construct();
@@ -218,17 +212,24 @@ class RebuildRecentchanges extends Maintenance {
 	 * DOCUMENT ME!
 	 */
 	private function rebuildRecentChangesTablePass4() {
-		global $wgUseRCPatrol;
+		global $wgGroupPermissions, $wgUseRCPatrol;
 
 		$dbw = wfGetDB( DB_MASTER );
 
 		list( $recentchanges, $usergroups, $user ) = $dbw->tableNamesN( 'recentchanges', 'user_groups', 'user' );
 
-		$botgroups = User::getGroupsWithPermission( 'bot' );
-		$autopatrolgroups = $wgUseRCPatrol ? User::getGroupsWithPermission( 'autopatrol' ) : array();
+		$botgroups = $autopatrolgroups = array();
+		foreach ( $wgGroupPermissions as $group => $rights ) {
+			if ( isset( $rights['bot'] ) && $rights['bot'] ) {
+				$botgroups[] = $dbw->addQuotes( $group );
+			}
+			if ( $wgUseRCPatrol && isset( $rights['autopatrol'] ) && $rights['autopatrol'] ) {
+				$autopatrolgroups[] = $dbw->addQuotes( $group );
+			}
+		}
 		# Flag our recent bot edits
 		if ( !empty( $botgroups ) ) {
-			$botwhere = $dbw->makeList( $botgroups );
+			$botwhere = implode( ',', $botgroups );
 			$botusers = array();
 
 			$this->output( "Flagging bot account edits...\n" );
@@ -252,7 +253,7 @@ class RebuildRecentchanges extends Maintenance {
 		global $wgMiserMode;
 		# Flag our recent autopatrolled edits
 		if ( !$wgMiserMode && !empty( $autopatrolgroups ) ) {
-			$patrolwhere = $dbw->makeList( $autopatrolgroups );
+			$patrolwhere = implode( ',', $autopatrolgroups );
 			$patrolusers = array();
 
 			$this->output( "Flagging auto-patrolled edits...\n" );

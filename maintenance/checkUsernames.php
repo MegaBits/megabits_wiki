@@ -1,6 +1,8 @@
 <?php
 /**
- * Check that database usernames are actually valid.
+ * This script verifies that database usernames are actually valid.
+ * An existing usernames can become invalid if User::isValidUserName()
+ * is altered or if we change the $wgMaxNameChars
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,16 +24,8 @@
  */
 
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script to check that database usernames are actually valid.
- *
- * An existing usernames can become invalid if User::isValidUserName()
- * is altered or if we change the $wgMaxNameChars
- *
- * @ingroup Maintenance
- */
 class CheckUsernames extends Maintenance {
 
 	public function __construct() {

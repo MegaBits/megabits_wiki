@@ -2,21 +2,6 @@
 /**
  * Handler for SVG images.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
  * @file
  * @ingroup Media
  */
@@ -60,13 +45,6 @@ class SvgHandler extends ImageHandler {
 				return $metadata['animated'];
 			}
 		}
-		return false;
-	}
-
-	/**
-	 * We do not support making animated svg thumbnails
-	 */
-	function canAnimateThumb( $file ) {
 		return false;
 	}
 
@@ -115,41 +93,34 @@ class SvgHandler extends ImageHandler {
 		$clientHeight = $params['height'];
 		$physicalWidth = $params['physicalWidth'];
 		$physicalHeight = $params['physicalHeight'];
+		$srcPath = $image->getLocalRefPath();
 
 		if ( $flags & self::TRANSFORM_LATER ) {
-			return new ThumbnailImage( $image, $dstUrl, $dstPath, $params );
-		}
-
-		$metadata = $this->unpackMetadata( $image->getMetadata() );
-		if ( isset( $metadata['error'] ) ) { // sanity check
-			$err = wfMessage( 'svg-long-error', $metadata['error']['message'] )->text();
-			return new MediaTransformError( 'thumbnail_error', $clientWidth, $clientHeight, $err );
+			return new ThumbnailImage( $image, $dstUrl, $clientWidth, $clientHeight, $dstPath );
 		}
 
 		if ( !wfMkdirParents( dirname( $dstPath ), null, __METHOD__ ) ) {
 			return new MediaTransformError( 'thumbnail_error', $clientWidth, $clientHeight,
-				wfMessage( 'thumbnail_dest_directory' )->text() );
+				wfMsg( 'thumbnail_dest_directory' ) );
 		}
 
-		$srcPath = $image->getLocalRefPath();
 		$status = $this->rasterize( $srcPath, $dstPath, $physicalWidth, $physicalHeight );
-		if ( $status === true ) {
-			return new ThumbnailImage( $image, $dstUrl, $dstPath, $params );
+		if( $status === true ) {
+			return new ThumbnailImage( $image, $dstUrl, $clientWidth, $clientHeight, $dstPath );
 		} else {
 			return $status; // MediaTransformError
 		}
 	}
 
 	/**
-	 * Transform an SVG file to PNG
-	 * This function can be called outside of thumbnail contexts
-	 * @param string $srcPath
-	 * @param string $dstPath
-	 * @param string $width
-	 * @param string $height
-	 * @throws MWException
-	 * @return bool|MediaTransformError
-	 */
+	* Transform an SVG file to PNG
+	* This function can be called outside of thumbnail contexts
+	* @param string $srcPath
+	* @param string $dstPath
+	* @param string $width
+	* @param string $height
+	* @return true|MediaTransformError
+	*/
 	public function rasterize( $srcPath, $dstPath, $width, $height ) {
 		global $wgSVGConverters, $wgSVGConverter, $wgSVGConverterPath;
 		$err = false;
@@ -170,14 +141,14 @@ class SvgHandler extends ImageHandler {
 				$cmd = str_replace(
 					array( '$path/', '$width', '$height', '$input', '$output' ),
 					array( $wgSVGConverterPath ? wfEscapeShellArg( "$wgSVGConverterPath/" ) : "",
-						intval( $width ),
-						intval( $height ),
-						wfEscapeShellArg( $srcPath ),
-						wfEscapeShellArg( $dstPath ) ),
+						   intval( $width ),
+						   intval( $height ),
+						   wfEscapeShellArg( $srcPath ),
+						   wfEscapeShellArg( $dstPath ) ),
 					$wgSVGConverters[$wgSVGConverter]
 				) . " 2>&1";
 				wfProfileIn( 'rsvg' );
-				wfDebug( __METHOD__ . ": $cmd\n" );
+				wfDebug( __METHOD__.": $cmd\n" );
 				$err = wfShellExec( $cmd, $retval );
 				wfProfileOut( 'rsvg' );
 			}
@@ -185,7 +156,7 @@ class SvgHandler extends ImageHandler {
 		$removed = $this->removeBadFile( $dstPath, $retval );
 		if ( $retval != 0 || $removed ) {
 			wfDebugLog( 'thumbnail', sprintf( 'thumbnail failed on %s: error %d "%s" from "%s"',
-					wfHostname(), $retval, trim( $err ), $cmd ) );
+					wfHostname(), $retval, trim($err), $cmd ) );
 			return new MediaTransformError( 'thumbnail_error', $width, $height, $err );
 		}
 		return true;
@@ -220,8 +191,6 @@ class SvgHandler extends ImageHandler {
 		if ( isset( $metadata['width'] ) && isset( $metadata['height'] ) ) {
 			return array( $metadata['width'], $metadata['height'], 'SVG',
 					"width=\"{$metadata['width']}\" height=\"{$metadata['height']}\"" );
-		} else { // error
-			return array( 0, 0, 'SVG', "width=\"0\" height=\"0\"" );
 		}
 	}
 
@@ -230,47 +199,26 @@ class SvgHandler extends ImageHandler {
 	}
 
 	/**
-	 * Subtitle for the image. Different from the base
-	 * class so it can be denoted that SVG's have
-	 * a "nominal" resolution, and not a fixed one,
-	 * as well as so animation can be denoted.
-	 *
 	 * @param $file File
 	 * @return string
 	 */
 	function getLongDesc( $file ) {
 		global $wgLang;
-
-		$metadata = $this->unpackMetadata( $file->getMetadata() );
-		if ( isset( $metadata['error'] ) ) {
-			return wfMessage( 'svg-long-error', $metadata['error']['message'] )->text();
-		}
-
-		$size = $wgLang->formatSize( $file->getSize() );
-
-		if ( $this->isAnimatedImage( $file ) ) {
-			$msg = wfMessage( 'svg-long-desc-animated' );
-		} else {
-			$msg = wfMessage( 'svg-long-desc' );
-		}
-
-		$msg->numParams( $file->getWidth(), $file->getHeight() )->params( $size );
-
-		return $msg->parse();
+		return wfMsgExt( 'svg-long-desc', 'parseinline',
+			$wgLang->formatNum( $file->getWidth() ),
+			$wgLang->formatNum( $file->getHeight() ),
+			$wgLang->formatSize( $file->getSize() ) );
 	}
 
 	function getMetadata( $file, $filename ) {
-		$metadata = array( 'version' => self::SVG_METADATA_VERSION );
 		try {
-			$metadata += SVGMetadataExtractor::getMetadata( $filename );
-		} catch( MWException $e ) { // @TODO: SVG specific exceptions
-			// File not found, broken, etc.
-			$metadata['error'] = array(
-				'message' => $e->getMessage(),
-				'code'    => $e->getCode()
-			);
+			$metadata = SVGMetadataExtractor::getMetadata( $filename );
+		} catch( Exception $e ) {
+ 			// Broken file?
 			wfDebug( __METHOD__ . ': ' . $e->getMessage() . "\n" );
+			return '0';
 		}
+		$metadata['version'] = self::SVG_METADATA_VERSION;
 		return serialize( $metadata );
 	}
 
@@ -290,19 +238,11 @@ class SvgHandler extends ImageHandler {
 	}
 
 	function isMetadataValid( $image, $metadata ) {
-		$meta = $this->unpackMetadata( $metadata );
-		if ( $meta === false ) {
-			return self::METADATA_BAD;
-		}
-		if ( !isset( $meta['originalWidth'] ) ) {
-			// Old but compatible
-			return self::METADATA_COMPATIBLE;
-		}
-		return self::METADATA_GOOD;
+		return $this->unpackMetadata( $metadata ) !== false;
 	}
 
 	function visibleMetadataFields() {
-		$fields = array( 'objectname', 'imagedescription' );
+		$fields = array( 'title', 'description', 'animated' );
 		return $fields;
 	}
 
@@ -320,9 +260,11 @@ class SvgHandler extends ImageHandler {
 			return false;
 		}
 		$metadata = $this->unpackMetadata( $metadata );
-		if ( !$metadata || isset( $metadata['error'] ) ) {
+		if ( !$metadata ) {
 			return false;
 		}
+		unset( $metadata['version'] );
+		unset( $metadata['metadata'] ); /* non-formatted XML */
 
 		/* TODO: add a formatter
 		$format = new FormatSVG( $metadata );
@@ -333,10 +275,9 @@ class SvgHandler extends ImageHandler {
 		$visibleFields = $this->visibleMetadataFields();
 
 		// Rename fields to be compatible with exif, so that
-		// the labels for these fields work and reuse existing messages.
-		$conversion = array(
-			'originalwidth' => 'imagewidth',
-			'originalheight' => 'imagelength',
+		// the labels for these fields work.
+		$conversion = array( 'width' => 'imagewidth',
+			'height' => 'imagelength',
 			'description' => 'imagedescription',
 			'title' => 'objectname',
 		);
@@ -344,9 +285,6 @@ class SvgHandler extends ImageHandler {
 			$tag = strtolower( $name );
 			if ( isset( $conversion[$tag] ) ) {
 				$tag = $conversion[$tag];
-			} else {
-				// Do not output other metadata not in list
-				continue;
 			}
 			self::addMeta( $result,
 				in_array( $tag, $visibleFields ) ? 'visible' : 'collapsed',

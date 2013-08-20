@@ -1,24 +1,4 @@
 <?php
-/**
- * Some functions that are useful during startup.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- */
 
 /**
  * Some functions that are useful during startup.
@@ -120,7 +100,7 @@ class MWInit {
 	 *
 	 *    require( MWInit::extSetupPath( 'ParserFunctions/ParserFunctions.php' ) );
 	 *
-	 * @param string $extRel The path relative to the extensions directory, as defined by
+	 * @param $extRel string The path relative to the extensions directory, as defined by
 	 *   $wgExtensionsDirectory.
 	 *
 	 * @return string
@@ -173,7 +153,7 @@ class MWInit {
 	}
 
 	/**
-	 * Determine whether a method exists within a class, using a method which works
+	 * Determine wether a method exists within a class, using a method which works
 	 * under HipHop.
 	 *
 	 * Note that under HipHop when method_exists is given a string for it's class
@@ -217,7 +197,6 @@ class MWInit {
 	 * @param $methodName string
 	 * @param $args array
 	 *
-	 * @return mixed
 	 */
 	static function callStaticMethod( $className, $methodName, $args ) {
 		$r = new ReflectionMethod( $className, $methodName );

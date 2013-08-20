@@ -1,7 +1,8 @@
 <?php
+
 /**
- * Delete revisions which refer to a nonexisting page.
- * Sometimes manual deletion done in a rush leaves crap in the database.
+ * Maintenance script to delete revisions which refer to a nonexisting page
+ * Sometimes manual deletion done in a rush leaves crap in the database
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,19 +19,13 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @file
  * @ingroup Maintenance
  * @author Rob Church <robchur@gmail.com>
  * @todo More efficient cleanup of text records
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script that deletes revisions which refer to a nonexisting page.
- *
- * @ingroup Maintenance
- */
 class DeleteOrphanedRevisions extends Maintenance {
 	public function __construct() {
 		parent::__construct();
@@ -44,7 +39,7 @@ class DeleteOrphanedRevisions extends Maintenance {
 		$report = $this->hasOption( 'report' );
 
 		$dbw = wfGetDB( DB_MASTER );
-		$dbw->begin( __METHOD__ );
+		$dbw->begin();
 		list( $page, $revision ) = $dbw->tableNamesN( 'page', 'revision' );
 
 		# Find all the orphaned revisions
@@ -61,7 +56,7 @@ class DeleteOrphanedRevisions extends Maintenance {
 
 		# Nothing to do?
 		if ( $report || $count == 0 ) {
-			$dbw->commit( __METHOD__ );
+			$dbw->commit();
 			exit( 0 );
 		}
 
@@ -71,7 +66,7 @@ class DeleteOrphanedRevisions extends Maintenance {
 		$this->output( "done.\n" );
 
 		# Close the transaction and call the script to purge unused text records
-		$dbw->commit( __METHOD__ );
+		$dbw->commit();
 		$this->purgeRedundantText( true );
 	}
 
@@ -91,3 +86,4 @@ class DeleteOrphanedRevisions extends Maintenance {
 
 $maintClass = "DeleteOrphanedRevisions";
 require_once( RUN_MAINTENANCE_IF_MAIN );
+

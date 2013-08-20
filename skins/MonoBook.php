@@ -1,24 +1,9 @@
 <?php
 /**
- * MonoBook nouveau.
+ * MonoBook nouveau
  *
  * Translated from gwicke's previous TAL template version to remove
  * dependency on PHPTAL.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
  *
  * @todo document
  * @file
@@ -80,14 +65,11 @@ class MonoBookTemplate extends BaseTemplate {
 
 		$this->html( 'headelement' );
 ?><div id="globalWrapper">
-<div id="column-content"><div id="content" class="mw-body-primary" role="main">
+<div id="column-content"><div id="content">
 	<a id="top"></a>
 	<?php if($this->data['sitenotice']) { ?><div id="siteNotice"><?php $this->html('sitenotice') ?></div><?php } ?>
 
-	<h1 id="firstHeading" class="firstHeading" lang="<?php
-		$this->data['pageLanguage'] = $this->getSkin()->getTitle()->getPageViewLanguage()->getCode();
-		$this->html( 'pageLanguage' );
-	?>"><span dir="auto"><?php $this->html('title') ?></span></h1>
+	<h1 id="firstHeading" class="firstHeading"><span dir="auto"><?php $this->html('title') ?></span></h1>
 	<div id="bodyContent" class="mw-body">
 		<div id="siteSub"><?php $this->msg('tagline') ?></div>
 		<div id="contentSub"<?php $this->html('userlangattributes') ?>><?php $this->html('subtitle') ?></div>
@@ -96,7 +78,7 @@ class MonoBookTemplate extends BaseTemplate {
 <?php } ?><?php if($this->data['newtalk'] ) { ?>
 		<div class="usermessage"><?php $this->html('newtalk')  ?></div>
 <?php } ?><?php if($this->data['showjumplinks']) { ?>
-		<div id="jump-to-nav" class="mw-jump"><?php $this->msg('jumpto') ?> <a href="#column-one"><?php $this->msg('jumptonavigation') ?></a><?php $this->msg( 'comma-separator' ) ?><a href="#searchInput"><?php $this->msg('jumptosearch') ?></a></div>
+		<div id="jump-to-nav" class="mw-jump"><?php $this->msg('jumpto') ?> <a href="#column-one"><?php $this->msg('jumptonavigation') ?></a>, <a href="#searchInput"><?php $this->msg('jumptosearch') ?></a></div>
 <?php } ?>
 		<!-- start content -->
 <?php $this->html('bodytext') ?>
@@ -107,10 +89,9 @@ class MonoBookTemplate extends BaseTemplate {
 	</div>
 </div></div>
 <div id="column-one"<?php $this->html('userlangattributes')  ?>>
-	<h2><?php $this->msg( 'navigation-heading' ) ?></h2>
 <?php $this->cactions(); ?>
-	<div class="portlet" id="p-personal" role="navigation">
-		<h3><?php $this->msg('personaltools') ?></h3>
+	<div class="portlet" id="p-personal">
+		<h5><?php $this->msg('personaltools') ?></h5>
 		<div class="pBody">
 			<ul<?php $this->html('userlangattributes') ?>>
 <?php		foreach($this->getPersonalTools() as $key => $item) { ?>
@@ -120,7 +101,7 @@ class MonoBookTemplate extends BaseTemplate {
 			</ul>
 		</div>
 	</div>
-	<div class="portlet" id="p-logo" role="banner">
+	<div class="portlet" id="p-logo">
 <?php
 			echo Html::element( 'a', array(
 				'href' => $this->data['nav_urls']['mainpage']['href'],
@@ -138,7 +119,7 @@ class MonoBookTemplate extends BaseTemplate {
 	$validFooterLinks = $this->getFooterLinks( "flat" ); // Additional footer links
 
 	if ( count( $validFooterIcons ) + count( $validFooterLinks ) > 0 ) { ?>
-<div id="footer" role="contentinfo"<?php $this->html('userlangattributes') ?>>
+<div id="footer"<?php $this->html('userlangattributes') ?>>
 <?php
 		$footerEnd = '</div>';
 	} else {
@@ -177,9 +158,6 @@ echo $footerEnd;
 
 	/*************************************************************************************************/
 
-	/**
-	 * @param $sidebar array
-	 */
 	protected function renderPortals( $sidebar ) {
 		if ( !isset( $sidebar['SEARCH'] ) ) $sidebar['SEARCH'] = true;
 		if ( !isset( $sidebar['TOOLBOX'] ) ) $sidebar['TOOLBOX'] = true;
@@ -204,8 +182,8 @@ echo $footerEnd;
 	function searchBox() {
 		global $wgUseTwoButtonsSearchForm;
 ?>
-	<div id="p-search" class="portlet" role="search">
-		<h3><label for="searchInput"><?php $this->msg('search') ?></label></h3>
+	<div id="p-search" class="portlet">
+		<h5><label for="searchInput"><?php $this->msg('search') ?></label></h5>
 		<div id="searchBody" class="pBody">
 			<form action="<?php $this->text('wgScript') ?>" id="searchform">
 				<input type='hidden' name="title" value="<?php $this->text('searchtitle') ?>"/>
@@ -231,8 +209,8 @@ echo $footerEnd;
 	 */
 	function cactions() {
 ?>
-	<div id="p-cactions" class="portlet" role="navigation">
-		<h3><?php $this->msg('views') ?></h3>
+	<div id="p-cactions" class="portlet">
+		<h5><?php $this->msg('views') ?></h5>
 		<div class="pBody">
 			<ul><?php
 				foreach($this->data['content_actions'] as $key => $tab) {
@@ -248,8 +226,8 @@ echo $footerEnd;
 	/*************************************************************************************************/
 	function toolbox() {
 ?>
-	<div class="portlet" id="p-tb" role="navigation">
-		<h3><?php $this->msg('toolbox') ?></h3>
+	<div class="portlet" id="p-tb">
+		<h5><?php $this->msg('toolbox') ?></h5>
 		<div class="pBody">
 			<ul>
 <?php
@@ -271,8 +249,8 @@ echo $footerEnd;
 	function languageBox() {
 		if( $this->data['language_urls'] ) {
 ?>
-	<div id="p-lang" class="portlet" role="navigation">
-		<h3<?php $this->html('userlangattributes') ?>><?php $this->msg('otherlanguages') ?></h3>
+	<div id="p-lang" class="portlet">
+		<h5<?php $this->html('userlangattributes') ?>><?php $this->msg('otherlanguages') ?></h5>
 		<div class="pBody">
 			<ul>
 <?php		foreach($this->data['language_urls'] as $key => $langlink) { ?>
@@ -287,12 +265,8 @@ echo $footerEnd;
 	}
 
 	/*************************************************************************************************/
-	/**
-	 * @param $bar string
-	 * @param $cont array|string
-	 */
 	function customBox( $bar, $cont ) {
-		$portletAttribs = array( 'class' => 'generated-sidebar portlet', 'id' => Sanitizer::escapeId( "p-$bar" ), 'role' => 'navigation' );
+		$portletAttribs = array( 'class' => 'generated-sidebar portlet', 'id' => Sanitizer::escapeId( "p-$bar" ) );
 		$tooltip = Linker::titleAttrib( "p-$bar" );
 		if ( $tooltip !== false ) {
 			$portletAttribs['title'] = $tooltip;
@@ -300,7 +274,7 @@ echo $footerEnd;
 		echo '	' . Html::openElement( 'div', $portletAttribs );
 ?>
 
-		<h3><?php $msg = wfMessage( $bar ); echo htmlspecialchars( $msg->exists() ? $msg->text() : $bar ); ?></h3>
+		<h5><?php $msg = wfMessage( $bar ); echo htmlspecialchars( $msg->exists() ? $msg->text() : $bar ); ?></h5>
 		<div class='pBody'>
 <?php   if ( is_array( $cont ) ) { ?>
 			<ul>

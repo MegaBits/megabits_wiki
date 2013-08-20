@@ -1,11 +1,10 @@
-( function ( mw, $ ) {
-	'use strict';
+/**
+ * Implements mediaWiki.util library
+ */
+( function ( $, mw ) {
+	"use strict";
 
-	/**
-	 * Utility library
-	 * @class mw.util
-	 * @singleton
-	 */
+	// Local cache and alias
 	var util = {
 
 		/**
@@ -14,6 +13,12 @@
 		 */
 		init: function () {
 			var profile, $tocTitle, $tocToggleLink, hideTocCookie;
+
+			/* Set up $.messageBox */
+			$.messageBoxNew( {
+				id: 'mw-js-message',
+				parent: '#content'
+			} );
 
 			/* Set tooltipAccessKeyPrefix */
 			profile = $.client.profile();
@@ -29,10 +34,13 @@
 					profile.platform === 'mac'
 						// Chrome on Mac
 						? 'ctrl-option-'
-						// Chrome on Windows or Linux
-						// (both alt- and alt-shift work, but alt with E, D, F etc does not
-						// work since they are browser shortcuts)
-						: 'alt-shift-'
+						: profile.platform === 'win'
+							// Chrome on Windows
+							// (both alt- and alt-shift work, but alt-f triggers Chrome wrench menu
+							// which alt-shift-f does not)
+							? 'alt-shift-'
+							// Chrome on other (Ubuntu?)
+							: 'alt-'
 				);
 
 			// Non-Windows Safari with webkit_version > 526
@@ -40,11 +48,7 @@
 				&& profile.name === 'safari'
 				&& profile.layoutVersion > 526 ) {
 				util.tooltipAccessKeyPrefix = 'ctrl-alt-';
-			// Firefox 14+ on Mac
-			} else if ( profile.platform === 'mac'
-				&& profile.name === 'firefox'
-				&& profile.versionNumber >= 14 ) {
-				util.tooltipAccessKeyPrefix = 'ctrl-option-';
+
 			// Safari/Konqueror on any platform, or any browser on Mac
 			// (but not Safari on Windows)
 			} else if ( !( profile.platform === 'win' && profile.name === 'safari' )
@@ -59,50 +63,25 @@
 			}
 
 			/* Fill $content var */
-			util.$content = ( function () {
-				var i, l, $content, selectors;
-				selectors = [
-					// The preferred standard for setting $content (class="mw-body")
-					// You may also use (class="mw-body mw-body-primary") if you use
-					// mw-body in multiple locations.
-					// Or class="mw-body-primary" if you want $content to be deeper
-					// in the dom than mw-body
-					'.mw-body-primary',
-					'.mw-body',
+			if ( $( '#bodyContent' ).length ) {
+				// Vector, Monobook, Chick etc.
+				util.$content = $( '#bodyContent' );
 
-					/* Legacy fallbacks for setting the content */
-					// Vector, Monobook, Chick, etc... based skins
-					'#bodyContent',
+			} else if ( $( '#mw_contentholder' ).length ) {
+				// Modern
+				util.$content = $( '#mw_contentholder' );
 
-					// Modern based skins
-					'#mw_contentholder',
+			} else if ( $( '#article' ).length ) {
+				// Standard, CologneBlue
+				util.$content = $( '#article' );
 
-					// Standard, CologneBlue
-					'#article',
-
-					// #content is present on almost all if not all skins. Most skins (the above cases)
-					// have #content too, but as an outer wrapper instead of the article text container.
-					// The skins that don't have an outer wrapper do have #content for everything
-					// so it's a good fallback
-					'#content',
-
-					// If nothing better is found fall back to our bodytext div that is guaranteed to be here
-					'#mw-content-text',
-
-					// Should never happen... well, it could if someone is not finished writing a skin and has
-					// not inserted bodytext yet. But in any case <body> should always exist
-					'body'
-				];
-				for ( i = 0, l = selectors.length; i < l; i++ ) {
-					$content = $( selectors[i] ).first();
-					if ( $content.length ) {
-						return $content;
-					}
-				}
-
-				// Make sure we don't unset util.$content if it was preset and we don't find anything
-				return util.$content;
-			} )();
+			} else {
+				// #content is present on almost all if not all skins. Most skins (the above cases)
+				// have #content too, but as an outer wrapper instead of the article text container.
+				// The skins that don't have an outer wrapper do have #content for everything
+				// so it's a good fallback
+				util.$content = $( '#content' );
+			}
 
 			// Table of contents toggle
 			$tocTitle = $( '#toctitle' );
@@ -135,7 +114,7 @@
 		/**
 		 * Encode the string like PHP's rawurlencode
 		 *
-		 * @param {string} str String to be encoded.
+		 * @param str string String to be encoded
 		 */
 		rawurlencode: function ( str ) {
 			str = String( str );
@@ -149,7 +128,7 @@
 		 * We want / and : to be included as literal characters in our title URLs
 		 * as they otherwise fatally break the title
 		 *
-		 * @param {string} str String to be encoded.
+		 * @param str string String to be encoded
 		 */
 		wikiUrlencode: function ( str ) {
 			return util.rawurlencode( str )
@@ -157,10 +136,10 @@
 		},
 
 		/**
-		 * Get the link to a page name (relative to `wgServer`),
+		 * Get the link to a page name (relative to wgServer)
 		 *
-		 * @param {string} str Page name to get the link for.
-		 * @return {string} Location for a page with name of `str` or boolean false on error.
+		 * @param str String: Page name to get the link for.
+		 * @return String: Location for a page with name of 'str' or boolean false on error.
 		 */
 		wikiGetlink: function ( str ) {
 			return mw.config.get( 'wgArticlePath' ).replace( '$1',
@@ -169,51 +148,44 @@
 
 		/**
 		 * Get address to a script in the wiki root.
-		 * For index.php use `mw.config.get( 'wgScript' )`.
+		 * For index.php use mw.config.get( 'wgScript' )
 		 *
-		 * @since 1.18
 		 * @param str string Name of script (eg. 'api'), defaults to 'index'
 		 * @return string Address to script (eg. '/w/api.php' )
 		 */
 		wikiScript: function ( str ) {
-			str = str || 'index';
-			if ( str === 'index' ) {
-				return mw.config.get( 'wgScript' );
-			} else if ( str === 'load' ) {
-				return mw.config.get( 'wgLoadScript' );
-			} else {
-				return mw.config.get( 'wgScriptPath' ) + '/' + str +
-					mw.config.get( 'wgScriptExtension' );
-			}
+			return mw.config.get( 'wgScriptPath' ) + '/' + ( str || 'index' ) +
+				mw.config.get( 'wgScriptExtension' );
 		},
 
 		/**
-		 * Append a new style block to the head and return the CSSStyleSheet object.
-		 * Use .ownerNode to access the `<style>` element, or use mw.loader#addStyleTag.
-		 * This function returns the styleSheet object for convience (due to cross-browsers
-		 * difference as to where it is located).
+		 * Append a new style block to the head
 		 *
-		 *     var sheet = mw.util.addCSS('.foobar { display: none; }');
-		 *     $(foo).click(function () {
-		 *         // Toggle the sheet on and off
-		 *         sheet.disabled = !sheet.disabled;
-		 *     });
-		 *
-		 * @param {string} text CSS to be appended
-		 * @return {CSSStyleSheet} Use .ownerNode to get to the `<style>` element.
+		 * @param text string CSS to be appended
+		 * @return CSSStyleSheet
 		 */
 		addCSS: function ( text ) {
-			var s = mw.loader.addStyleTag( text );
+			var s = document.createElement( 'style' );
+			s.type = 'text/css';
+			s.rel = 'stylesheet';
+			// Insert into document before setting cssText (bug 33305)
+			document.getElementsByTagName('head')[0].appendChild( s );
+			if ( s.styleSheet ) {
+				s.styleSheet.cssText = text; // IE
+			} else {
+				// Safari sometimes borks on null
+				s.appendChild( document.createTextNode( String( text ) ) );
+			}
 			return s.sheet || s;
 		},
 
 		/**
 		 * Hide/show the table of contents element
 		 *
-		 * @param {jQuery} $toggleLink A jQuery object of the toggle link.
-		 * @param {Function} [callback] Function to be called after the toggle is
-		 *  completed (including the animation).
-		 * @return {Mixed} Boolean visibility of the toc (true if it's visible)
+		 * @param $toggleLink jQuery A jQuery object of the toggle link.
+		 * @param callback function Function to be called after the toggle is
+		 * completed (including the animation) (optional)
+		 * @return mixed Boolean visibility of the toc (true if it's visible)
 		 * or Null if there was no table of contents.
 		 */
 		toggleToc: function ( $toggleLink, callback ) {
@@ -250,18 +222,16 @@
 		 * Grab the URL parameter value for the given parameter.
 		 * Returns null if not found.
 		 *
-		 * @param {string} param The parameter name.
-		 * @param {string} [url] URL to search through.
-		 * @return {Mixed} Parameter value or null.
+		 * @param param string The parameter name.
+		 * @param url string URL to search through (optional)
+		 * @return mixed Parameter value or null.
 		 */
 		getParamValue: function ( param, url ) {
-			if ( url === undefined ) {
-				url = document.location.href;
-			}
+			url = url || document.location.href;
 			// Get last match, stop at hash
 			var	re = new RegExp( '^[^#]*[&?]' + $.escapeRE( param ) + '=([^&#]*)' ),
 				m = re.exec( url );
-			if ( m ) {
+			if ( m && m.length > 1 ) {
 				// Beware that decodeURIComponent is not required to understand '+'
 				// by spec, as encodeURIComponent does not produce it.
 				return decodeURIComponent( m[1].replace( /\+/g, '%20' ) );
@@ -270,14 +240,14 @@
 		},
 
 		/**
-		 * @property {string}
+		 * @var string
 		 * Access key prefix. Will be re-defined based on browser/operating system
-		 * detection in mw.util#init.
+		 * detection in mw.util.init().
 		 */
 		tooltipAccessKeyPrefix: 'alt-',
 
 		/**
-		 * @property {RegExp}
+		 * @var RegExp
 		 * Regex to match accesskey tooltips.
 		 */
 		tooltipAccessKeyRegexp: /\[(ctrl-)?(alt-)?(shift-)?(esc-)?(.)\]$/,
@@ -288,7 +258,8 @@
 		 * otherwise, all the nodes that will probably have accesskeys by
 		 * default are updated.
 		 *
-		 * @param {Array|jQuery} [$nodes] A jQuery object, or array of nodes to update.
+		 * @param $nodes {Array|jQuery} [optional] A jQuery object, or array
+		 * of elements to update.
 		 */
 		updateTooltipAccessKeys: function ( $nodes ) {
 			if ( !$nodes ) {
@@ -310,9 +281,9 @@
 		},
 
 		/*
-		 * @property {jQuery}
-		 * A jQuery object that refers to the content area element.
-		 * Populated by #init.
+		 * @var jQuery
+		 * A jQuery object that refers to the page-content element
+		 * Populated by init().
 		 */
 		$content: null,
 
@@ -327,28 +298,28 @@
 		 *
 		 * By default the new link will be added to the end of the list. To
 		 * add the link before a given existing item, pass the DOM node
-		 * (e.g. `document.getElementById( 'foobar' )`) or a jQuery-selector
-		 * (e.g. `'#foobar'`) for that item.
+		 * (document.getElementById( 'foobar' )) or the jQuery-selector
+		 * ( '#foobar' ) of that item.
 		 *
-		 *     mw.util.addPortletLink(
-		 *         'p-tb', 'http://mediawiki.org/',
-		 *         'MediaWiki.org', 't-mworg', 'Go to MediaWiki.org ', 'm', '#t-print'
-		 *     );
+		 * @example mw.util.addPortletLink(
+		 *	 'p-tb', 'http://mediawiki.org/',
+		 *	 'MediaWiki.org', 't-mworg', 'Go to MediaWiki.org ', 'm', '#t-print'
+		 * )
 		 *
-		 * @param {string} portlet ID of the target portlet ( 'p-cactions' or 'p-personal' etc.)
-		 * @param {string} href Link URL
-		 * @param {string} text Link text
-		 * @param {string} [id] ID of the new item, should be unique and preferably have
-		 *  the appropriate prefix ( 'ca-', 'pt-', 'n-' or 't-' )
-		 * @param {string} [tooltip] Text to show when hovering over the link, without accesskey suffix
-		 * @param {string} [accesskey] Access key to activate this link (one character, try
-		 *  to avoid conflicts. Use `$( '[accesskey=x]' ).get()` in the console to
-		 *  see if 'x' is already used.
-		 * @param {HTMLElement|jQuery|string} [nextnode] Element or jQuery-selector string to the item that
-		 *  the new item should be added before, should be another item in the same
-		 *  list, it will be ignored otherwise
+		 * @param portlet string ID of the target portlet ( 'p-cactions' or 'p-personal' etc.)
+		 * @param href string Link URL
+		 * @param text string Link text
+		 * @param id string ID of the new item, should be unique and preferably have
+		 * the appropriate prefix ( 'ca-', 'pt-', 'n-' or 't-' )
+		 * @param tooltip string Text to show when hovering over the link, without accesskey suffix
+		 * @param accesskey string Access key to activate this link (one character, try
+		 * to avoid conflicts. Use $( '[accesskey=x]' ).get() in the console to
+		 * see if 'x' is already used.
+		 * @param nextnode mixed DOM Node or jQuery-selector string of the item that the new
+		 * item should be added before, should be another item in the same
+		 * list, it will be ignored otherwise
 		 *
-		 * @return {HTMLElement|null} The added element (a ListItem or Anchor element,
+		 * @return mixed The DOM Node of the added item (a ListItem or Anchor element,
 		 * depending on the skin) or null if no element was added to the document.
 		 */
 		addPortletLink: function ( portlet, href, text, id, tooltip, accesskey, nextnode ) {
@@ -368,6 +339,7 @@
 			// just add it to the bottom of their 'sidebar' element as a fallback
 			switch ( mw.config.get( 'skin' ) ) {
 			case 'standard':
+			case 'cologneblue':
 				$( '#quickbar' ).append( $link.after( '<br/>' ) );
 				return $link[0];
 			case 'nostalgia':
@@ -381,21 +353,20 @@
 					return null;
 				}
 				// Select the first (most likely only) unordered list inside the portlet
-				$ul = $portlet.find( 'ul' ).eq( 0 );
+				$ul = $portlet.find( 'ul' );
 
 				// If it didn't have an unordered list yet, create it
 				if ( $ul.length === 0 ) {
-
-					$ul = $( '<ul>' );
-
 					// If there's no <div> inside, append it to the portlet directly
 					if ( $portlet.find( 'div:first' ).length === 0 ) {
-						$portlet.append( $ul );
+						$portlet.append( '<ul></ul>' );
 					} else {
 						// otherwise if there's a div (such as div.body or div.pBody)
 						// append the <ul> to last (most likely only) div
-						$portlet.find( 'div' ).eq( -1 ).append( $ul );
+						$portlet.find( 'div' ).eq( -1 ).append( '<ul></ul>' );
 					}
+					// Select the created element
+					$ul = $portlet.find( 'ul' ).eq( 0 );
 				}
 				// Just in case..
 				if ( $ul.length === 0 ) {
@@ -437,7 +408,7 @@
 
 				// If the jQuery selector isn't found within the <ul>,
 				// or if nextnode was invalid or not passed at all,
-				// then just append it at the end of the <ul> (this is the default behavior)
+				// then just append it at the end of the <ul> (this is the default behaviour)
 				} else {
 					$ul.append( $item );
 				}
@@ -452,19 +423,44 @@
 		 * something, replacing any previous message.
 		 * Calling with no arguments, with an empty string or null will hide the message
 		 *
-		 * @param {Mixed} message The DOM-element, jQuery object or HTML-string to be put inside the message box.
+		 * @param message {mixed} The DOM-element, jQuery object or HTML-string to be put inside the message box.
+		 * @param className {String} Used in adding a class; should be different for each call
 		 * to allow CSS/JS to hide different boxes. null = no class used.
-		 * @deprecated Use mw#notify
+		 * @return {Boolean} True on success, false on failure.
 		 */
-		jsMessage: function ( message ) {
+		jsMessage: function ( message, className ) {
 			if ( !arguments.length || message === '' || message === null ) {
+				$( '#mw-js-message' ).empty().hide();
+				return true; // Emptying and hiding message is intended behaviour, return true
+
+			} else {
+				// We special-case skin structures provided by the software. Skins that
+				// choose to abandon or significantly modify our formatting can just define
+				// an mw-js-message div to start with.
+				var $messageDiv = $( '#mw-js-message' );
+				if ( !$messageDiv.length ) {
+					$messageDiv = $( '<div id="mw-js-message"></div>' );
+					if ( util.$content.parent().length ) {
+						util.$content.parent().prepend( $messageDiv );
+					} else {
+						return false;
+					}
+				}
+
+				if ( className ) {
+					$messageDiv.prop( 'class', 'mw-js-message-' + className );
+				}
+
+				if ( typeof message === 'object' ) {
+					$messageDiv.empty();
+					$messageDiv.append( message );
+				} else {
+					$messageDiv.html( message );
+				}
+
+				$messageDiv.slideDown();
 				return true;
 			}
-			if ( typeof message !== 'object' ) {
-				message = $.parseHTML( message );
-			}
-			mw.notify( message, { autoHide: true, tag: 'legacy' } );
-			return true;
 		},
 
 		/**
@@ -472,80 +468,87 @@
 		 * according to HTML5 specification. Please note the specification
 		 * does not validate a domain with one character.
 		 *
-		 * FIXME: should be moved to or replaced by a validation module.
+		 * @todo FIXME: should be moved to or replaced by a JavaScript validation module.
 		 *
-		 * @param {string} mailtxt E-mail address to be validated.
-		 * @return {boolean|null} Null if `mailtxt` was an empty string, otherwise true/false
-		 * as determined by validation.
+		 * @param mailtxt string E-mail address to be validated.
+		 * @return mixed Null if mailtxt was an empty string, otherwise true/false
+		 * is determined by validation.
 		 */
 		validateEmail: function ( mailtxt ) {
-			var rfc5322Atext, rfc1034LdhStr, html5EmailRegexp;
+			var rfc5322_atext, rfc1034_ldh_str, HTML5_email_regexp;
 
 			if ( mailtxt === '' ) {
 				return null;
 			}
 
-			// HTML5 defines a string as valid e-mail address if it matches
-			// the ABNF:
-			//	1 * ( atext / "." ) "@" ldh-str 1*( "." ldh-str )
-			// With:
-			// - atext	: defined in RFC 5322 section 3.2.3
-			// - ldh-str : defined in RFC 1034 section 3.5
-			//
-			// (see STD 68 / RFC 5234 http://tools.ietf.org/html/std68)
-			// First, define the RFC 5322 'atext' which is pretty easy:
-			// atext = ALPHA / DIGIT / ; Printable US-ASCII
-			//     "!" / "#" /    ; characters not including
-			//     "$" / "%" /    ; specials. Used for atoms.
-			//     "&" / "'" /
-			//     "*" / "+" /
-			//     "-" / "/" /
-			//     "=" / "?" /
-			//     "^" / "_" /
-			//     "`" / "{" /
-			//     "|" / "}" /
-			//     "~"
-			rfc5322Atext = 'a-z0-9!#$%&\'*+\\-/=?^_`{|}~';
+			/**
+			 * HTML5 defines a string as valid e-mail address if it matches
+			 * the ABNF:
+			 *	1 * ( atext / "." ) "@" ldh-str 1*( "." ldh-str )
+			 * With:
+			 * - atext	: defined in RFC 5322 section 3.2.3
+			 * - ldh-str : defined in RFC 1034 section 3.5
+			 *
+			 * (see STD 68 / RFC 5234 http://tools.ietf.org/html/std68):
+			 */
 
-			// Next define the RFC 1034 'ldh-str'
-			//	<domain> ::= <subdomain> | " "
-			//	<subdomain> ::= <label> | <subdomain> "." <label>
-			//	<label> ::= <letter> [ [ <ldh-str> ] <let-dig> ]
-			//	<ldh-str> ::= <let-dig-hyp> | <let-dig-hyp> <ldh-str>
-			//	<let-dig-hyp> ::= <let-dig> | "-"
-			//	<let-dig> ::= <letter> | <digit>
-			rfc1034LdhStr = 'a-z0-9\\-';
+			/**
+			 * First, define the RFC 5322 'atext' which is pretty easy:
+			 * atext = ALPHA / DIGIT / ; Printable US-ASCII
+						 "!" / "#" /	 ; characters not including
+						 "$" / "%" /	 ; specials. Used for atoms.
+						 "&" / "'" /
+						 "*" / "+" /
+						 "-" / "/" /
+						 "=" / "?" /
+						 "^" / "_" /
+						 "`" / "{" /
+						 "|" / "}" /
+						 "~"
+			*/
+			rfc5322_atext = "a-z0-9!#$%&'*+\\-/=?^_`{|}~";
 
-			html5EmailRegexp = new RegExp(
+			/**
+			 * Next define the RFC 1034 'ldh-str'
+			 *	<domain> ::= <subdomain> | " "
+			 *	<subdomain> ::= <label> | <subdomain> "." <label>
+			 *	<label> ::= <letter> [ [ <ldh-str> ] <let-dig> ]
+			 *	<ldh-str> ::= <let-dig-hyp> | <let-dig-hyp> <ldh-str>
+			 *	<let-dig-hyp> ::= <let-dig> | "-"
+			 *	<let-dig> ::= <letter> | <digit>
+			 */
+			rfc1034_ldh_str = "a-z0-9\\-";
+
+			HTML5_email_regexp = new RegExp(
 				// start of string
 				'^'
 				+
 				// User part which is liberal :p
-				'[' + rfc5322Atext + '\\.]+'
+				'[' + rfc5322_atext + '\\.]+'
 				+
 				// 'at'
 				'@'
 				+
 				// Domain first part
-				'[' + rfc1034LdhStr + ']+'
+				'[' + rfc1034_ldh_str + ']+'
 				+
 				// Optional second part and following are separated by a dot
-				'(?:\\.[' + rfc1034LdhStr + ']+)*'
+				'(?:\\.[' + rfc1034_ldh_str + ']+)*'
 				+
 				// End of string
 				'$',
 				// RegExp is case insensitive
 				'i'
 			);
-			return (null !== mailtxt.match( html5EmailRegexp ) );
+			return (null !== mailtxt.match( HTML5_email_regexp ) );
 		},
 
 		/**
 		 * Note: borrows from IP::isIPv4
 		 *
-		 * @param {string} address
-		 * @param {boolean} allowBlock
-		 * @return {boolean}
+		 * @param address string
+		 * @param allowBlock boolean
+		 * @return boolean
 		 */
 		isIPv4Address: function ( address, allowBlock ) {
 			if ( typeof address !== 'string' ) {
@@ -562,9 +565,9 @@
 		/**
 		 * Note: borrows from IP::isIPv6
 		 *
-		 * @param {string} address
-		 * @param {boolean} allowBlock
-		 * @return {boolean}
+		 * @param address string
+		 * @param allowBlock boolean
+		 * @return boolean
 		 */
 		isIPv6Address: function ( address, allowBlock ) {
 			if ( typeof address !== 'string' ) {
@@ -595,4 +598,4 @@
 
 	mw.util = util;
 
-}( mediaWiki, jQuery ) );
+} )( jQuery, mediaWiki );

@@ -33,8 +33,6 @@
 
 class ApiQueryRandom extends ApiQueryGeneratorBase {
 
-	private $pageIDs;
-
 	public function __construct( $query, $moduleName ) {
 		parent::__construct( $query, $moduleName, 'rn' );
 	}
@@ -163,16 +161,6 @@ class ApiQueryRandom extends ApiQueryGeneratorBase {
 		);
 	}
 
-	public function getResultProperties() {
-		return array(
-			'' => array(
-				'id' => 'integer',
-				'ns' => 'namespace',
-				'title' => 'string'
-			)
-		);
-	}
-
 	public function getDescription() {
 		return array(
 			'Get a set of random pages',
@@ -184,5 +172,9 @@ class ApiQueryRandom extends ApiQueryGeneratorBase {
 
 	public function getExamples() {
 		return 'api.php?action=query&list=random&rnnamespace=0&rnlimit=2';
+	}
+
+	public function getVersion() {
+		return __CLASS__ . ': $Id: ApiQueryRandom.php overlordq$';
 	}
 }

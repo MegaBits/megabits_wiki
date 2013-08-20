@@ -34,8 +34,4 @@ class LongPagesPage extends ShortPagesPage {
 	function sortDescending() {
 		return true;
 	}
-
-	protected function getGroupName() {
-		return 'maintenance';
-	}
 }

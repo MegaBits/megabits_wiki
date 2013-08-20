@@ -76,7 +76,7 @@ class SpecialMergeHistory extends SpecialPage {
 	function preCacheMessages() {
 		// Precache various messages
 		if( !isset( $this->message ) ) {
-			$this->message['last'] = $this->msg( 'last' )->escaped();
+			$this->message['last'] = wfMsgExt( 'last', array( 'escape' ) );
 		}
 	}
 
@@ -90,8 +90,7 @@ class SpecialMergeHistory extends SpecialPage {
 		$this->outputHeader();
 
 		if( $this->mTargetID && $this->mDestID && $this->mAction == 'submit' && $this->mMerge ) {
-			$this->merge();
-			return;
+			return $this->merge();
 		}
 
 		if ( !$this->mSubmitted ) {
@@ -101,23 +100,23 @@ class SpecialMergeHistory extends SpecialPage {
 
 		$errors = array();
 		if ( !$this->mTargetObj instanceof Title ) {
-			$errors[] = $this->msg( 'mergehistory-invalid-source' )->parseAsBlock();
+			$errors[] = wfMsgExt( 'mergehistory-invalid-source', array( 'parse' ) );
 		} elseif( !$this->mTargetObj->exists() ) {
-			$errors[] = $this->msg( 'mergehistory-no-source', array( 'parse' ),
+			$errors[] = wfMsgExt( 'mergehistory-no-source', array( 'parse' ),
 				wfEscapeWikiText( $this->mTargetObj->getPrefixedText() )
-			)->parseAsBlock();
+			);
 		}
 
 		if ( !$this->mDestObj instanceof Title ) {
-			$errors[] = $this->msg( 'mergehistory-invalid-destination' )->parseAsBlock();
+			$errors[] = wfMsgExt( 'mergehistory-invalid-destination', array( 'parse' ) );
 		} elseif( !$this->mDestObj->exists() ) {
-			$errors[] = $this->msg( 'mergehistory-no-destination', array( 'parse' ),
+			$errors[] = wfMsgExt( 'mergehistory-no-destination', array( 'parse' ),
 				wfEscapeWikiText( $this->mDestObj->getPrefixedText() )
-			)->parseAsBlock();
+			);
 		}
 
 		if ( $this->mTargetObj && $this->mDestObj && $this->mTargetObj->equals( $this->mDestObj ) ) {
-			$errors[] = $this->msg( 'mergehistory-same-destination' )->parseAsBlock();
+			$errors[] = wfMsgExt( 'mergehistory-same-destination', array( 'parse' ) );
 		}
 
 		if ( count( $errors ) ) {
@@ -140,19 +139,19 @@ class SpecialMergeHistory extends SpecialPage {
 				'action' => $wgScript ) ) .
 			'<fieldset>' .
 			Xml::element( 'legend', array(),
-				$this->msg( 'mergehistory-box' )->text() ) .
-			Html::hidden( 'title', $this->getTitle()->getPrefixedDBkey() ) .
+				wfMsg( 'mergehistory-box' ) ) .
+			Html::hidden( 'title', $this->getTitle()->getPrefixedDbKey() ) .
 			Html::hidden( 'submitted', '1' ) .
 			Html::hidden( 'mergepoint', $this->mTimestamp ) .
 			Xml::openElement( 'table' ) .
 			'<tr>
-				<td>' . Xml::label( $this->msg( 'mergehistory-from' )->text(), 'target' ) . '</td>
+				<td>' . Xml::label( wfMsg( 'mergehistory-from' ), 'target' ) . '</td>
 				<td>' . Xml::input( 'target', 30, $this->mTarget, array( 'id' => 'target' ) ) . '</td>
 			</tr><tr>
-				<td>' . Xml::label( $this->msg( 'mergehistory-into' )->text(), 'dest' ) . '</td>
+				<td>' . Xml::label( wfMsg( 'mergehistory-into' ), 'dest' ) . '</td>
 				<td>' . Xml::input( 'dest', 30, $this->mDest, array( 'id' => 'dest' ) ) . '</td>
 			</tr><tr><td>' .
-			Xml::submitButton( $this->msg( 'mergehistory-go' )->text() ) .
+			Xml::submitButton( wfMsg( 'mergehistory-go' ) ) .
 			'</td></tr>' .
 			Xml::closeElement( 'table' ) .
 			'</fieldset>' .
@@ -188,12 +187,12 @@ class SpecialMergeHistory extends SpecialPage {
 			# in a nice little table
 			$table =
 				Xml::openElement( 'fieldset' ) .
-				$this->msg( 'mergehistory-merge', $this->mTargetObj->getPrefixedText(),
-					$this->mDestObj->getPrefixedText() )->parse() .
+				wfMsgExt( 'mergehistory-merge', array( 'parseinline' ),
+					$this->mTargetObj->getPrefixedText(), $this->mDestObj->getPrefixedText() ) .
 				Xml::openElement( 'table', array( 'id' => 'mw-mergehistory-table' ) ) .
 					'<tr>
 						<td class="mw-label">' .
-							Xml::label( $this->msg( 'mergehistory-reason' )->text(), 'wpComment' ) .
+							Xml::label( wfMsg( 'mergehistory-reason' ), 'wpComment' ) .
 						'</td>
 						<td class="mw-input">' .
 							Xml::input( 'wpComment', 50, $this->mComment, array( 'id' => 'wpComment' ) ) .
@@ -202,7 +201,7 @@ class SpecialMergeHistory extends SpecialPage {
 					<tr>
 						<td>&#160;</td>
 						<td class="mw-submit">' .
-							Xml::submitButton( $this->msg( 'mergehistory-submit' )->text(), array( 'name' => 'merge', 'id' => 'mw-merge-submit' ) ) .
+							Xml::submitButton( wfMsg( 'mergehistory-submit' ), array( 'name' => 'merge', 'id' => 'mw-merge-submit' ) ) .
 						'</td>
 					</tr>' .
 				Xml::closeElement( 'table' ) .
@@ -213,7 +212,7 @@ class SpecialMergeHistory extends SpecialPage {
 
 		$out->addHTML(
 			'<h2 id="mw-mergehistory">' .
-			$this->msg( 'mergehistory-list' )->escaped() . "</h2>\n"
+			wfMsgHtml( 'mergehistory-list' ) . "</h2>\n"
 		);
 
 		if( $haveRevisions ) {
@@ -226,9 +225,8 @@ class SpecialMergeHistory extends SpecialPage {
 			$out->addWikiMsg( 'mergehistory-empty' );
 		}
 
-		# Show relevant lines from the merge log:
-		$mergeLogPage = new LogPage( 'merge' );
-		$out->addHTML( '<h2>' . $mergeLogPage->getName()->escaped() . "</h2>\n" );
+		# Show relevant lines from the deletion log:
+		$out->addHTML( '<h2>' . htmlspecialchars( LogPage::logName( 'merge' ) ) . "</h2>\n" );
 		LogEventsList::showLogExtract( $out, 'merge', $this->mTargetObj );
 
 		# When we submit, go by page ID to avoid some nasty but unlikely collisions.
@@ -253,11 +251,9 @@ class SpecialMergeHistory extends SpecialPage {
 		$ts = wfTimestamp( TS_MW, $row->rev_timestamp );
 		$checkBox = Xml::radio( 'mergepoint', $ts, false );
 
-		$user = $this->getUser();
-
 		$pageLink = Linker::linkKnown(
 			$rev->getTitle(),
-			htmlspecialchars( $this->getLanguage()->userTimeAndDate( $ts, $user ) ),
+			htmlspecialchars( $this->getLanguage()->timeanddate( $ts ) ),
 			array(),
 			array( 'oldid' => $rev->getId() )
 		);
@@ -266,7 +262,7 @@ class SpecialMergeHistory extends SpecialPage {
 		}
 
 		# Last link
-		if( !$rev->userCan( Revision::DELETED_TEXT, $user ) ) {
+		if( !$rev->userCan( Revision::DELETED_TEXT, $this->getUser() ) ) {
 			$last = $this->message['last'];
 		} elseif( isset( $this->prevId[$row->rev_id] ) ) {
 			$last = Linker::linkKnown(
@@ -288,8 +284,7 @@ class SpecialMergeHistory extends SpecialPage {
 		}
 		$comment = Linker::revComment( $rev );
 
-		return Html::rawElement( 'li', array(),
-			$this->msg( 'mergehistory-revisionrow' )->rawParams( $checkBox, $last, $pageLink, $userLink, $stxt, $comment )->escaped() );
+		return "<li>$checkBox ($last) $pageLink . . $userLink $stxt $comment</li>";
 	}
 
 	function merge() {
@@ -301,7 +296,7 @@ class SpecialMergeHistory extends SpecialPage {
 		if( is_null( $targetTitle ) || is_null( $destTitle ) ) {
 			return false; // validate these
 		}
-		if( $targetTitle->getArticleID() == $destTitle->getArticleID() ) {
+		if( $targetTitle->getArticleId() == $destTitle->getArticleId() ) {
 			return false;
 		}
 		# Verify that this timestamp is valid
@@ -360,46 +355,39 @@ class SpecialMergeHistory extends SpecialPage {
 		);
 		if( !$haveRevisions ) {
 			if( $this->mComment ) {
-				$comment = $this->msg(
+				$comment = wfMsgForContent(
 					'mergehistory-comment',
 					$targetTitle->getPrefixedText(),
 					$destTitle->getPrefixedText(),
 					$this->mComment
-				)->inContentLanguage()->text();
+				);
 			} else {
-				$comment = $this->msg(
+				$comment = wfMsgForContent(
 					'mergehistory-autocomment',
 					$targetTitle->getPrefixedText(),
 					$destTitle->getPrefixedText()
-				)->inContentLanguage()->text();
-			}
-
-			$contentHandler = ContentHandler::getForTitle( $targetTitle );
-			$redirectContent = $contentHandler->makeRedirectContent( $destTitle );
-
-			if ( $redirectContent ) {
-				$redirectPage = WikiPage::factory( $targetTitle );
-				$redirectRevision = new Revision( array(
-					'title'   => $targetTitle,
-					'page'    => $this->mTargetID,
-					'comment' => $comment,
-					'content' => $redirectContent ) );
-				$redirectRevision->insertOn( $dbw );
-				$redirectPage->updateRevisionOn( $dbw, $redirectRevision );
-
-				# Now, we record the link from the redirect to the new title.
-				# It should have no other outgoing links...
-				$dbw->delete( 'pagelinks', array( 'pl_from' => $this->mDestID ), __METHOD__ );
-				$dbw->insert( 'pagelinks',
-					array(
-						'pl_from'      => $this->mDestID,
-						'pl_namespace' => $destTitle->getNamespace(),
-						'pl_title'     => $destTitle->getDBkey() ),
-					__METHOD__
 				);
-			} else {
-				// would be nice to show a warning if we couldn't create a redirect
 			}
+			$mwRedir = MagicWord::get( 'redirect' );
+			$redirectText = $mwRedir->getSynonym( 0 ) . ' [[' . $destTitle->getPrefixedText() . "]]\n";
+			$redirectPage = WikiPage::factory( $targetTitle );
+			$redirectRevision = new Revision( array(
+				'page'    => $this->mTargetID,
+				'comment' => $comment,
+				'text'    => $redirectText ) );
+			$redirectRevision->insertOn( $dbw );
+			$redirectPage->updateRevisionOn( $dbw, $redirectRevision );
+
+			# Now, we record the link from the redirect to the new title.
+			# It should have no other outgoing links...
+			$dbw->delete( 'pagelinks', array( 'pl_from' => $this->mDestID ), __METHOD__ );
+			$dbw->insert( 'pagelinks',
+				array(
+					'pl_from'      => $this->mDestID,
+					'pl_namespace' => $destTitle->getNamespace(),
+					'pl_title'     => $destTitle->getDBkey() ),
+				__METHOD__
+			);
 		} else {
 			$targetTitle->invalidateCache(); // update histories
 		}
@@ -416,16 +404,13 @@ class SpecialMergeHistory extends SpecialPage {
 			array( $destTitle->getPrefixedText(), $timestampLimit )
 		);
 
-		$this->getOutput()->addWikiMsg( 'mergehistory-success',
-			$targetTitle->getPrefixedText(), $destTitle->getPrefixedText(), $count );
+		$this->getOutput()->addHTML(
+			wfMsgExt( 'mergehistory-success', array('parseinline'),
+			$targetTitle->getPrefixedText(), $destTitle->getPrefixedText(), $count ) );
 
 		wfRunHooks( 'ArticleMergeComplete', array( $targetTitle, $destTitle ) );
 
 		return true;
-	}
-
-	protected function getGroupName() {
-		return 'pagetools';
 	}
 }
 

@@ -1,24 +1,4 @@
 <?php
-/**
- * Representation of an user on a other locally-hosted wiki.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- */
 
 /**
  * Cut-down copy of User interface for local-interwiki-database
@@ -32,8 +12,8 @@ class UserRightsProxy {
 	 * @see newFromId()
 	 * @see newFromName()
 	 * @param $db DatabaseBase: db connection
-	 * @param string $database database name
-	 * @param string $name user name
+	 * @param $database String: database name
+	 * @param $name String: user name
 	 * @param $id Integer: user ID
 	 */
 	private function __construct( $db, $database, $name, $id ) {
@@ -56,7 +36,7 @@ class UserRightsProxy {
 	/**
 	 * Confirm the selected database name is a valid local interwiki database name.
 	 *
-	 * @param string $database database name
+	 * @param $database String: database name
 	 * @return Boolean
 	 */
 	public static function validDatabase( $database ) {
@@ -67,7 +47,7 @@ class UserRightsProxy {
 	/**
 	 * Same as User::whoIs()
 	 *
-	 * @param string $database database name
+	 * @param $database String: database name
 	 * @param $id Integer: user ID
 	 * @param $ignoreInvalidDB Boolean: if true, don't check if $database is in $wgLocalDatabases
 	 * @return String: user name or false if the user doesn't exist
@@ -84,7 +64,7 @@ class UserRightsProxy {
 	/**
 	 * Factory function; get a remote user entry by ID number.
 	 *
-	 * @param string $database database name
+	 * @param $database String: database name
 	 * @param $id Integer: user ID
 	 * @param $ignoreInvalidDB Boolean: if true, don't check if $database is in $wgLocalDatabases
 	 * @return UserRightsProxy or null if doesn't exist
@@ -96,8 +76,8 @@ class UserRightsProxy {
 	/**
 	 * Factory function; get a remote user entry by name.
 	 *
-	 * @param string $database database name
-	 * @param string $name user name
+	 * @param $database String: database name
+	 * @param $name String: user name
 	 * @param $ignoreInvalidDB Boolean: if true, don't check if $database is in $wgLocalDatabases
 	 * @return UserRightsProxy or null if doesn't exist
 	 */
@@ -183,7 +163,6 @@ class UserRightsProxy {
 
 	/**
 	 * Replaces User::getUserGroups()
-	 * @return array
 	 */
 	function getGroups() {
 		$res = $this->db->select( 'user_groups',

@@ -1,11 +1,11 @@
 <?php
 /**
- * Look for 'orphan' revisions hooked to pages which don't exist and
- * 'childless' pages with no revisions.
+ * Look for 'orphan' revisions hooked to pages which don't exist
+ * And 'childless' pages with no revisions.
  * Then, kill the poor widows and orphans.
  * Man this is depressing.
  *
- * Copyright © 2005 Brion Vibber <brion@pobox.com>
+ * Copyright (C) 2005 Brion Vibber <brion@pobox.com>
  * http://www.mediawiki.org/
  *
  * This program is free software; you can redistribute it and/or modify
@@ -23,24 +23,17 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @file
  * @author <brion@pobox.com>
  * @ingroup Maintenance
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script that looks for 'orphan' revisions hooked to pages which
- * don't exist and 'childless' pages with no revisions.
- *
- * @ingroup Maintenance
- */
 class Orphans extends Maintenance {
 	public function __construct() {
 		parent::__construct();
 		$this->mDescription = "Look for 'orphan' revisions hooked to pages which don't exist\n" .
-								"and 'childless' pages with no revisions\n" .
+								"And 'childless' pages with no revisions\n" .
 								"Then, kill the poor widows and orphans\n" .
 								"Man this is depressing";
 		$this->addOption( 'fix', 'Actually fix broken entries' );
@@ -87,7 +80,7 @@ class Orphans extends Maintenance {
 			FROM $revision LEFT OUTER JOIN $page ON rev_page=page_id
 			WHERE page_id IS NULL
 		" );
-		$orphans = $result->numRows();
+		$orphans = $dbw->numRows( $result );
 		if ( $orphans > 0 ) {
 			global $wgContLang;
 			$this->output( "$orphans orphan revisions...\n" );
@@ -139,7 +132,7 @@ class Orphans extends Maintenance {
 			FROM $page LEFT OUTER JOIN $revision ON page_latest=rev_id
 			WHERE rev_id IS NULL
 		" );
-		$widows = $result->numRows();
+		$widows = $dbw->numRows( $result );
 		if ( $widows > 0 ) {
 			$this->output( "$widows childless pages...\n" );
 			$this->output( sprintf( "%10s %11s %2s %s\n", 'page_id', 'page_latest', 'ns', 'page_title' ) );

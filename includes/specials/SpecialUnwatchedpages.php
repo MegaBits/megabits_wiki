@@ -35,20 +35,15 @@ class UnwatchedpagesPage extends QueryPage {
 		parent::__construct( $name, 'unwatchedpages' );
 	}
 
-	function isExpensive() {
-		return true;
-	}
-
-	function isSyndicated() {
-		return false;
-	}
+	function isExpensive() { return true; }
+	function isSyndicated() { return false; }
 
 	function getQueryInfo() {
 		return array (
 			'tables' => array ( 'page', 'watchlist' ),
-			'fields' => array ( 'namespace' => 'page_namespace',
-					'title' => 'page_title',
-					'value' => 'page_namespace' ),
+			'fields' => array ( 'page_namespace AS namespace',
+					'page_title AS title',
+					'page_namespace AS value' ),
 			'conds' => array ( 'wl_title IS NULL',
 					'page_is_redirect' => 0,
 					"page_namespace != '" . NS_MEDIAWIKI .
@@ -59,9 +54,7 @@ class UnwatchedpagesPage extends QueryPage {
 		);
 	}
 
-	function sortDescending() {
-		return false;
-	}
+	function sortDescending() { return false; }
 
 	function getOrderFields() {
 		return array( 'page_namespace', 'page_title' );
@@ -75,27 +68,21 @@ class UnwatchedpagesPage extends QueryPage {
 	function formatResult( $skin, $result ) {
 		global $wgContLang;
 
-		$nt = Title::makeTitleSafe( $result->namespace, $result->title );
-		if ( !$nt ) {
-			return Html::element( 'span', array( 'class' => 'mw-invalidtitle' ),
-				Linker::getInvalidTitleDescription( $this->getContext(), $result->namespace, $result->title ) );
-		}
-
+		$nt = Title::makeTitle( $result->namespace, $result->title );
 		$text = $wgContLang->convert( $nt->getPrefixedText() );
 
-		$plink = Linker::linkKnown( $nt, htmlspecialchars( $text ) );
+		$plink = Linker::linkKnown(
+			$nt,
+			htmlspecialchars( $text )
+		);
 		$token = WatchAction::getWatchToken( $nt, $this->getUser() );
 		$wlink = Linker::linkKnown(
 			$nt,
-			$this->msg( 'watch' )->escaped(),
+			wfMsgHtml( 'watch' ),
 			array(),
 			array( 'action' => 'watch', 'token' => $token )
 		);
 
 		return $this->getLanguage()->specialList( $plink, $wlink );
-	}
-
-	protected function getGroupName() {
-		return 'maintenance';
 	}
 }

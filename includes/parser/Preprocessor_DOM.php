@@ -2,21 +2,6 @@
 /**
  * Preprocessor using PHP's dom extension
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
  * @file
  * @ingroup Parser
  */
@@ -56,7 +41,7 @@ class Preprocessor_DOM implements Preprocessor {
 	}
 
 	/**
-	 * @param $args array
+	 * @param $args
 	 * @return PPCustomFrame_DOM
 	 */
 	function newCustomFrame( $args ) {
@@ -110,9 +95,9 @@ class Preprocessor_DOM implements Preprocessor {
 	 * Preprocess some wikitext and return the document tree.
 	 * This is the ghost of Parser::replace_variables().
 	 *
-	 * @param string $text the text to parse
+	 * @param $text String: the text to parse
 	 * @param $flags Integer: bitwise combination of:
-	 *          Parser::PTD_FOR_INCLUSION    Handle "<noinclude>" and "<includeonly>" as if the text is being
+	 *          Parser::PTD_FOR_INCLUSION    Handle <noinclude>/<includeonly> as if the text is being
 	 *                                     included. Default is to assume a direct page view.
 	 *
 	 * The generated DOM tree must depend only on the input text and the flags.
@@ -126,7 +111,6 @@ class Preprocessor_DOM implements Preprocessor {
 	 * cache may be implemented at a later date which takes further advantage of these strict
 	 * dependency requirements.
 	 *
-	 * @throws MWException
 	 * @return PPNode_DOM
 	 */
 	function preprocessToObj( $text, $flags = 0 ) {
@@ -137,9 +121,9 @@ class Preprocessor_DOM implements Preprocessor {
 		$cacheable = ( $wgPreprocessorCacheThreshold !== false
 			&& strlen( $text ) > $wgPreprocessorCacheThreshold );
 		if ( $cacheable ) {
-			wfProfileIn( __METHOD__ . '-cacheable' );
+			wfProfileIn( __METHOD__.'-cacheable' );
 
-			$cacheKey = wfMemcKey( 'preprocess-xml', md5( $text ), $flags );
+			$cacheKey = wfMemcKey( 'preprocess-xml', md5($text), $flags );
 			$cacheValue = $wgMemc->get( $cacheKey );
 			if ( $cacheValue ) {
 				$version = substr( $cacheValue, 0, 8 );
@@ -152,27 +136,18 @@ class Preprocessor_DOM implements Preprocessor {
 		}
 		if ( $xml === false ) {
 			if ( $cacheable ) {
-				wfProfileIn( __METHOD__ . '-cache-miss' );
+				wfProfileIn( __METHOD__.'-cache-miss' );
 				$xml = $this->preprocessToXml( $text, $flags );
 				$cacheValue = sprintf( "%08d", self::CACHE_VERSION ) . $xml;
 				$wgMemc->set( $cacheKey, $cacheValue, 86400 );
-				wfProfileOut( __METHOD__ . '-cache-miss' );
+				wfProfileOut( __METHOD__.'-cache-miss' );
 				wfDebugLog( "Preprocessor", "Saved preprocessor XML to memcached (key $cacheKey)" );
 			} else {
 				$xml = $this->preprocessToXml( $text, $flags );
 			}
 
 		}
-
-		// Fail if the number of elements exceeds acceptable limits
-		// Do not attempt to generate the DOM
-		$this->parser->mGeneratedPPNodeCount += substr_count( $xml, '<' );
-		$max = $this->parser->mOptions->getMaxGeneratedPPNodeCount();
-		if ( $this->parser->mGeneratedPPNodeCount > $max ) {
-			throw new MWException( __METHOD__ . ': generated node count limit exceeded' );
-		}
-
-		wfProfileIn( __METHOD__ . '-loadXML' );
+		wfProfileIn( __METHOD__.'-loadXML' );
 		$dom = new DOMDocument;
 		wfSuppressWarnings();
 		$result = $dom->loadXML( $xml );
@@ -183,13 +158,13 @@ class Preprocessor_DOM implements Preprocessor {
 			// 1 << 19 == XML_PARSE_HUGE, needed so newer versions of libxml2 don't barf when the XML is >256 levels deep
 			$result = $dom->loadXML( $xml, 1 << 19 );
 			if ( !$result ) {
-				throw new MWException( __METHOD__ . ' generated invalid XML' );
+				throw new MWException( __METHOD__.' generated invalid XML' );
 			}
 		}
 		$obj = new PPNode_DOM( $dom->documentElement );
-		wfProfileOut( __METHOD__ . '-loadXML' );
+		wfProfileOut( __METHOD__.'-loadXML' );
 		if ( $cacheable ) {
-			wfProfileOut( __METHOD__ . '-cacheable' );
+			wfProfileOut( __METHOD__.'-cacheable' );
 		}
 		wfProfileOut( __METHOD__ );
 		return $obj;
@@ -245,7 +220,6 @@ class Preprocessor_DOM implements Preprocessor {
 
 		$searchBase = "[{<\n"; #}
 		$revText = strrev( $text ); // For fast reverse searches
-		$lengthText = strlen( $text );
 
 		$i = 0;                     # Input pointer, starts out pointing to a pseudo-newline before the start
 		$accum =& $stack->getAccum();   # Current accumulator
@@ -301,7 +275,7 @@ class Preprocessor_DOM implements Preprocessor {
 					$accum .= htmlspecialchars( substr( $text, $i, $literalLength ) );
 					$i += $literalLength;
 				}
-				if ( $i >= $lengthText ) {
+				if ( $i >= strlen( $text ) ) {
 					if ( $currentClosing == "\n" ) {
 						// Do a past-the-end run to finish off the heading
 						$curChar = '';
@@ -365,10 +339,10 @@ class Preprocessor_DOM implements Preprocessor {
 						// Unclosed comment in input, runs to end
 						$inner = substr( $text, $i );
 						$accum .= '<comment>' . htmlspecialchars( $inner ) . '</comment>';
-						$i = $lengthText;
+						$i = strlen( $text );
 					} else {
 						// Search backwards for leading whitespace
-						$wsStart = $i ? ( $i - strspn( $revText, ' ', $lengthText - $i ) ) : 0;
+						$wsStart = $i ? ( $i - strspn( $revText, ' ', strlen( $text ) - $i ) ) : 0;
 						// Search forwards for trailing whitespace
 						// $wsEnd will be the position of the last space (or the '>' if there's none)
 						$wsEnd = $endPos + 2 + strspn( $text, ' ', $endPos + 3 );
@@ -397,7 +371,7 @@ class Preprocessor_DOM implements Preprocessor {
 
 						if ( $stack->top ) {
 							$part = $stack->top->getCurrentPart();
-							if ( !(isset( $part->commentEnd ) && $part->commentEnd == $wsStart - 1 )) {
+							if ( ! (isset( $part->commentEnd ) && $part->commentEnd == $wsStart - 1 )) {
 								$part->visualEnd = $wsStart;
 							}
 							// Else comments abutting, no change in visual end
@@ -449,7 +423,7 @@ class Preprocessor_DOM implements Preprocessor {
 					} else {
 						// No end tag -- let it run out to the end of the text.
 						$inner = substr( $text, $tagEndPos + 1 );
-						$i = $lengthText;
+						$i = strlen( $text );
 						$close = '';
 					}
 				}
@@ -505,24 +479,24 @@ class Preprocessor_DOM implements Preprocessor {
 			} elseif ( $found == 'line-end' ) {
 				$piece = $stack->top;
 				// A heading must be open, otherwise \n wouldn't have been in the search list
-				assert( '$piece->open == "\n"' );
+				assert( $piece->open == "\n" );
 				$part = $piece->getCurrentPart();
 				// Search back through the input to see if it has a proper close
 				// Do this using the reversed string since the other solutions (end anchor, etc.) are inefficient
-				$wsLength = strspn( $revText, " \t", $lengthText - $i );
+				$wsLength = strspn( $revText, " \t", strlen( $text ) - $i );
 				$searchStart = $i - $wsLength;
 				if ( isset( $part->commentEnd ) && $searchStart - 1 == $part->commentEnd ) {
 					// Comment found at line end
 					// Search for equals signs before the comment
 					$searchStart = $part->visualEnd;
-					$searchStart -= strspn( $revText, " \t", $lengthText - $searchStart );
+					$searchStart -= strspn( $revText, " \t", strlen( $text ) - $searchStart );
 				}
 				$count = $piece->count;
-				$equalsLength = strspn( $revText, '=', $lengthText - $searchStart );
+				$equalsLength = strspn( $revText, '=', strlen( $text ) - $searchStart );
 				if ( $equalsLength > 0 ) {
 					if ( $searchStart - $equalsLength == $piece->startPos ) {
 						// This is just a single string of equals signs on its own line
-						// Replicate the doHeadings behavior /={count}(.+)={count}/
+						// Replicate the doHeadings behaviour /={count}(.+)={count}/
 						// First find out how many equals signs there really are (don't stop at 6)
 						$count = $equalsLength;
 						if ( $count < 3 ) {
@@ -658,13 +632,19 @@ class Preprocessor_DOM implements Preprocessor {
 					$piece->parts = array( new PPDPart );
 					$piece->count -= $matchingCount;
 					# do we still qualify for any callback with remaining count?
-					$min = $rules[$piece->open]['min'];
-					if ( $piece->count >= $min ) {
-						$stack->push( $piece );
-						$accum =& $stack->getAccum();
-					} else {
-						$accum .= str_repeat( $piece->open, $piece->count );
+					$names = $rules[$piece->open]['names'];
+					$skippedBraces = 0;
+					$enclosingAccum =& $accum;
+					while ( $piece->count ) {
+						if ( array_key_exists( $piece->count, $names ) ) {
+							$stack->push( $piece );
+							$accum =& $stack->getAccum();
+							break;
+						}
+						--$piece->count;
+						$skippedBraces ++;
 					}
+					$enclosingAccum .= str_repeat( $piece->open, $skippedBraces );
 				}
 				$flags = $stack->getFlags();
 				extract( $flags );
@@ -752,7 +732,7 @@ class PPDStack {
 
 	function pop() {
 		if ( !count( $this->stack ) ) {
-			throw new MWException( __METHOD__ . ': no elements remaining' );
+			throw new MWException( __METHOD__.': no elements remaining' );
 		}
 		$temp = array_pop( $this->stack );
 
@@ -791,8 +771,8 @@ class PPDStack {
  * @ingroup Parser
  */
 class PPDStackElement {
-	var	$open,              // Opening character (\n for heading)
-		$close,             // Matching closing character
+	var $open,		        // Opening character (\n for heading)
+		$close,     	    // Matching closing character
 		$count,             // Number of opening characters found (number of "=" for heading)
 		$parts,             // Array of PPDPart objects describing pipe-separated parts.
 		$lineStart;         // True if the open char appeared at the start of the input line. Not set for headings.
@@ -809,7 +789,7 @@ class PPDStackElement {
 	}
 
 	function &getAccum() {
-		return $this->parts[count( $this->parts ) - 1]->out;
+		return $this->parts[count($this->parts) - 1]->out;
 	}
 
 	function addPart( $s = '' ) {
@@ -818,7 +798,7 @@ class PPDStackElement {
 	}
 
 	function getCurrentPart() {
-		return $this->parts[count( $this->parts ) - 1];
+		return $this->parts[count($this->parts) - 1];
 	}
 
 	/**
@@ -911,6 +891,7 @@ class PPFrame_DOM implements PPFrame {
 	 */
 	var $depth;
 
+
 	/**
 	 * Construct a new preprocessor frame.
 	 * @param $preprocessor Preprocessor The parent preprocessor
@@ -930,7 +911,7 @@ class PPFrame_DOM implements PPFrame {
 	 *
 	 * @return PPTemplateFrame_DOM
 	 */
-	function newChild( $args = false, $title = false, $indexOffset = 0 ) {
+	function newChild( $args = false, $title = false ) {
 		$namedArgs = array();
 		$numberedArgs = array();
 		if ( $title === false ) {
@@ -942,9 +923,6 @@ class PPFrame_DOM implements PPFrame {
 				$args = $args->node;
 			}
 			foreach ( $args as $arg ) {
-				if ( $arg instanceof PPNode ) {
-					$arg = $arg->node;
-				}
 				if ( !$xpath ) {
 					$xpath = new DOMXPath( $arg->ownerDocument );
 				}
@@ -954,7 +932,6 @@ class PPFrame_DOM implements PPFrame {
 				if ( $nameNodes->item( 0 )->hasAttributes() ) {
 					// Numbered parameter
 					$index = $nameNodes->item( 0 )->attributes->getNamedItem( 'index' )->textContent;
-					$index = $index - $indexOffset;
 					$numberedArgs[$index] = $value->item( 0 );
 					unset( $namedArgs[$index] );
 				} else {
@@ -981,25 +958,14 @@ class PPFrame_DOM implements PPFrame {
 		}
 
 		if ( ++$this->parser->mPPNodeCount > $this->parser->mOptions->getMaxPPNodeCount() ) {
-			$this->parser->limitationWarn( 'node-count-exceeded',
-				$this->parser->mPPNodeCount,
-				$this->parser->mOptions->getMaxPPNodeCount()
-			);
 			return '<span class="error">Node-count limit exceeded</span>';
 		}
 
 		if ( $expansionDepth > $this->parser->mOptions->getMaxPPExpandDepth() ) {
-			$this->parser->limitationWarn( 'expansion-depth-exceeded',
-				$expansionDepth,
-				$this->parser->mOptions->getMaxPPExpandDepth()
-			);
 			return '<span class="error">Expansion depth limit exceeded</span>';
 		}
 		wfProfileIn( __METHOD__ );
 		++$expansionDepth;
-		if ( $expansionDepth > $this->parser->mHighestExpansionDepth ) {
-			$this->parser->mHighestExpansionDepth = $expansionDepth;
-		}
 
 		if ( $root instanceof PPNode_DOM ) {
 			$root = $root->node;
@@ -1111,7 +1077,7 @@ class PPFrame_DOM implements PPFrame {
 					}
 					# Add a strip marker in PST mode so that pstPass2() can run some old-fashioned regexes on the result
 					# Not in RECOVER_COMMENTS mode (extractSections) though
-					elseif ( $this->parser->ot['wiki'] && !( $flags & PPFrame::RECOVER_COMMENTS ) ) {
+					elseif ( $this->parser->ot['wiki'] && ! ( $flags & PPFrame::RECOVER_COMMENTS ) ) {
 						$out .= $this->parser->insertStripItem( $contextNode->textContent );
 					}
 					# Recover the literal comment in RECOVER_COMMENTS and pre+no-remove
@@ -1168,7 +1134,7 @@ class PPFrame_DOM implements PPFrame {
 				}
 			} else {
 				wfProfileOut( __METHOD__ );
-				throw new MWException( __METHOD__ . ': Invalid parameter type' );
+				throw new MWException( __METHOD__.': Invalid parameter type' );
 			}
 
 			if ( $newIterator !== false ) {
@@ -1284,7 +1250,6 @@ class PPFrame_DOM implements PPFrame {
 
 	/**
 	 * Virtual implode with brackets
-	 * @return array
 	 */
 	function virtualBracketedImplode( $start, $sep, $end /*, ... */ ) {
 		$args = array_slice( func_get_args(), 3 );
@@ -1452,25 +1417,25 @@ class PPTemplateFrame_DOM extends PPFrame_DOM {
 	function getArguments() {
 		$arguments = array();
 		foreach ( array_merge(
-				array_keys( $this->numberedArgs ),
-				array_keys( $this->namedArgs ) ) as $key ) {
-			$arguments[$key] = $this->getArgument( $key );
+				array_keys($this->numberedArgs),
+				array_keys($this->namedArgs)) as $key ) {
+			$arguments[$key] = $this->getArgument($key);
 		}
 		return $arguments;
 	}
 
 	function getNumberedArguments() {
 		$arguments = array();
-		foreach ( array_keys( $this->numberedArgs ) as $key ) {
-			$arguments[$key] = $this->getArgument( $key );
+		foreach ( array_keys($this->numberedArgs) as $key ) {
+			$arguments[$key] = $this->getArgument($key);
 		}
 		return $arguments;
 	}
 
 	function getNamedArguments() {
 		$arguments = array();
-		foreach ( array_keys( $this->namedArgs ) as $key ) {
-			$arguments[$key] = $this->getArgument( $key );
+		foreach ( array_keys($this->namedArgs) as $key ) {
+			$arguments[$key] = $this->getArgument($key);
 		}
 		return $arguments;
 	}
@@ -1556,10 +1521,6 @@ class PPCustomFrame_DOM extends PPFrame_DOM {
 			return false;
 		}
 		return $this->args[$index];
-	}
-
-	function getArguments() {
-		return $this->args;
 	}
 }
 
@@ -1662,12 +1623,11 @@ class PPNode_DOM implements PPNode {
 	}
 
 	/**
-	 * Split a "<part>" node into an associative array containing:
-	 *  - name          PPNode name
-	 *  - index         String index
-	 *  - value         PPNode value
+	 * Split a <part> node into an associative array containing:
+	 *    name          PPNode name
+	 *    index         String index
+	 *    value         PPNode value
 	 *
-	 * @throws MWException
 	 * @return array
 	 */
 	function splitArg() {
@@ -1686,10 +1646,9 @@ class PPNode_DOM implements PPNode {
 	}
 
 	/**
-	 * Split an "<ext>" node into an associative array containing name, attr, inner and close
+	 * Split an <ext> node into an associative array containing name, attr, inner and close
 	 * All values in the resulting array are PPNodes. Inner and close are optional.
 	 *
-	 * @throws MWException
 	 * @return array
 	 */
 	function splitExt() {
@@ -1714,9 +1673,7 @@ class PPNode_DOM implements PPNode {
 	}
 
 	/**
-	 * Split a "<h>" node
-	 * @throws MWException
-	 * @return array
+	 * Split a <h> node
 	 */
 	function splitHeading() {
 		if ( $this->getName() !== 'h' ) {

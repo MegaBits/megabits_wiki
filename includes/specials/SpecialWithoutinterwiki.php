@@ -41,10 +41,10 @@ class WithoutInterwikiPage extends PageQueryPage {
 	}
 
 	function getPageHeader() {
-		global $wgScript;
+		global $wgScript, $wgMiserMode;
 
-		# Do not show useless input form if special page is cached
-		if( $this->isCached() ) {
+		# Do not show useless input form if wiki is running in misermode
+		if( $wgMiserMode ) {
 			return '';
 		}
 
@@ -53,10 +53,10 @@ class WithoutInterwikiPage extends PageQueryPage {
 
 		return Xml::openElement( 'form', array( 'method' => 'get', 'action' => $wgScript ) ) .
 			Xml::openElement( 'fieldset' ) .
-			Xml::element( 'legend', null, $this->msg( 'withoutinterwiki-legend' )->text() ) .
+			Xml::element( 'legend', null, wfMsg( 'withoutinterwiki-legend' ) ) .
 			Html::hidden( 'title', $t->getPrefixedText() ) .
-			Xml::inputLabel( $this->msg( 'allpagesprefix' )->text(), 'prefix', 'wiprefix', 20, $prefix ) . ' ' .
-			Xml::submitButton( $this->msg( 'withoutinterwiki-submit' )->text() ) .
+			Xml::inputLabel( wfMsg( 'allpagesprefix' ), 'prefix', 'wiprefix', 20, $prefix ) . ' ' .
+			Xml::submitButton( wfMsg( 'withoutinterwiki-submit' ) ) .
 			Xml::closeElement( 'fieldset' ) .
 			Xml::closeElement( 'form' );
 	}
@@ -80,9 +80,9 @@ class WithoutInterwikiPage extends PageQueryPage {
 	function getQueryInfo() {
 		$query = array (
 			'tables' => array ( 'page', 'langlinks' ),
-			'fields' => array ( 'namespace' => 'page_namespace',
-					'title' => 'page_title',
-					'value' => 'page_title' ),
+			'fields' => array ( 'page_namespace AS namespace',
+					'page_title AS title',
+					'page_title AS value' ),
 			'conds' => array ( 'll_title IS NULL',
 					'page_namespace' => MWNamespace::getContentNamespaces(),
 					'page_is_redirect' => 0 ),
@@ -94,9 +94,5 @@ class WithoutInterwikiPage extends PageQueryPage {
 			$query['conds'][] = 'page_title ' . $dbr->buildLike( $this->prefix, $dbr->anyString() );
 		}
 		return $query;
-	}
-
-	protected function getGroupName() {
-		return 'maintenance';
 	}
 }

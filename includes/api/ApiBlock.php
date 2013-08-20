@@ -4,7 +4,7 @@
  *
  * Created on Sep 4, 2007
  *
- * Copyright © 2007 Roan Kattouw "<Firstname>.<Lastname>@gmail.com"
+ * Copyright © 2007 Roan Kattouw <Firstname>.<Lastname>@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,16 @@
  */
 
 /**
- * API module that facilitates the blocking of users. Requires API write mode
- * to be enabled.
- *
+* API module that facilitates the blocking of users. Requires API write mode
+* to be enabled.
+*
  * @ingroup API
  */
 class ApiBlock extends ApiBase {
+
+	public function __construct( $main, $action ) {
+		parent::__construct( $main, $action );
+	}
 
 	/**
 	 * Blocks the user specified in the parameters for the given expiry, with the
@@ -43,7 +47,7 @@ class ApiBlock extends ApiBase {
 		$params = $this->extractRequestParams();
 
 		if ( $params['gettoken'] ) {
-			$res['blocktoken'] = $user->getEditToken();
+			$res['blocktoken'] = $user->getEditToken( '', $this->getMain()->getRequest() );
 			$this->getResult()->addValue( null, $this->getModuleName(), $res );
 			return;
 		}
@@ -51,7 +55,6 @@ class ApiBlock extends ApiBase {
 		if ( !$user->isAllowed( 'block' ) ) {
 			$this->dieUsageMsg( 'cantblock' );
 		}
-
 		# bug 15810: blocked admins should have limited access here
 		if ( $user->isBlocked() ) {
 			$status = SpecialBlock::checkUnblockSelf( $params['user'], $user );
@@ -59,13 +62,6 @@ class ApiBlock extends ApiBase {
 				$this->dieUsageMsg( array( $status ) );
 			}
 		}
-
-		$target = User::newFromName( $params['user'] );
-		// Bug 38633 - if the target is a user (not an IP address), but it doesn't exist or is unusable, error.
-		if ( $target instanceof User && ( $target->isAnon() /* doesn't exist */ || !User::isUsableName( $target->getName() ) ) ) {
-			$this->dieUsageMsg( array( 'nosuchuser', $params['user'] ) );
-		}
-
 		if ( $params['hidename'] && !$user->isAllowed( 'hideuser' ) ) {
 			$this->dieUsageMsg( 'canthide' );
 		}
@@ -74,12 +70,11 @@ class ApiBlock extends ApiBase {
 		}
 
 		$data = array(
-			'PreviousTarget' => $params['user'],
 			'Target' => $params['user'],
 			'Reason' => array(
-				$params['reason'],
+				is_null( $params['reason'] ) ? '' : $params['reason'],
 				'other',
-				$params['reason']
+				is_null( $params['reason'] ) ? '' : $params['reason']
 			),
 			'Expiry' => $params['expiry'] == 'never' ? 'infinite' : $params['expiry'],
 			'HardBlock' => !$params['anononly'],
@@ -88,7 +83,7 @@ class ApiBlock extends ApiBase {
 			'DisableEmail' => $params['noemail'],
 			'HideUser' => $params['hidename'],
 			'DisableUTEdit' => !$params['allowusertalk'],
-			'Reblock' => $params['reblock'],
+			'AlreadyBlocked' => $params['reblock'],
 			'Watch' => $params['watchuser'],
 			'Confirm' => true,
 		);
@@ -104,15 +99,13 @@ class ApiBlock extends ApiBase {
 		$res['userID'] = $target instanceof User ? $target->getId() : 0;
 
 		$block = Block::newFromTarget( $target );
-		if( $block instanceof Block ) {
-			$res['expiry'] = $block->mExpiry == $this->getDB()->getInfinity()
+		if( $block instanceof Block ){
+			$res['expiry'] = $block->mExpiry == wfGetDB( DB_SLAVE )->getInfinity()
 				? 'infinite'
 				: wfTimestamp( TS_ISO_8601, $block->mExpiry );
-			$res['id'] = $block->getId();
 		} else {
 			# should be unreachable
 			$res['expiry'] = '';
-			$res['id'] = '';
 		}
 
 		$res['reason'] = $params['reason'];
@@ -156,12 +149,9 @@ class ApiBlock extends ApiBase {
 				ApiBase::PARAM_REQUIRED => true
 			),
 			'token' => null,
-			'gettoken' => array(
-				ApiBase::PARAM_DFLT => false,
-				ApiBase::PARAM_DEPRECATED => true,
-			),
+			'gettoken' => false,
 			'expiry' => 'never',
-			'reason' => '',
+			'reason' => null,
 			'anononly' => false,
 			'nocreate' => false,
 			'autoblock' => false,
@@ -176,56 +166,18 @@ class ApiBlock extends ApiBase {
 	public function getParamDescription() {
 		return array(
 			'user' => 'Username, IP address or IP range you want to block',
-			'token' => 'A block token previously obtained through prop=info',
+			'token' => 'A block token previously obtained through the gettoken parameter or prop=info',
 			'gettoken' => 'If set, a block token will be returned, and no other action will be taken',
 			'expiry' => 'Relative expiry time, e.g. \'5 months\' or \'2 weeks\'. If set to \'infinite\', \'indefinite\' or \'never\', the block will never expire.',
-			'reason' => 'Reason for block',
+			'reason' => 'Reason for block (optional)',
 			'anononly' => 'Block anonymous users only (i.e. disable anonymous edits for this IP)',
 			'nocreate' => 'Prevent account creation',
 			'autoblock' => 'Automatically block the last used IP address, and any subsequent IP addresses they try to login from',
-			'noemail' => 'Prevent user from sending email through the wiki. (Requires the "blockemail" right.)',
+			'noemail' => 'Prevent user from sending e-mail through the wiki. (Requires the "blockemail" right.)',
 			'hidename' => 'Hide the username from the block log. (Requires the "hideuser" right.)',
 			'allowusertalk' => 'Allow the user to edit their own talk page (depends on $wgBlockAllowsUTEdit)',
 			'reblock' => 'If the user is already blocked, overwrite the existing block',
 			'watchuser' => 'Watch the user/IP\'s user and talk pages',
-		);
-	}
-
-	public function getResultProperties() {
-		return array(
-			'' => array(
-				'blocktoken' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				),
-				'user' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				),
-				'userID' => array(
-					ApiBase::PROP_TYPE => 'integer',
-					ApiBase::PROP_NULLABLE => true
-				),
-				'expiry' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				),
-				'id' => array(
-					ApiBase::PROP_TYPE => 'integer',
-					ApiBase::PROP_NULLABLE => true
-				),
-				'reason' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				),
-				'anononly' => 'boolean',
-				'nocreate' => 'boolean',
-				'autoblock' => 'boolean',
-				'noemail' => 'boolean',
-				'hidename' => 'boolean',
-				'allowusertalk' => 'boolean',
-				'watchuser' => 'boolean'
-			)
 		);
 	}
 
@@ -260,5 +212,9 @@ class ApiBlock extends ApiBase {
 
 	public function getHelpUrls() {
 		return 'https://www.mediawiki.org/wiki/API:Block';
+	}
+
+	public function getVersion() {
+		return __CLASS__ . ': $Id$';
 	}
 }

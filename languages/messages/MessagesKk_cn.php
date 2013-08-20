@@ -9,7 +9,5 @@
  *
  */
 
-$rtl = true;
-
 # Inherit everything for now
 $fallback = 'kk-arab, kk-cyrl';

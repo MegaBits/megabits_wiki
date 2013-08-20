@@ -5,13 +5,12 @@
  * @since 1.19
  */
 
-( function ( mw, $ ) {
-	'use strict';
+( function ( $, mw, undefined ) {
+"use strict";
 
-	var debug,
-		hovzer = $.getFootHovzer();
+	var hovzer = $.getFootHovzer();
 
-	debug = mw.Debug = {
+	var debug = mw.Debug = {
 		/**
 		 * Toolbar container element
 		 *
@@ -94,9 +93,9 @@
 		 * Constructs the HTML for the debugging toolbar
 		 */
 		buildHtml: function () {
-			var $container, $bits, panes, id, gitInfo;
+			var $container, $bits, panes, id;
 
-			$container = $( '<div id="mw-debug-toolbar" class="mw-debug" lang="en" dir="ltr"></div>' );
+			$container = $( '<div id="mw-debug-toolbar" class="mw-debug"></div>' );
 
 			$bits = $( '<div class="mw-debug-bits"></div>' );
 
@@ -107,9 +106,9 @@
 			 * @return {jQuery}
 			 */
 			function bitDiv( id ) {
-				return $( '<div>' ).prop({
+				return $( '<div>' ).attr({
 					id: 'mw-debug-' + id,
-					className: 'mw-debug-bit'
+					'class': 'mw-debug-bit'
 				})
 				.appendTo( $bits );
 			}
@@ -123,8 +122,8 @@
 			 */
 			function paneLabel( id, text ) {
 				return $( '<a>' )
-					.prop({
-						className: 'mw-debug-panelabel',
+					.attr({
+						'class': 'mw-debug-panelabel',
 						href: '#mw-debug-pane-' + id
 					})
 					.text( text );
@@ -139,12 +138,12 @@
 			 * @return {jQuery}
 			 */
 			function paneTriggerBitDiv( id, text, count ) {
-				if ( count ) {
+				if( count ) {
 					text = text + ' (' + count + ')';
 				}
-				return $( '<div>' ).prop({
+				return $( '<div>' ).attr({
 					id: 'mw-debug-' + id,
-					className: 'mw-debug-bit mw-debug-panelink'
+					'class': 'mw-debug-bit mw-debug-panelink'
 				})
 				.append( paneLabel( id, text ) )
 				.appendTo( $bits );
@@ -160,24 +159,9 @@
 
 			paneTriggerBitDiv( 'includes', 'PHP includes', this.data.includes.length );
 
-			gitInfo = '';
-			if ( this.data.gitRevision !== false ) {
-				gitInfo = '(' + this.data.gitRevision.substring( 0, 7 ) + ')';
-				if ( this.data.gitViewUrl !== false ) {
-					gitInfo = $( '<a>' )
-						.attr( 'href', this.data.gitViewUrl )
-						.text( gitInfo );
-				}
-			}
-
 			bitDiv( 'mwversion' )
-				.append( $( '<a href="//www.mediawiki.org/">MediaWiki</a>' ) )
-				.append( document.createTextNode( ': ' + this.data.mwVersion + ' ' ) )
-				.append( gitInfo );
-
-			if ( this.data.gitBranch !== false ) {
-				bitDiv( 'gitbranch' ).text( 'Git branch: ' + this.data.gitBranch );
-			}
+				.append( $( '<a href="//www.mediawiki.org/"></a>' ).text( 'MediaWiki' ) )
+				.append( ': ' + this.data.mwVersion );
 
 			bitDiv( 'phpversion' )
 				.append( $( '<a href="//www.php.net/"></a>' ).text( 'PHP' ) )
@@ -187,7 +171,9 @@
 				.text( 'Time: ' + this.data.time.toFixed( 5 ) );
 
 			bitDiv( 'memory' )
-				.text( 'Memory: ' + this.data.memory + ' (Peak: ' + this.data.memoryPeak + ')' );
+				.text( 'Memory: ' + this.data.memory )
+				.append( $( '<span title="Peak usage"></span>' ).text( ' (' + this.data.memoryPeak + ')' ) );
+				
 
 			$bits.appendTo( $container );
 
@@ -205,8 +191,8 @@
 				}
 
 				$( '<div>' )
-					.prop({
-						className: 'mw-debug-pane',
+					.attr({
+						'class': 'mw-debug-pane',
 						id: 'mw-debug-pane-' + id
 					})
 					.append( panes[id] )
@@ -224,9 +210,9 @@
 
 			$table = $( '<table id="mw-debug-console">' );
 
-			$( '<colgroup>' ).css( 'width', /* padding = */ 20 + ( 10 * /* fontSize = */ 11 ) ).appendTo( $table );
-			$( '<colgroup>' ).appendTo( $table );
-			$( '<colgroup>' ).css( 'width', 350 ).appendTo( $table );
+			$('<colgroup>').css( 'width', /*padding=*/20 + ( 10*/*fontSize*/11 ) ).appendTo( $table );
+			$('<colgroup>').appendTo( $table );
+			$('<colgroup>').css( 'width', 350 ).appendTo( $table );
 
 
 			entryTypeText = function( entryType ) {
@@ -249,7 +235,7 @@
 				$( '<tr>' )
 					.append( $( '<td>' )
 						.text( entry.typeText )
-						.addClass( 'mw-debug-console-' + entry.type )
+						.attr( 'class', 'mw-debug-console-' + entry.type )
 					)
 					.append( $( '<td>' ).html( entry.msg ) )
 					.append( $( '<td>' ).text( entry.caller ) )
@@ -268,10 +254,10 @@
 			$table = $( '<table id="mw-debug-querylist"></table>' );
 
 			$( '<tr>' )
-				.append( $( '<th>#</th>' ).css( 'width', '4em' )    )
-				.append( $( '<th>SQL</th>' ) )
-				.append( $( '<th>Time</th>' ).css( 'width', '8em'  ) )
-				.append( $( '<th>Call</th>' ).css( 'width', '18em' ) )
+				.append( $('<th>#</th>').css( 'width', '4em' )    )
+				.append( $('<th>SQL</th>') )
+				.append( $('<th>Time</th>').css( 'width', '8em'  ) )
+				.append( $('<th>Call</th>').css( 'width', '18em' ) )
 			.appendTo( $table );
 
 			for ( i = 0, length = this.data.queries.length; i < length; i += 1 ) {
@@ -299,7 +285,7 @@
 			for ( i = 0, length = this.data.debugLog.length; i < length; i += 1 ) {
 				line = this.data.debugLog[i];
 				$( '<li>' )
-					.html( mw.html.escape( line ).replace( /\n/g, '<br />\n' ) )
+					.html( mw.html.escape( line ).replace( /\n/g, "<br />\n" ) )
 					.appendTo( $list );
 			}
 
@@ -362,4 +348,4 @@
 		}
 	};
 
-}( mediaWiki, jQuery ) );
+} )( jQuery, mediaWiki );

@@ -26,17 +26,13 @@
 
 /**
  * Look for duplicate user table entries and optionally prune them.
- *
- * This is still used by our MysqlUpdater at:
- * includes/installer/MysqlUpdater.php
- *
  * @ingroup Maintenance
  */
 class UserDupes {
-	private $db;
-	private $reassigned;
-	private $trimmed;
-	private $failed;
+	var $db;
+	var $reassigned;
+	var $trimmed;
+	var $failed;
 	private $outputCallback;
 
 	function __construct( &$database, $outputCallback ) {

@@ -2,19 +2,17 @@
 /**
  * JavaScript Minifier
  *
- * @file
- * @author Paul Copperman <paul.copperman@gmail.com>
- * @license Choose any of Apache, MIT, GPL, LGPL
- */
-
-/**
  * This class is meant to safely minify javascript code, while leaving syntactically correct
  * programs intact. Other libraries, such as JSMin require a certain coding style to work
  * correctly. OTOH, libraries like jsminplus, that do parse the code correctly are rather
  * slow, because they construct a complete parse tree before outputting the code minified.
  * So this class is meant to allow arbitrary (but syntactically correct) input, while being
  * fast enough to be used for on-the-fly minifying.
+ *
+ * Author: Paul Copperman <paul.copperman@gmail.com>
+ * License: choose any of Apache, MIT, GPL, LGPL
  */
+
 class JavaScriptMinifier {
 
 	/* Class constants */
@@ -59,7 +57,7 @@ class JavaScriptMinifier {
 	const TYPE_DO          = 15; // keywords: case, var, finally, else, do, try
 	const TYPE_FUNC        = 16; // keywords: function
 	const TYPE_LITERAL     = 17; // all literals, identifiers and unrecognised tokens
-
+	
 	// Sanity limit to avoid excessive memory usage
 	const STACK_LIMIT = 1000;
 
@@ -72,9 +70,9 @@ class JavaScriptMinifier {
 	 *       literals (e.g. quoted strings) longer than $maxLineLength are encountered
 	 *       or when required to guard against semicolon insertion.
 	 *
-	 * @param string $s JavaScript code to minify
-	 * @param bool $statementsOnOwnLine Whether to put each statement on its own line
-	 * @param int $maxLineLength Maximum length of a single line, or -1 for no maximum.
+	 * @param $s String JavaScript code to minify
+	 * @param $statementsOnOwnLine Bool Whether to put each statement on its own line
+	 * @param $maxLineLength Int Maximum length of a single line, or -1 for no maximum.
 	 * @return String Minified code
 	 */
 	public static function minify( $s, $statementsOnOwnLine = false, $maxLineLength = 1000 ) {
@@ -385,7 +383,7 @@ class JavaScriptMinifier {
 				self::TYPE_LITERAL    => true
 			)
 		);
-
+		
 		// Rules for when newlines should be inserted if
 		// $statementsOnOwnLine is enabled.
 		// $newlineBefore is checked before switching state,
@@ -514,7 +512,7 @@ class JavaScriptMinifier {
 						return self::parseError($s, $end, 'Number with several E' );
 					}
 					$end++;
-
+					
 					// + sign is optional; - sign is required.
 					$end += strspn( $s, '-+', $end );
 					$len = strspn( $s, '0123456789', $end );
@@ -564,13 +562,13 @@ class JavaScriptMinifier {
 				$out .= ' ';
 				$lineLength++;
 			}
-
+			
 			$out .= $token;
 			$lineLength += $end - $pos; // += strlen( $token )
 			$last = $s[$end - 1];
 			$pos = $end;
 			$newlineFound = false;
-
+			
 			// Output a newline after the token if required
 			// This is checked before AND after switching state
 			$newlineAdded = false;
@@ -589,7 +587,7 @@ class JavaScriptMinifier {
 			} elseif( isset( $goto[$state][$type] ) ) {
 				$state = $goto[$state][$type];
 			}
-
+			
 			// Check for newline insertion again
 			if ( $statementsOnOwnLine && !$newlineAdded && isset( $newlineAfter[$state][$type] ) ) {
 				$out .= "\n";
@@ -598,7 +596,7 @@ class JavaScriptMinifier {
 		}
 		return $out;
 	}
-
+	
 	static function parseError($fullJavascript, $position, $errorMsg) {
 		// TODO: Handle the error: trigger_error, throw exception, return false...
 		return false;

@@ -1,21 +1,6 @@
 <?php
 /**
- * Internationalisation code.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
+ * Internationalisation code
  *
  * @file
  * @ingroup Language
@@ -32,7 +17,7 @@ if ( !defined( 'MEDIAWIKI' ) ) {
 
 # Read language names
 global $wgLanguageNames;
-require_once( __DIR__ . '/Names.php' );
+require_once( dirname( __FILE__ ) . '/Names.php' );
 
 if ( function_exists( 'mb_strtoupper' ) ) {
 	mb_internal_encoding( 'UTF-8' );
@@ -44,17 +29,12 @@ if ( function_exists( 'mb_strtoupper' ) ) {
  * @ingroup Language
  */
 class FakeConverter {
-
-	/**
-	 * @var Language
-	 */
-	public $mLang;
+	var $mLang;
 	function __construct( $langobj ) { $this->mLang = $langobj; }
 	function autoConvertToAllVariants( $text ) { return array( $this->mLang->getCode() => $text ); }
 	function convert( $t ) { return $t; }
 	function convertTo( $text, $variant ) { return $text; }
 	function convertTitle( $t ) { return $t->getPrefixedText(); }
-	function convertNamespace( $ns ) { return $this->mLang->getFormattedNsText( $ns ); }
 	function getVariants() { return array( $this->mLang->getCode() ); }
 	function getPreferredVariant() { return $this->mLang->getCode(); }
 	function getDefaultVariant() { return $this->mLang->getCode(); }
@@ -78,21 +58,21 @@ class Language {
 	/**
 	 * @var LanguageConverter
 	 */
-	public $mConverter;
+	var $mConverter;
 
-	public $mVariants, $mCode, $mLoaded = false;
-	public $mMagicExtensions = array(), $mMagicHookDone = false;
+	var $mVariants, $mCode, $mLoaded = false;
+	var $mMagicExtensions = array(), $mMagicHookDone = false;
 	private $mHtmlCode = null;
 
-	public $dateFormatStrings = array();
-	public $mExtendedSpecialPageAliases;
+	var $dateFormatStrings = array();
+	var $mExtendedSpecialPageAliases;
 
 	protected $namespaceNames, $mNamespaceIds, $namespaceAliases;
 
 	/**
 	 * ReplacementArray object caches
 	 */
-	public $transformData = array();
+	var $transformData = array();
 
 	/**
 	 * @var LocalisationCache
@@ -156,50 +136,24 @@ class Language {
 	);
 
 	/**
-	 * @since 1.20
-	 * @var array
-	 */
-	static public $durationIntervals = array(
-		'millennia' => 31556952000,
-		'centuries' => 3155695200,
-		'decades' => 315569520,
-		'years' => 31556952, // 86400 * ( 365 + ( 24 * 3 + 25 ) / 400 )
-		'weeks' => 604800,
-		'days' => 86400,
-		'hours' => 3600,
-		'minutes' => 60,
-		'seconds' => 1,
-	);
-
-	/**
-	 * Get a cached or new language object for a given language code
+	 * Get a cached language object for a given language code
 	 * @param $code String
 	 * @return Language
 	 */
 	static function factory( $code ) {
-		global $wgDummyLanguageCodes, $wgLangObjCacheSize;
-
-		if ( isset( $wgDummyLanguageCodes[$code] ) ) {
-			$code = $wgDummyLanguageCodes[$code];
+		if ( !isset( self::$mLangObjCache[$code] ) ) {
+			if ( count( self::$mLangObjCache ) > 10 ) {
+				// Don't keep a billion objects around, that's stupid.
+				self::$mLangObjCache = array();
+			}
+			self::$mLangObjCache[$code] = self::newFromCode( $code );
 		}
-
-		// get the language object to process
-		$langObj = isset( self::$mLangObjCache[$code] )
-			? self::$mLangObjCache[$code]
-			: self::newFromCode( $code );
-
-		// merge the language object in to get it up front in the cache
-		self::$mLangObjCache = array_merge( array( $code => $langObj ), self::$mLangObjCache );
-		// get rid of the oldest ones in case we have an overflow
-		self::$mLangObjCache = array_slice( self::$mLangObjCache, 0, $wgLangObjCacheSize, true );
-
-		return $langObj;
+		return self::$mLangObjCache[$code];
 	}
 
 	/**
 	 * Create a language object for a given language code
 	 * @param $code String
-	 * @throws MWException
 	 * @return Language
 	 */
 	protected static function newFromCode( $code ) {
@@ -246,78 +200,6 @@ class Language {
 	}
 
 	/**
-	 * Checks whether any localisation is available for that language tag
-	 * in MediaWiki (MessagesXx.php exists).
-	 *
-	 * @param string $code Language tag (in lower case)
-	 * @return bool Whether language is supported
-	 * @since 1.21
-	 */
-	public static function isSupportedLanguage( $code ) {
-		return $code === strtolower( $code ) && is_readable( self::getMessagesFileName( $code ) );
-	}
-
-	/**
-	 * Returns true if a language code string is a well-formed language tag
-	 * according to RFC 5646.
-	 * This function only checks well-formedness; it doesn't check that
-	 * language, script or variant codes actually exist in the repositories.
-	 *
-	 * Based on regexes by Mark Davis of the Unicode Consortium:
-	 * http://unicode.org/repos/cldr/trunk/tools/java/org/unicode/cldr/util/data/langtagRegex.txt
-	 *
-	 * @param $code string
-	 * @param $lenient boolean Whether to allow '_' as separator. The default is only '-'.
-	 *
-	 * @return bool
-	 * @since 1.21
-	 */
-	public static function isWellFormedLanguageTag( $code, $lenient = false ) {
-		$alpha = '[a-z]';
-		$digit = '[0-9]';
-		$alphanum = '[a-z0-9]';
-		$x = 'x' ; # private use singleton
-		$singleton = '[a-wy-z]'; # other singleton
-		$s = $lenient ? '[-_]' : '-';
-
-		$language = "$alpha{2,8}|$alpha{2,3}$s$alpha{3}";
-		$script = "$alpha{4}"; # ISO 15924
-		$region = "(?:$alpha{2}|$digit{3})"; # ISO 3166-1 alpha-2 or UN M.49
-		$variant = "(?:$alphanum{5,8}|$digit$alphanum{3})";
-		$extension = "$singleton(?:$s$alphanum{2,8})+";
-		$privateUse = "$x(?:$s$alphanum{1,8})+";
-
-		# Define certain grandfathered codes, since otherwise the regex is pretty useless.
-		# Since these are limited, this is safe even later changes to the registry --
-		# the only oddity is that it might change the type of the tag, and thus
-		# the results from the capturing groups.
-		# http://www.iana.org/assignments/language-subtag-registry
-
-		$grandfathered = "en{$s}GB{$s}oed"
-			. "|i{$s}(?:ami|bnn|default|enochian|hak|klingon|lux|mingo|navajo|pwn|tao|tay|tsu)"
-			. "|no{$s}(?:bok|nyn)"
-			. "|sgn{$s}(?:BE{$s}(?:fr|nl)|CH{$s}de)"
-			. "|zh{$s}min{$s}nan";
-
-		$variantList = "$variant(?:$s$variant)*";
-		$extensionList = "$extension(?:$s$extension)*";
-
-		$langtag = "(?:($language)"
-			. "(?:$s$script)?"
-			. "(?:$s$region)?"
-			. "(?:$s$variantList)?"
-			. "(?:$s$extensionList)?"
-			. "(?:$s$privateUse)?)";
-
-		# The final breakdown, with capturing groups for each of these components
-		# The variants, extensions, grandfathered, and private-use may have interior '-'
-
-		$root = "^(?:$langtag|$privateUse|$grandfathered)$";
-
-		return (bool)preg_match( "/$root/", strtolower( $code ) );
-	}
-
-	/**
 	 * Returns true if a language code string is of a valid form, whether or
 	 * not it exists. This includes codes which are used solely for
 	 * customisation via the MediaWiki namespace.
@@ -342,47 +224,11 @@ class Language {
 	 *
 	 * @param $code string
 	 *
-	 * @throws MWException
 	 * @since 1.18
 	 * @return bool
 	 */
 	public static function isValidBuiltInCode( $code ) {
-
-		if ( !is_string( $code ) ) {
-			$type = gettype( $code );
-			if ( $type === 'object' ) {
-				$addmsg = " of class " . get_class( $code );
-			} else {
-				$addmsg = '';
-			}
-			throw new MWException( __METHOD__ . " must be passed a string, $type given$addmsg" );
-		}
-
-		return (bool)preg_match( '/^[a-z0-9-]+$/i', $code );
-	}
-
-	/**
-	 * Returns true if a language code is an IETF tag known to MediaWiki.
-	 *
-	 * @param $code string
-	 *
-	 * @since 1.21
-	 * @return bool
-	 */
-	public static function isKnownLanguageTag( $tag ) {
-		static $coreLanguageNames;
-
-		if ( $coreLanguageNames === null ) {
-			include( MWInit::compiledPath( 'languages/Names.php' ) );
-		}
-
-		if ( isset( $coreLanguageNames[$tag] )
-			|| self::fetchLanguageName( $tag, $tag ) !== ''
-		) {
-			return true;
-		}
-
-		return false;
+		return preg_match( '/^[a-z0-9-]+$/i', $code );
 	}
 
 	/**
@@ -410,6 +256,10 @@ class Language {
 		}
 
 		if ( !defined( 'MW_COMPILED' ) ) {
+			// Preload base classes to work around APC/PHP5 bug
+			if ( file_exists( "$IP/languages/classes/$class.deps.php" ) ) {
+				include_once( "$IP/languages/classes/$class.deps.php" );
+			}
 			if ( file_exists( "$IP/languages/classes/$class.php" ) ) {
 				include_once( "$IP/languages/classes/$class.php" );
 			}
@@ -462,7 +312,7 @@ class Language {
 	 * @deprecated in 1.19
 	 */
 	function getFallbackLanguageCode() {
-		wfDeprecated( __METHOD__, '1.19' );
+		wfDeprecated( __METHOD__ );
 		return self::getFallbackFor( $this->mCode );
 	}
 
@@ -525,16 +375,6 @@ class Language {
 	 */
 	public function setNamespaces( array $namespaces ) {
 		$this->namespaceNames = $namespaces;
-		$this->mNamespaceIds = null;
-	}
-
-	/**
-	 * Resets all of the namespace caches. Mainly used for testing
-	 */
-	public function resetNamespaces() {
-		$this->namespaceNames = null;
-		$this->mNamespaceIds = null;
-		$this->namespaceAliases = null;
 	}
 
 	/**
@@ -573,13 +413,9 @@ class Language {
 	 * getNsText() except with '_' changed to ' ', useful for
 	 * producing output.
 	 *
-	 * <code>
-	 * $mw_ns = $wgContLang->getFormattedNsText( NS_MEDIAWIKI_TALK );
-	 * echo $mw_ns; // prints 'MediaWiki talk'
-	 * </code>
+	 * @param $index string
 	 *
-	 * @param int $index The array key of the namespace to return
-	 * @return string Namespace name without underscores (empty string if namespace does not exist)
+	 * @return array
 	 */
 	function getFormattedNsText( $index ) {
 		$ns = $this->getNsText( $index );
@@ -719,10 +555,11 @@ class Language {
 	 */
 	function getVariantname( $code, $usemsg = true ) {
 		$msg = "variantname-$code";
+		list( $rootCode ) = explode( '-', $code );
 		if ( $usemsg && wfMessage( $msg )->exists() ) {
 			return $this->getMessageFromDB( $msg );
 		}
-		$name = self::fetchLanguageName( $code );
+		$name = self::getLanguageName( $code );
 		if ( $name ) {
 			return $name; # if it's defined as a language name, show that
 		} else {
@@ -822,10 +659,29 @@ class Language {
 	 * @param $customisedOnly bool
 	 *
 	 * @return array
-	 * @deprecated in 1.20, use fetchLanguageNames()
 	 */
 	public static function getLanguageNames( $customisedOnly = false ) {
-		return self::fetchLanguageNames( null, $customisedOnly ? 'mwfile' : 'mw' );
+		global $wgExtraLanguageNames;
+		static $coreLanguageNames;
+
+		if ( $coreLanguageNames === null ) {
+			include( MWInit::compiledPath( 'languages/Names.php' ) );
+		}
+
+		$allNames = $wgExtraLanguageNames + $coreLanguageNames;
+		if ( !$customisedOnly ) {
+			return $allNames;
+		}
+
+		$names = array();
+		// We do this using a foreach over the codes instead of a directory
+		// loop so that messages files in extensions will work correctly.
+		foreach ( $allNames as $code => $value ) {
+			if ( is_readable( self::getMessagesFileName( $code ) ) ) {
+				$names[$code] = $allNames[$code];
+			}
+		}
+		return $names;
 	}
 
 	/**
@@ -835,82 +691,16 @@ class Language {
 	 * @param $code String Language code.
 	 * @return Array language code => language name
 	 * @since 1.18.0
-	 * @deprecated in 1.20, use fetchLanguageNames()
 	 */
 	public static function getTranslatedLanguageNames( $code ) {
-		return self::fetchLanguageNames( $code, 'all' );
-	}
-
-	/**
-	 * Get an array of language names, indexed by code.
-	 * @param $inLanguage null|string: Code of language in which to return the names
-	 *		Use null for autonyms (native names)
-	 * @param $include string:
-	 *		'all' all available languages
-	 *		'mw' only if the language is defined in MediaWiki or wgExtraLanguageNames (default)
-	 *		'mwfile' only if the language is in 'mw' *and* has a message file
-	 * @return array: language code => language name
-	 * @since 1.20
-	 */
-	public static function fetchLanguageNames( $inLanguage = null, $include = 'mw' ) {
-		global $wgExtraLanguageNames;
-		static $coreLanguageNames;
-
-		if ( $coreLanguageNames === null ) {
-			include( MWInit::compiledPath( 'languages/Names.php' ) );
-		}
-
 		$names = array();
+		wfRunHooks( 'LanguageGetTranslatedLanguageNames', array( &$names, $code ) );
 
-		if ( $inLanguage ) {
-			# TODO: also include when $inLanguage is null, when this code is more efficient
-			wfRunHooks( 'LanguageGetTranslatedLanguageNames', array( &$names, $inLanguage ) );
+		foreach ( self::getLanguageNames() as $code => $name ) {
+			if ( !isset( $names[$code] ) ) $names[$code] = $name;
 		}
 
-		$mwNames = $wgExtraLanguageNames + $coreLanguageNames;
-		foreach ( $mwNames as $mwCode => $mwName ) {
-			# - Prefer own MediaWiki native name when not using the hook
-			# - For other names just add if not added through the hook
-			if ( $mwCode === $inLanguage || !isset( $names[$mwCode] ) ) {
-				$names[$mwCode] = $mwName;
-			}
-		}
-
-		if ( $include === 'all' ) {
-			return $names;
-		}
-
-		$returnMw = array();
-		$coreCodes = array_keys( $mwNames );
-		foreach ( $coreCodes as $coreCode ) {
-			$returnMw[$coreCode] = $names[$coreCode];
-		}
-
-		if ( $include === 'mwfile' ) {
-			$namesMwFile = array();
-			# We do this using a foreach over the codes instead of a directory
-			# loop so that messages files in extensions will work correctly.
-			foreach ( $returnMw as $code => $value ) {
-				if ( is_readable( self::getMessagesFileName( $code ) ) ) {
-					$namesMwFile[$code] = $names[$code];
-				}
-			}
-			return $namesMwFile;
-		}
-		# 'mw' option; default if it's not one of the other two options (all/mwfile)
-		return $returnMw;
-	}
-
-	/**
-	 * @param $code string: The code of the language for which to get the name
-	 * @param $inLanguage null|string: Code of language in which to return the name (null for autonyms)
-	 * @param $include string: 'all', 'mw' or 'mwfile'; see fetchLanguageNames()
-	 * @return string: Language name or empty
-	 * @since 1.20
-	 */
-	public static function fetchLanguageName( $code, $inLanguage = null, $include = 'all' ) {
-		$array = self::fetchLanguageNames( $inLanguage, $include );
-		return !array_key_exists( $code, $array ) ? '' : $array[$code];
+		return $names;
 	}
 
 	/**
@@ -920,7 +710,7 @@ class Language {
 	 * @return string
 	 */
 	function getMessageFromDB( $msg ) {
-		return wfMessage( $msg )->inLanguage( $this )->text();
+		return wfMsgExt( $msg, array( 'parsemag', 'language' => $this ) );
 	}
 
 	/**
@@ -928,10 +718,13 @@ class Language {
 	 * Only if defined in MediaWiki, no other data like CLDR.
 	 * @param $code string
 	 * @return string
-	 * @deprecated in 1.20, use fetchLanguageName()
 	 */
 	function getLanguageName( $code ) {
-		return self::fetchLanguageName( $code );
+		$names = self::getLanguageNames();
+		if ( !array_key_exists( $code, $names ) ) {
+			return '';
+		}
+		return $names[$code];
 	}
 
 	/**
@@ -1392,7 +1185,7 @@ class Language {
 					$s .= $num;
 					$raw = false;
 				} elseif ( $roman ) {
-					$s .= Language::romanNumeral( $num );
+					$s .= self::romanNumeral( $num );
 					$roman = false;
 				} elseif ( $hebrewNum ) {
 					$s .= self::hebrewNumeral( $num );
@@ -1781,7 +1574,7 @@ class Language {
 	}
 
 	/**
-	 * Roman number formatting up to 10000
+	 * Roman number formatting up to 3000
 	 *
 	 * @param $num int
 	 *
@@ -1792,11 +1585,11 @@ class Language {
 			array( '', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X' ),
 			array( '', 'X', 'XX', 'XXX', 'XL', 'L', 'LX', 'LXX', 'LXXX', 'XC', 'C' ),
 			array( '', 'C', 'CC', 'CCC', 'CD', 'D', 'DC', 'DCC', 'DCCC', 'CM', 'M' ),
-			array( '', 'M', 'MM', 'MMM', 'MMMM', 'MMMMM', 'MMMMMM', 'MMMMMMM', 'MMMMMMMM', 'MMMMMMMMM', 'MMMMMMMMMM' )
+			array( '', 'M', 'MM', 'MMM' )
 		);
 
 		$num = intval( $num );
-		if ( $num > 10000 || $num <= 0 ) {
+		if ( $num > 3000 || $num <= 0 ) {
 			return $num;
 		}
 
@@ -2067,63 +1860,6 @@ class Language {
 		}
 		$df = $this->getDateFormatString( 'both', $this->dateFormat( $format ) );
 		return $this->sprintfDate( $df, $ts );
-	}
-
-	/**
-	 * Takes a number of seconds and turns it into a text using values such as hours and minutes.
-	 *
-	 * @since 1.20
-	 *
-	 * @param integer $seconds The amount of seconds.
-	 * @param array $chosenIntervals The intervals to enable.
-	 *
-	 * @return string
-	 */
-	public function formatDuration( $seconds, array $chosenIntervals = array() ) {
-		$intervals = $this->getDurationIntervals( $seconds, $chosenIntervals );
-
-		$segments = array();
-
-		foreach ( $intervals as $intervalName => $intervalValue ) {
-			$message = wfMessage( 'duration-' . $intervalName )->numParams( $intervalValue );
-			$segments[] = $message->inLanguage( $this )->escaped();
-		}
-
-		return $this->listToText( $segments );
-	}
-
-	/**
-	 * Takes a number of seconds and returns an array with a set of corresponding intervals.
-	 * For example 65 will be turned into array( minutes => 1, seconds => 5 ).
-	 *
-	 * @since 1.20
-	 *
-	 * @param integer $seconds The amount of seconds.
-	 * @param array $chosenIntervals The intervals to enable.
-	 *
-	 * @return array
-	 */
-	public function getDurationIntervals( $seconds, array $chosenIntervals = array() ) {
-		if ( empty( $chosenIntervals ) ) {
-			$chosenIntervals = array( 'millennia', 'centuries', 'decades', 'years', 'days', 'hours', 'minutes', 'seconds' );
-		}
-
-		$intervals = array_intersect_key( self::$durationIntervals, array_flip( $chosenIntervals ) );
-		$sortedNames = array_keys( $intervals );
-		$smallestInterval = array_pop( $sortedNames );
-
-		$segments = array();
-
-		foreach ( $intervals as $name => $length ) {
-			$value = floor( $seconds / $length );
-
-			if ( $value > 0 || ( $name == $smallestInterval && empty( $segments ) ) ) {
-				$seconds -= $value * $length;
-				$segments[$name] = $value;
-			}
-		}
-
-		return $segments;
 	}
 
 	/**
@@ -2525,7 +2261,15 @@ class Language {
 		if ( is_array( $s ) ) {
 			wfDebugDieBacktrace( 'Given array to checkTitleEncoding.' );
 		}
-		if ( StringUtils::isUtf8( $s ) ) {
+		# Check for non-UTF-8 URLs
+		$ishigh = preg_match( '/[\x80-\xff]/', $s );
+		if ( !$ishigh ) {
+			return $s;
+		}
+
+		$isutf8 = preg_match( '/^([\x00-\x7f]|[\xc0-\xdf][\x80-\xbf]|' .
+				'[\xe0-\xef][\x80-\xbf]{2}|[\xf0-\xf7][\x80-\xbf]{3})+$/', $s );
+		if ( $isutf8 ) {
 			return $s;
 		}
 
@@ -2750,7 +2494,6 @@ class Language {
 	 * @param $file string
 	 * @param $string string
 	 *
-	 * @throws MWException
 	 * @return string
 	 */
 	function transformUsingPairFile( $file, $string ) {
@@ -2806,36 +2549,16 @@ class Language {
 	}
 
 	/**
-	 * A hidden direction mark (LRM or RLM), depending on the language direction.
-	 * Unlike getDirMark(), this function returns the character as an HTML entity.
-	 * This function should be used when the output is guaranteed to be HTML,
-	 * because it makes the output HTML source code more readable. When
-	 * the output is plain text or can be escaped, getDirMark() should be used.
-	 *
-	 * @param $opposite Boolean Get the direction mark opposite to your language
-	 * @return string
-	 * @since 1.20
-	 */
-	function getDirMarkEntity( $opposite = false ) {
-		if ( $opposite ) { return $this->isRTL() ? '&lrm;' : '&rlm;'; }
-		return $this->isRTL() ? '&rlm;' : '&lrm;';
-	}
-
-	/**
-	 * A hidden direction mark (LRM or RLM), depending on the language direction.
-	 * This function produces them as invisible Unicode characters and
-	 * the output may be hard to read and debug, so it should only be used
-	 * when the output is plain text or can be escaped. When the output is
-	 * HTML, use getDirMarkEntity() instead.
+	 * A hidden direction mark (LRM or RLM), depending on the language direction
 	 *
 	 * @param $opposite Boolean Get the direction mark opposite to your language
 	 * @return string
 	 */
 	function getDirMark( $opposite = false ) {
-		$lrm = "\xE2\x80\x8E"; # LEFT-TO-RIGHT MARK, commonly abbreviated LRM
-		$rlm = "\xE2\x80\x8F"; # RIGHT-TO-LEFT MARK, commonly abbreviated RLM
-		if ( $opposite ) { return $this->isRTL() ? $lrm : $rlm; }
-		return $this->isRTL() ? $rlm : $lrm;
+		$rtl = "\xE2\x80\x8F";
+		$ltr = "\xE2\x80\x8E";
+		if ( $opposite ) { return $this->isRTL() ? $ltr : $rtl; }
+		return $this->isRTL() ? $rtl : $ltr;
 	}
 
 	/**
@@ -2846,26 +2569,12 @@ class Language {
 	}
 
 	/**
-	 * An arrow, depending on the language direction.
+	 * An arrow, depending on the language direction
 	 *
-	 * @param $direction String: the direction of the arrow: forwards (default), backwards, left, right, up, down.
 	 * @return string
 	 */
-	function getArrow( $direction = 'forwards' ) {
-		switch ( $direction ) {
-		case 'forwards':
-			return $this->isRTL() ? '←' : '→';
-		case 'backwards':
-			return $this->isRTL() ? '→' : '←';
-		case 'left':
-			return '←';
-		case 'right':
-			return '→';
-		case 'up':
-			return '↑';
-		case 'down':
-			return '↓';
-		}
+	function getArrow() {
+		return $this->isRTL() ? '←' : '→';
 	}
 
 	/**
@@ -2963,30 +2672,30 @@ class Language {
 		return "<em>$text</em>";
 	}
 
-	/**
-	 * Normally we output all numbers in plain en_US style, that is
-	 * 293,291.235 for twohundredninetythreethousand-twohundredninetyone
-	 * point twohundredthirtyfive. However this is not suitable for all
-	 * languages, some such as Pakaran want ੨੯੩,੨੯੫.੨੩੫ and others such as
-	 * Icelandic just want to use commas instead of dots, and dots instead
-	 * of commas like "293.291,235".
-	 *
-	 * An example of this function being called:
-	 * <code>
-	 * wfMessage( 'message' )->numParams( $num )->text()
-	 * </code>
-	 *
-	 * See LanguageGu.php for the Gujarati implementation and
-	 * $separatorTransformTable on MessageIs.php for
-	 * the , => . and . => , implementation.
-	 *
-	 * @todo check if it's viable to use localeconv() for the decimal
-	 *       separator thing.
-	 * @param $number Mixed: the string to be formatted, should be an integer
-	 *        or a floating point number.
-	 * @param $nocommafy Bool: set to true for special numbers like dates
-	 * @return string
-	 */
+	 /**
+	  * Normally we output all numbers in plain en_US style, that is
+	  * 293,291.235 for twohundredninetythreethousand-twohundredninetyone
+	  * point twohundredthirtyfive. However this is not suitable for all
+	  * languages, some such as Pakaran want ੨੯੩,੨੯੫.੨੩੫ and others such as
+	  * Icelandic just want to use commas instead of dots, and dots instead
+	  * of commas like "293.291,235".
+	  *
+	  * An example of this function being called:
+	  * <code>
+	  * wfMsg( 'message', $wgLang->formatNum( $num ) )
+	  * </code>
+	  *
+	  * See LanguageGu.php for the Gujarati implementation and
+	  * $separatorTransformTable on MessageIs.php for
+	  * the , => . and . => , implementation.
+	  *
+	  * @todo check if it's viable to use localeconv() for the decimal
+	  *       separator thing.
+	  * @param $number Mixed: the string to be formatted, should be an integer
+	  *        or a floating point number.
+	  * @param $nocommafy Bool: set to true for special numbers like dates
+	  * @return string
+	  */
 	public function formatNum( $number, $nocommafy = false ) {
 		global $wgTranslateNumerals;
 		if ( !$nocommafy ) {
@@ -3005,18 +2714,6 @@ class Language {
 		}
 
 		return $number;
-	}
-
-	/**
-	 * Front-end for non-commafied formatNum
-	 *
-	 * @param mixed $number the string to be formatted, should be an integer
-	 *        or a floating point number.
-	 * @since 1.21
-	 * @return string
-	 */
-	public function formatNumNoSeparators( $number ) {
-		return $this->formatNum( $number, true );
 	}
 
 	/**
@@ -3041,37 +2738,37 @@ class Language {
 	/**
 	 * Adds commas to a given number
 	 * @since 1.19
-	 * @param $number mixed
+	 * @param $_ mixed
 	 * @return string
 	 */
-	function commafy( $number ) {
+	function commafy( $_ ) {
 		$digitGroupingPattern = $this->digitGroupingPattern();
-		if ( $number === null ) {
+		if ( $_ === null ) {
 			return '';
 		}
 
 		if ( !$digitGroupingPattern || $digitGroupingPattern === "###,###,###" ) {
 			// default grouping is at thousands,  use the same for ###,###,### pattern too.
-			return strrev( (string)preg_replace( '/(\d{3})(?=\d)(?!\d*\.)/', '$1,', strrev( $number ) ) );
+			return strrev( (string)preg_replace( '/(\d{3})(?=\d)(?!\d*\.)/', '$1,', strrev( $_ ) ) );
 		} else {
 			// Ref: http://cldr.unicode.org/translation/number-patterns
 			$sign = "";
-			if ( intval( $number ) < 0 ) {
+			if ( intval( $_ ) < 0 ) {
 				// For negative numbers apply the algorithm like positive number and add sign.
 				$sign =  "-";
-				$number = substr( $number, 1 );
+				$_ = substr( $_, 1 );
 			}
-			$integerPart = array();
-			$decimalPart = array();
+			$numberpart = array();
+			$decimalpart = array();
 			$numMatches = preg_match_all( "/(#+)/", $digitGroupingPattern, $matches );
-			preg_match( "/\d+/", $number, $integerPart );
-			preg_match( "/\.\d*/", $number, $decimalPart );
-			$groupedNumber = ( count( $decimalPart ) > 0 ) ? $decimalPart[0]:"";
-			if ( $groupedNumber  === $number ) {
+			preg_match( "/\d+/", $_, $numberpart );
+			preg_match( "/\.\d*/", $_, $decimalpart );
+			$groupedNumber = ( count( $decimalpart ) > 0 ) ? $decimalpart[0]:"";
+			if ( $groupedNumber  === $_ ) {
 				// the string does not have any number part. Eg: .12345
 				return $sign . $groupedNumber;
 			}
-			$start = $end = strlen( $integerPart[0] );
+			$start = $end = strlen( $numberpart[0] );
 			while ( $start > 0 ) {
 				$match = $matches[0][$numMatches -1] ;
 				$matchLen = strlen( $match );
@@ -3079,7 +2776,7 @@ class Language {
 				if ( $start < 0 ) {
 					$start = 0;
 				}
-				$groupedNumber = substr( $number, $start, $end -$start ) . $groupedNumber ;
+				$groupedNumber = substr( $_ , $start, $end -$start ) . $groupedNumber ;
 				$end = $start;
 				if ( $numMatches > 1 ) {
 					// use the last pattern for the rest of the number
@@ -3092,7 +2789,6 @@ class Language {
 			return $sign . $groupedNumber;
 		}
 	}
-
 	/**
 	 * @return String
 	 */
@@ -3118,32 +2814,27 @@ class Language {
 	 * Take a list of strings and build a locale-friendly comma-separated
 	 * list, using the local comma-separator message.
 	 * The last two strings are chained with an "and".
-	 * NOTE: This function will only work with standard numeric array keys (0, 1, 2…)
 	 *
 	 * @param $l Array
 	 * @return string
 	 */
 	function listToText( array $l ) {
+		$s = '';
 		$m = count( $l ) - 1;
-		if ( $m < 0 ) {
-			return '';
-		}
-		if ( $m > 0 ) {
-			$and = $this->getMessageFromDB( 'and' );
-			$space = $this->getMessageFromDB( 'word-separator' );
-			if ( $m > 1 ) {
-				$comma = $this->getMessageFromDB( 'comma-separator' );
+		if ( $m == 1 ) {
+			return $l[0] . $this->getMessageFromDB( 'and' ) . $this->getMessageFromDB( 'word-separator' ) . $l[1];
+		} else {
+			for ( $i = $m; $i >= 0; $i-- ) {
+				if ( $i == $m ) {
+					$s = $l[$i];
+				} elseif ( $i == $m - 1 ) {
+					$s = $l[$i] . $this->getMessageFromDB( 'and' ) . $this->getMessageFromDB( 'word-separator' ) . $s;
+				} else {
+					$s = $l[$i] . $this->getMessageFromDB( 'comma-separator' ) . $s;
+				}
 			}
+			return $s;
 		}
-		$s = $l[$m];
-		for ( $i = $m - 1; $i >= 0; $i-- ) {
-			if ( $i == $m - 1 ) {
-				$s = $l[$i] . $and . $space . $s;
-			} else {
-				$s = $l[$i] . $comma . $s;
-			}
-		}
-		return $s;
 	}
 
 	/**
@@ -3154,7 +2845,10 @@ class Language {
 	 */
 	function commaList( array $list ) {
 		return implode(
-			wfMessage( 'comma-separator' )->inLanguage( $this )->escaped(),
+			wfMsgExt(
+				'comma-separator',
+				array( 'parsemag', 'escapenoentities', 'language' => $this )
+			),
 			$list
 		);
 	}
@@ -3167,7 +2861,10 @@ class Language {
 	 */
 	function semicolonList( array $list ) {
 		return implode(
-			wfMessage( 'semicolon-separator' )->inLanguage( $this )->escaped(),
+			wfMsgExt(
+				'semicolon-separator',
+				array( 'parsemag', 'escapenoentities', 'language' => $this )
+			),
 			$list
 		);
 	}
@@ -3179,7 +2876,10 @@ class Language {
 	 */
 	function pipeList( array $list ) {
 		return implode(
-			wfMessage( 'pipe-separator' )->inLanguage( $this )->escaped(),
+			wfMsgExt(
+				'pipe-separator',
+				array( 'escapenoentities', 'language' => $this )
+			),
 			$list
 		);
 	}
@@ -3204,7 +2904,7 @@ class Language {
 	function truncate( $string, $length, $ellipsis = '...', $adjustLength = true ) {
 		# Use the localized ellipsis character
 		if ( $ellipsis == '...' ) {
-			$ellipsis = wfMessage( 'ellipsis' )->inLanguage( $this )->escaped();
+			$ellipsis = wfMsgExt( 'ellipsis', array( 'escapenoentities', 'language' => $this ) );
 		}
 		# Check if there is no need to truncate
 		if ( $length == 0 ) {
@@ -3302,7 +3002,7 @@ class Language {
 	function truncateHtml( $text, $length, $ellipsis = '...' ) {
 		# Use the localized ellipsis character
 		if ( $ellipsis == '...' ) {
-			$ellipsis = wfMessage( 'ellipsis' )->inLanguage( $this )->escaped();
+			$ellipsis = wfMsgExt( 'ellipsis', array( 'escapenoentities', 'language' => $this ) );
 		}
 		# Check if there is clearly no need to truncate
 		if ( $length <= 0 ) {
@@ -3435,7 +3135,7 @@ class Language {
 	 * (b) clear $tag value
 	 * @param &$tag string Current HTML tag name we are looking at
 	 * @param $tagType int (0-open tag, 1-close tag)
-	 * @param $lastCh string Character before the '>' that ended this tag
+	 * @param $lastCh char|string Character before the '>' that ended this tag
 	 * @param &$openTags array Open tag stack (not accounting for $tag)
 	 */
 	private function truncate_endBracket( &$tag, $tagType, $lastCh, &$openTags ) {
@@ -3467,18 +3167,7 @@ class Language {
 		}
 		return $word;
 	}
-	/**
-	 * Get the grammar forms for the content language
-	 * @return array of grammar forms
-	 * @since 1.20
-	 */
-	function getGrammarForms() {
-		global $wgGrammarForms;
-		if ( isset( $wgGrammarForms[$this->getCode()] ) && is_array( $wgGrammarForms[$this->getCode()] ) ) {
-			 return $wgGrammarForms[$this->getCode()];
-		}
-		return array();
-	}
+
 	/**
 	 * Provides an alternative text depending on specified gender.
 	 * Usage {{gender:username|masculine|feminine|neutral}}.
@@ -3531,22 +3220,9 @@ class Language {
 		if ( !count( $forms ) ) {
 			return '';
 		}
+		$forms = $this->preConvertPlural( $forms, 2 );
 
-		// Handle explicit n=pluralform cases
-		foreach ( $forms as $index => $form ) {
-			if ( preg_match( '/\d+=/i', $form ) ) {
-				$pos = strpos( $form, '=' );
-				if ( substr( $form, 0, $pos ) === (string) $count ) {
-					return substr( $form, $pos + 1 );
-				}
-				unset( $forms[$index] );
-			}
-		}
-		$forms = array_values( $forms );
-
-		$pluralForm = $this->getPluralForm( $count );
-		$pluralForm = min( $pluralForm, count( $forms ) - 1 );
-		return $forms[$pluralForm];
+		return ( $count == 1 ) ? $forms[0] : $forms[1];
 	}
 
 	/**
@@ -3572,7 +3248,7 @@ class Language {
 	 * match up with it.
 	 *
 	 * @param $str String: the validated block duration in English
-	 * @return string Somehow translated block duration
+	 * @return Somehow translated block duration
 	 * @see LanguageFi.php for example implementation
 	 */
 	function translateBlockExpiry( $str ) {
@@ -3594,22 +3270,8 @@ class Language {
 				}
 			}
 		}
-
-		// If all else fails, return a standard duration or timestamp description.
-		$time = strtotime( $str, 0 );
-		if ( $time === false ) { // Unknown format. Return it as-is in case.
-			return $str;
-		} elseif ( $time !== strtotime( $str, 1 ) ) { // It's a relative timestamp.
-			// $time is relative to 0 so it's a duration length.
-			return $this->formatDuration( $time );
-		} else { // It's an absolute timestamp.
-			if ( $time === 0 ) {
-				// wfTimestamp() handles 0 as current time instead of epoch.
-				return $this->timeanddate( '19700101000000' );
-			} else {
-				return $this->timeanddate( $time );
-			}
-		}
+		// If all else fails, return the original string.
+		return $str;
 	}
 
 	/**
@@ -3674,22 +3336,12 @@ class Language {
 	}
 
 	/**
-	 * Convert a namespace index to a string in the preferred variant
-	 *
-	 * @param $ns int
-	 * @return string
-	 */
-	public function convertNamespace( $ns ) {
-		return $this->mConverter->convertNamespace( $ns );
-	}
-
-	/**
 	 * Check if this is a language with variants
 	 *
 	 * @return bool
 	 */
 	public function hasVariants() {
-		return count( $this->getVariants() ) > 1;
+		return sizeof( $this->getVariants() ) > 1;
 	}
 
 	/**
@@ -3816,24 +3468,15 @@ class Language {
 	}
 
 	/**
-	 * Prepare external link text for conversion. When the text is
-	 * a URL, it shouldn't be converted, and it'll be wrapped in
-	 * the "raw" tag (-{R| }-) to prevent conversion.
+	 * Enclose a string with the "no conversion" tag. This is used by
+	 * various functions in the Parser
 	 *
-	 * This function is called "markNoConversion" for historical
-	 * reasons.
-	 *
-	 * @param $text String: text to be used for external link
-	 * @param $noParse bool: wrap it without confirming it's a real URL first
+	 * @param $text String: text to be tagged for no conversion
+	 * @param $noParse bool
 	 * @return string the tagged text
 	 */
 	public function markNoConversion( $text, $noParse = false ) {
-		// Excluding protocal-relative URLs may avoid many false positives.
-		if ( $noParse || preg_match( '/^(?:' . wfUrlProtocolsWithoutProtRel() . ')/', $text ) ) {
-			return $this->mConverter->markNoConversion( $text );
-		} else {
-			return $text;
-		}
+		return $this->mConverter->markNoConversion( $text, $noParse );
 	}
 
 	/**
@@ -3896,7 +3539,6 @@ class Language {
 	 * @param $prefix string Prepend this to the filename
 	 * @param $code string Language code
 	 * @param $suffix string Append this to the filename
-	 * @throws MWException
 	 * @return string $prefix . $mangledCode . $suffix
 	 */
 	public static function getFileName( $prefix = 'Language', $code, $suffix = '.php' ) {
@@ -3952,7 +3594,7 @@ class Language {
 	 *
 	 * @param $code string
 	 *
-	 * @return bool|string
+	 * @return false|string
 	 */
 	public static function getFallbackFor( $code ) {
 		if ( $code === 'en' || !Language::isValidBuiltInCode( $code ) ) {
@@ -4075,13 +3717,10 @@ class Language {
 	/**
 	 * Decode an expiry (block, protection, etc) which has come from the DB
 	 *
-	 * @todo FIXME: why are we returnings DBMS-dependent strings???
-	 *
 	 * @param $expiry String: Database expiry String
 	 * @param $format Bool|Int true to process using language functions, or TS_ constant
 	 *     to return the expiry in a given timestamp
 	 * @return String
-	 * @since 1.18
 	 */
 	public function formatExpiry( $expiry, $format = true ) {
 		static $infinity, $infinityMsg;
@@ -4275,7 +3914,7 @@ class Language {
 		$dirmark = ( $oppositedm ? $this->getDirMark( true ) : '' ) .
 			$this->getDirMark();
 		$details = $details ? $dirmark . $this->getMessageFromDB( 'word-separator' ) .
-			wfMessage( 'parentheses' )->rawParams( $details )->inLanguage( $this )->escaped() : '';
+			wfMsgExt( 'parentheses', array( 'escape', 'replaceafter', 'language' => $this ), $details ) : '';
 		return $page . $details;
 	}
 
@@ -4285,7 +3924,7 @@ class Language {
 	 * @param $title Title object to link
 	 * @param $offset Integer offset parameter
 	 * @param $limit Integer limit parameter
-	 * @param $query array|String optional URL query parameter string
+	 * @param $query String optional URL query parameter string
 	 * @param $atend Bool optional param for specified if this is the last page
 	 * @return String
 	 */
@@ -4347,54 +3986,5 @@ class Language {
 	 */
 	public function getConvRuleTitle() {
 		return $this->mConverter->getConvRuleTitle();
-	}
-
-	/**
-	 * Get the compiled plural rules for the language
-	 * @since 1.20
-	 * @return array Associative array with plural form, and plural rule as key-value pairs
-	 */
-	public function getCompiledPluralRules() {
-		$pluralRules = self::$dataCache->getItem( strtolower( $this->mCode ), 'compiledPluralRules' );
-		$fallbacks = Language::getFallbacksFor( $this->mCode );
-		if ( !$pluralRules ) {
-			foreach ( $fallbacks as $fallbackCode ) {
-				$pluralRules = self::$dataCache->getItem( strtolower( $fallbackCode ), 'compiledPluralRules' );
-				if ( $pluralRules ) {
-					break;
-				}
-			}
-		}
-		return $pluralRules;
-	}
-
-	/**
-	 * Get the plural rules for the language
-	 * @since 1.20
-	 * @return array Associative array with plural form, and plural rule as key-value pairs
-	 */
-	public function getPluralRules() {
-		$pluralRules = self::$dataCache->getItem( strtolower( $this->mCode ), 'pluralRules' );
-		$fallbacks = Language::getFallbacksFor( $this->mCode );
-		if ( !$pluralRules ) {
-			foreach ( $fallbacks as $fallbackCode ) {
-				$pluralRules = self::$dataCache->getItem( strtolower( $fallbackCode ), 'pluralRules' );
-				if ( $pluralRules ) {
-					break;
-				}
-			}
-		}
-		return $pluralRules;
-	}
-
-	/**
-	 * Find the plural form matching to the given number
-	 * It return the form index.
-	 * @return int The index of the plural form
-	 */
-	private function getPluralForm( $number ) {
-		$pluralRules = $this->getCompiledPluralRules();
-		$form = CLDRPluralRuleEvaluator::evaluateCompiled( $number, $pluralRules );
-		return $form;
 	}
 }

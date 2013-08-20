@@ -23,24 +23,17 @@
  * @author Timo Tijhof
  */
 
-/**
- * Handle page protection
- *
- * This is a wrapper that will call Article::protect().
- *
- * @ingroup Actions
- */
 class ProtectAction extends FormlessAction {
 
 	public function getName() {
 		return 'protect';
 	}
 
-	public function onView() {
+	public function onView(){
 		return null;
 	}
 
-	public function show() {
+	public function show(){
 
 		$this->page->protect();
 
@@ -48,20 +41,13 @@ class ProtectAction extends FormlessAction {
 
 }
 
-/**
- * Handle page unprotection
- *
- * This is a wrapper that will call Article::unprotect().
- *
- * @ingroup Actions
- */
 class UnprotectAction extends ProtectAction {
 
 	public function getName() {
 		return 'unprotect';
 	}
 
-	public function show() {
+	public function show(){
 
 		$this->page->unprotect();
 

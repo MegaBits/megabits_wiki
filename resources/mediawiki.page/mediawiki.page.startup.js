@@ -1,4 +1,4 @@
-( function ( mw, $ ) {
+( function ( $ ) {
 
 	mw.page = {};
 
@@ -15,4 +15,4 @@
 	// is defined for them.
 	$( mw.util.init );
 
-}( mediaWiki, jQuery ) );
+} )( jQuery );

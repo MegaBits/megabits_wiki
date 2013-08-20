@@ -47,9 +47,9 @@ class UnusedimagesPage extends ImageQueryPage {
 		global $wgCountCategorizedImagesAsUsed;
 		$retval = array (
 			'tables' => array ( 'image', 'imagelinks' ),
-			'fields' => array ( 'namespace' => NS_FILE,
-					'title' => 'img_name',
-					'value' => 'img_timestamp',
+			'fields' => array ( "'" . NS_FILE . "' AS namespace",
+					'img_name AS title',
+					'img_timestamp AS value',
 					'img_user', 'img_user_text',
 					'img_description' ),
 			'conds' => array ( 'il_to IS NULL' ),
@@ -77,10 +77,7 @@ class UnusedimagesPage extends ImageQueryPage {
 	}
 
 	function getPageHeader() {
-		return $this->msg( 'unusedimagestext' )->parseAsBlock();
+		return wfMsgExt( 'unusedimagestext', array( 'parse' ) );
 	}
 
-	protected function getGroupName() {
-		return 'maintenance';
-	}
 }

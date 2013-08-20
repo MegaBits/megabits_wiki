@@ -2,23 +2,7 @@
 /**
  * Holder of replacement pairs for wiki links
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
  * @file
- * @ingroup Parser
  */
 
 /**
@@ -43,14 +27,13 @@ class LinkHolderArray {
 		}
 	}
 
-	/**
+ 	/**
 	 * Don't serialize the parent object, it is big, and not needed when it is
-	 * a parameter to mergeForeign(), which is the only application of
+	 * a parameter to mergeForeign(), which is the only application of 
 	 * serializing at present.
 	 *
 	 * Compact the titles, only serialize the text form.
-	  * @return array
-	  */
+	 */
 	function __sleep() {
 		foreach ( $this->internals as &$nsLinks ) {
 			foreach ( $nsLinks as &$entry ) {
@@ -103,15 +86,15 @@ class LinkHolderArray {
 	}
 
 	/**
-	 * Merge a LinkHolderArray from another parser instance into this one. The
-	 * keys will not be preserved. Any text which went with the old
-	 * LinkHolderArray and needs to work with the new one should be passed in
+	 * Merge a LinkHolderArray from another parser instance into this one. The 
+	 * keys will not be preserved. Any text which went with the old 
+	 * LinkHolderArray and needs to work with the new one should be passed in 
 	 * the $texts array. The strings in this array will have their link holders
 	 * converted for use in the destination link holder. The resulting array of
 	 * strings will be returned.
 	 *
 	 * @param $other LinkHolderArray
-	 * @param array $texts of strings
+	 * @param $texts Array of strings
 	 * @return Array
 	 */
 	function mergeForeign( $other, $texts ) {
@@ -126,7 +109,7 @@ class LinkHolderArray {
 				$maxId = $newKey > $maxId ? $newKey : $maxId;
 			}
 		}
-		$texts = preg_replace_callback( '/(<!--LINK \d+:)(\d+)(-->)/',
+		$texts = preg_replace_callback( '/(<!--LINK \d+:)(\d+)(-->)/', 
 			array( $this, 'mergeForeignCallback' ), $texts );
 
 		# Renumber interwiki links
@@ -135,7 +118,7 @@ class LinkHolderArray {
 			$this->interwikis[$newKey] = $entry;
 			$maxId = $newKey > $maxId ? $newKey : $maxId;
 		}
-		$texts = preg_replace_callback( '/(<!--IWLINK )(\d+)(-->)/',
+		$texts = preg_replace_callback( '/(<!--IWLINK )(\d+)(-->)/', 
 			array( $this, 'mergeForeignCallback' ), $texts );
 
 		# Set the parent link ID to be beyond the highest used ID
@@ -151,7 +134,6 @@ class LinkHolderArray {
 	/**
 	 * Get a subset of the current LinkHolderArray which is sufficient to
 	 * interpret the given text.
-	 * @return LinkHolderArray
 	 */
 	function getSubArray( $text ) {
 		$sub = new LinkHolderArray( $this->parent );
@@ -159,8 +141,8 @@ class LinkHolderArray {
 		# Internal links
 		$pos = 0;
 		while ( $pos < strlen( $text ) ) {
-			if ( !preg_match( '/<!--LINK (\d+):(\d+)-->/',
-				$text, $m, PREG_OFFSET_CAPTURE, $pos ) )
+			if ( !preg_match( '/<!--LINK (\d+):(\d+)-->/', 
+				$text, $m, PREG_OFFSET_CAPTURE, $pos ) ) 
 			{
 				break;
 			}
@@ -185,7 +167,6 @@ class LinkHolderArray {
 
 	/**
 	 * Returns true if the memory requirements of this object are getting large
-	 * @return bool
 	 */
 	function isBig() {
 		global $wgLinkHolderBatchSize;
@@ -209,15 +190,10 @@ class LinkHolderArray {
 	 * article length checks (for stub links) to be bundled into a single query.
 	 *
 	 * @param $nt Title
-	 * @param $text String
-	 * @param array $query [optional]
-	 * @param string $trail [optional]
-	 * @param string $prefix [optional]
-	 * @return string
 	 */
-	function makeHolder( $nt, $text = '', $query = array(), $trail = '', $prefix = '' ) {
+	function makeHolder( $nt, $text = '', $query = array(), $trail = '', $prefix = ''  ) {
 		wfProfileIn( __METHOD__ );
-		if ( !is_object( $nt ) ) {
+		if ( ! is_object($nt) ) {
 			# Fail gracefully
 			$retVal = "<!-- ERROR -->{$prefix}{$text}{$trail}";
 		} else {
@@ -226,7 +202,7 @@ class LinkHolderArray {
 
 			$entry = array(
 				'title' => $nt,
-				'text' => $prefix . $text . $inside,
+				'text' => $prefix.$text.$inside,
 				'pdbk' => $nt->getPrefixedDBkey(),
 			);
 			if ( $query !== array() ) {
@@ -254,12 +230,12 @@ class LinkHolderArray {
 	 * @todo FIXME: Update documentation. makeLinkObj() is deprecated.
 	 * Replace <!--LINK--> link placeholders with actual links, in the buffer
 	 * Placeholders created in Skin::makeLinkObj()
-	 * @return array of link CSS classes, indexed by PDBK.
+	 * Returns an array of link CSS classes, indexed by PDBK.
 	 */
 	function replace( &$text ) {
 		wfProfileIn( __METHOD__ );
 
-		$colours = $this->replaceInternal( $text ); // FIXME: replaceInternal doesn't return a value
+		$colours = $this->replaceInternal( $text );
 		$this->replaceInterwiki( $text );
 
 		wfProfileOut( __METHOD__ );
@@ -281,7 +257,7 @@ class LinkHolderArray {
 		$linkCache = LinkCache::singleton();
 		$output = $this->parent->getOutput();
 
-		wfProfileIn( __METHOD__ . '-check' );
+		wfProfileIn( __METHOD__.'-check' );
 		$dbr = wfGetDB( DB_SLAVE );
 		$threshold = $this->parent->getOptions()->getStubThreshold();
 
@@ -322,7 +298,7 @@ class LinkHolderArray {
 		}
 		if ( $queries ) {
 			$where = array();
-			foreach( $queries as $ns => $pages ) {
+			foreach( $queries as $ns => $pages ){
 				$where[] = $dbr->makeList(
 					array(
 						'page_namespace' => $ns,
@@ -355,19 +331,19 @@ class LinkHolderArray {
 			}
 			unset( $res );
 		}
-		if ( count( $linkcolour_ids ) ) {
+		if ( count($linkcolour_ids) ) {
 			//pass an array of page_ids to an extension
 			wfRunHooks( 'GetLinkColours', array( $linkcolour_ids, &$colours ) );
 		}
-		wfProfileOut( __METHOD__ . '-check' );
+		wfProfileOut( __METHOD__.'-check' );
 
 		# Do a second query for different language variants of links and categories
-		if( $wgContLang->hasVariants() ) {
+		if($wgContLang->hasVariants()) {
 			$this->doVariants( $colours );
 		}
 
 		# Construct search and replace arrays
-		wfProfileIn( __METHOD__ . '-construct' );
+		wfProfileIn( __METHOD__.'-construct' );
 		$replacePairs = array();
 		foreach ( $this->internals as $ns => $entries ) {
 			foreach ( $entries as $index => $entry ) {
@@ -399,16 +375,16 @@ class LinkHolderArray {
 			}
 		}
 		$replacer = new HashtableReplacer( $replacePairs, 1 );
-		wfProfileOut( __METHOD__ . '-construct' );
+		wfProfileOut( __METHOD__.'-construct' );
 
 		# Do the thing
-		wfProfileIn( __METHOD__ . '-replace' );
+		wfProfileIn( __METHOD__.'-replace' );
 		$text = preg_replace_callback(
 			'/(<!--LINK .*?-->)/',
 			$replacer->cb(),
 			$text);
 
-		wfProfileOut( __METHOD__ . '-replace' );
+		wfProfileOut( __METHOD__.'-replace' );
 		wfProfileOut( __METHOD__ );
 	}
 
@@ -457,7 +433,7 @@ class LinkHolderArray {
 			foreach ( $entries as $index => $entry ) {
 				$pdbk = $entry['pdbk'];
 				// we only deal with new links (in its first query)
-				if ( !isset( $colours[$pdbk] ) || $colours[$pdbk] === 'new' ) {
+				if ( !isset( $colours[$pdbk] ) ) {
 					$title = $entry['title'];
 					$titleText = $title->getText();
 					$titlesAttrs[] = array(
@@ -473,7 +449,7 @@ class LinkHolderArray {
 		}
 
 		// Now do the conversion and explode string to text of titles
-		$titlesAllVariants = $wgContLang->autoConvertToAllVariants( rtrim( $titlesToBeConverted, "\0" ) );
+		$titlesAllVariants = $wgContLang->autoConvertToAllVariants( $titlesToBeConverted );
 		$allVariantsName = array_keys( $titlesAllVariants );
 		foreach ( $titlesAllVariants as &$titlesVariant ) {
 			$titlesVariant = explode( "\0", $titlesVariant );
@@ -497,23 +473,20 @@ class LinkHolderArray {
 		// process categories, check if a category exists in some variant
 		$categoryMap = array(); // maps $category_variant => $category (dbkeys)
 		$varCategories = array(); // category replacements oldDBkey => newDBkey
-		foreach ( $output->getCategoryLinks() as $category ) {
-			$categoryTitle = Title::makeTitleSafe( NS_CATEGORY, $category );
-			$linkBatch->addObj( $categoryTitle );
+		foreach( $output->getCategoryLinks() as $category ){
 			$variants = $wgContLang->autoConvertToAllVariants( $category );
-			foreach ( $variants as $variant ) {
-				if ( $variant !== $category ) {
-					$variantTitle = Title::makeTitleSafe( NS_CATEGORY, $variant );
-					if ( is_null( $variantTitle ) ) {
-						continue;
-					}
+			foreach($variants as $variant){
+				if($variant != $category){
+					$variantTitle = Title::newFromDBkey( Title::makeName(NS_CATEGORY,$variant) );
+					if(is_null($variantTitle)) continue;
 					$linkBatch->addObj( $variantTitle );
-					$categoryMap[$variant] = array( $category, $categoryTitle );
+					$categoryMap[$variant] = $category;
 				}
 			}
 		}
 
-		if( !$linkBatch->isEmpty() ) {
+
+		if(!$linkBatch->isEmpty()){
 			// construct query
 			$dbr = wfGetDB( DB_SLAVE );
 			$varRes = $dbr->select( 'page',
@@ -544,7 +517,7 @@ class LinkHolderArray {
 					$entry =& $this->internals[$ns][$index];
 					$pdbk = $entry['pdbk'];
 
-					if ( !isset( $colours[$pdbk] ) || $colours[$pdbk] === 'new' ) {
+					if(!isset($colours[$pdbk])){
 						// found link in some of the variants, replace the link holder data
 						$entry['title'] = $variantTitle;
 						$entry['pdbk'] = $varPdbk;
@@ -559,28 +532,25 @@ class LinkHolderArray {
 				}
 
 				// check if the object is a variant of a category
-				if ( isset( $categoryMap[$vardbk] ) ) {
-					list( $oldkey, $oldtitle ) = $categoryMap[$vardbk];
-					if ( !isset( $varCategories[$oldkey] ) && !$oldtitle->exists() ) {
-						$varCategories[$oldkey] = $vardbk;
-					}
+				if(isset($categoryMap[$vardbk])){
+					$oldkey = $categoryMap[$vardbk];
+					if($oldkey != $vardbk)
+						$varCategories[$oldkey]=$vardbk;
 				}
 			}
 			wfRunHooks( 'GetLinkColours', array( $linkcolour_ids, &$colours ) );
 
 			// rebuild the categories in original order (if there are replacements)
-			if( count( $varCategories ) > 0 ) {
+			if(count($varCategories)>0){
 				$newCats = array();
 				$originalCats = $output->getCategories();
-				foreach( $originalCats as $cat => $sortkey ) {
+				foreach($originalCats as $cat => $sortkey){
 					// make the replacement
-					if( array_key_exists( $cat, $varCategories ) ) {
+					if( array_key_exists($cat,$varCategories) )
 						$newCats[$varCategories[$cat]] = $sortkey;
-					} else {
-						$newCats[$cat] = $sortkey;
-					}
+					else $newCats[$cat] = $sortkey;
 				}
-				$output->setCategoryLinks( $newCats );
+				$output->setCategoryLinks($newCats);
 			}
 		}
 	}
@@ -613,7 +583,7 @@ class LinkHolderArray {
 	 */
 	function replaceTextCallback( $matches ) {
 		$type = $matches[1];
-		$key = $matches[2];
+		$key  = $matches[2];
 		if( $type == 'LINK' ) {
 			list( $ns, $index ) = explode( ':', $key, 2 );
 			if( isset( $this->internals[$ns][$index]['text'] ) ) {

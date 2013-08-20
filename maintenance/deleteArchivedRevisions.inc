@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Helper methods for the deleteArchivedRevisions.php maintenance script.
+ * Delete archived (deleted from public) revisions from the database
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,15 +18,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @file
  * @ingroup Maintenance
  */
 
-/**
- * Helper methods for the deleteArchivedRevisions.php maintenance script.
- *
- * @ingroup Maintenance
- */
 class DeleteArchivedRevisionsImplementation {
 
 	/**
@@ -36,10 +31,10 @@ class DeleteArchivedRevisionsImplementation {
 	 * purgeRedundantText().  See Maintenance for a description of
 	 * those methods.
 	 */
-	public static function doDelete( $maint ) {
+	static public function doDelete( $maint ) {
 		$dbw = wfGetDB( DB_MASTER );
 
-		$dbw->begin( __METHOD__ );
+		$dbw->begin();
 
 		$tbl_arch = $dbw->tableName( 'archive' );
 
@@ -54,7 +49,7 @@ class DeleteArchivedRevisionsImplementation {
 
 		# This bit's done
 		# Purge redundant text records
-		$dbw->commit( __METHOD__ );
+		$dbw->commit();
 		if ( $deletedRows ) {
 			$maint->purgeRedundantText( true );
 		}

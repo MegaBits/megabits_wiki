@@ -2,23 +2,7 @@
 /**
  * Cache for outputs of the PHP parser
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
  * @file
- * @ingroup Cache Parser
  */
 
 /**
@@ -48,7 +32,6 @@ class ParserCache {
 	 * May be a memcached client or a BagOStuff derivative.
 	 *
 	 * @param $memCached Object
-	 * @throws MWException
 	 */
 	protected function __construct( $memCached ) {
 		if ( !$memCached ) {
@@ -67,7 +50,7 @@ class ParserCache {
 
 		// idhash seem to mean 'page id' + 'rendering hash' (r3710)
 		$pageid = $article->getID();
-		$renderkey = (int)($wgRequest->getVal( 'action' ) == 'render');
+		$renderkey = (int)($wgRequest->getVal('action') == 'render');
 
 		$key = wfMemcKey( 'pcache', 'idhash', "{$pageid}-{$renderkey}!{$hash}" );
 		return $key;
@@ -94,7 +77,6 @@ class ParserCache {
 	 *
 	 * @param $article Article
 	 * @param $popts ParserOptions
-	 * @return string
 	 */
 	function getETag( $article, $popts ) {
 		return 'W/"' . $this->getParserOutputKey( $article,
@@ -106,7 +88,7 @@ class ParserCache {
 	 * Retrieve the ParserOutput from ParserCache, even if it's outdated.
 	 * @param $article Article
 	 * @param $popts ParserOptions
-	 * @return ParserOutput|bool False on failure
+	 * @return ParserOutput|false
 	 */
 	public function getDirty( $article, $popts ) {
 		$value = $this->get( $article, $popts, true );
@@ -120,10 +102,8 @@ class ParserCache {
 	 *
 	 * @todo Document parameter $useOutdated
 	 *
-	 * @param $article     Article
-	 * @param $popts       ParserOptions
-	 * @param $useOutdated Boolean (default true)
-	 * @return bool|mixed|string
+	 * @param $article Article
+	 * @param $popts ParserOptions
 	 */
 	public function getKey( $article, $popts, $useOutdated = true ) {
 		global $wgCacheEpoch;
@@ -159,11 +139,11 @@ class ParserCache {
 	 * Retrieve the ParserOutput from ParserCache.
 	 * false if not found or outdated.
 	 *
-	 * @param $article     Article
-	 * @param $popts       ParserOptions
-	 * @param $useOutdated Boolean (default false)
+	 * @param $article Article
+	 * @param $popts ParserOptions
+	 * @param $useOutdated
 	 *
-	 * @return ParserOutput|bool False on failure
+	 * @return ParserOutput|false
 	 */
 	public function get( $article, $popts, $useOutdated = false ) {
 		global $wgCacheEpoch;
@@ -201,8 +181,8 @@ class ParserCache {
 
 		wfDebug( "ParserOutput cache found.\n" );
 
-		// The edit section preference may not be the appropiate one in
-		// the ParserOutput, as we are not storing it in the parsercache
+		// The edit section preference may not be the appropiate one in 
+		// the ParserOutput, as we are not storing it in the parsercache 
 		// key. Force it here. See bug 31445.
 		$value->setEditSectionTokens( $popts->getEditSection() );
 

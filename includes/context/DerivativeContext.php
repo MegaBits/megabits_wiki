@@ -30,6 +30,7 @@
  *     a different Title instance set on it.
  */
 class DerivativeContext extends ContextSource {
+
 	/**
 	 * @var WebRequest
 	 */
@@ -67,7 +68,7 @@ class DerivativeContext extends ContextSource {
 
 	/**
 	 * Constructor
-	 * @param IContextSource $context Context to inherit from
+	 * @param $context IContextSource Context to inherit from
 	 */
 	public function __construct( IContextSource $context ) {
 		$this->setContext( $context );
@@ -76,7 +77,7 @@ class DerivativeContext extends ContextSource {
 	/**
 	 * Set the WebRequest object
 	 *
-	 * @param WebRequest $r
+	 * @param $r WebRequest object
 	 */
 	public function setRequest( WebRequest $r ) {
 		$this->request = $r;
@@ -98,7 +99,7 @@ class DerivativeContext extends ContextSource {
 	/**
 	 * Set the Title object
 	 *
-	 * @param Title $t
+	 * @param $t Title object
 	 */
 	public function setTitle( Title $t ) {
 		$this->title = $t;
@@ -139,7 +140,7 @@ class DerivativeContext extends ContextSource {
 	 * Set the WikiPage object
 	 *
 	 * @since 1.19
-	 * @param WikiPage $p
+	 * @param $p WikiPage object
 	 */
 	public function setWikiPage( WikiPage $p ) {
 		$this->wikipage = $p;
@@ -165,7 +166,7 @@ class DerivativeContext extends ContextSource {
 	/**
 	 * Set the OutputPage object
 	 *
-	 * @param OutputPage $o
+	 * @param $o OutputPage
 	 */
 	public function setOutput( OutputPage $o ) {
 		$this->output = $o;
@@ -174,7 +175,7 @@ class DerivativeContext extends ContextSource {
 	/**
 	 * Get the OutputPage object
 	 *
-	 * @return OutputPage
+	 * @return OutputPage object
 	 */
 	public function getOutput() {
 		if ( !is_null( $this->output ) ) {
@@ -187,7 +188,7 @@ class DerivativeContext extends ContextSource {
 	/**
 	 * Set the User object
 	 *
-	 * @param User $u
+	 * @param $u User
 	 */
 	public function setUser( User $u ) {
 		$this->user = $u;
@@ -210,7 +211,7 @@ class DerivativeContext extends ContextSource {
 	 * Set the Language object
 	 *
 	 * @deprecated 1.19 Use setLanguage instead
-	 * @param Language|string $l Language instance or language code
+	 * @param $l Mixed Language instance or language code
 	 */
 	public function setLang( $l ) {
 		wfDeprecated( __METHOD__, '1.19' );
@@ -220,8 +221,7 @@ class DerivativeContext extends ContextSource {
 	/**
 	 * Set the Language object
 	 *
-	 * @param Language|string $l Language instance or language code
-	 * @throws MWException
+	 * @param $l Mixed Language instance or language code
 	 * @since 1.19
 	 */
 	public function setLanguage( $l ) {
@@ -262,7 +262,7 @@ class DerivativeContext extends ContextSource {
 	/**
 	 * Set the Skin object
 	 *
-	 * @param Skin $s
+	 * @param $s Skin
 	 */
 	public function setSkin( Skin $s ) {
 		$this->skin = clone $s;
@@ -281,4 +281,6 @@ class DerivativeContext extends ContextSource {
 			return $this->getContext()->getSkin();
 		}
 	}
+
 }
+

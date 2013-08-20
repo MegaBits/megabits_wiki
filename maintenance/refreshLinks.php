@@ -17,17 +17,11 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @file
  * @ingroup Maintenance
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script to refresh link tables.
- *
- * @ingroup Maintenance
- */
 class RefreshLinks extends Maintenance {
 	public function __construct() {
 		parent::__construct();
@@ -105,7 +99,7 @@ class RefreshLinks extends Maintenance {
 				array(),
 				array( 'redirect' => array( "LEFT JOIN", "page_id=rd_from" ) )
 			);
-			$num = $res->numRows();
+			$num = $dbr->numRows( $res );
 			$this->output( "Refreshing $num old redirects from $start...\n" );
 
 			$i = 0;
@@ -126,7 +120,7 @@ class RefreshLinks extends Maintenance {
 					"page_id >= $start" ),
 				__METHOD__
 			);
-			$num = $res->numRows();
+			$num = $dbr->numRows( $res );
 			$this->output( "$num new articles...\n" );
 
 			$i = 0;
@@ -176,22 +170,14 @@ class RefreshLinks extends Maintenance {
 	}
 
 	/**
-	 * Update the redirect entry for a given page.
-	 *
-	 * This methods bypasses the "redirect" table to get the redirect target,
-	 * and parses the page's content to fetch it. This allows to be sure that
-	 * the redirect target is up to date and valid.
-	 * This is particularly useful when modifying namespaces to be sure the
-	 * entry in the "redirect" table points to the correct page and not to an
-	 * invalid one.
-	 *
-	 * @param $id int The page ID to check
+	 * Update the redirect entry for a given page
+	 * @param $id int The page_id of the redirect
 	 */
 	private function fixRedirect( $id ) {
-		$page = WikiPage::newFromID( $id );
+		$title = Title::newFromID( $id );
 		$dbw = wfGetDB( DB_MASTER );
 
-		if ( $page === null ) {
+		if ( is_null( $title ) ) {
 			// This page doesn't exist (any more)
 			// Delete any redirect table entry for it
 			$dbw->delete( 'redirect', array( 'rd_from' => $id ),
@@ -199,25 +185,15 @@ class RefreshLinks extends Maintenance {
 			return;
 		}
 
-		$rt = null;
-		$content = $page->getContent( Revision::RAW );
-		if ( $content !== null ) {
-			$rt = $content->getUltimateRedirectTarget();
-		}
+		$page = WikiPage::factory( $title );
+		$rt = $page->getRedirectTarget();
 
 		if ( $rt === null ) {
-			// The page is not a redirect
+			// $title is not a redirect
 			// Delete any redirect table entry for it
-			$dbw->delete( 'redirect', array( 'rd_from' => $id ), __METHOD__ );
-			$fieldValue = 0;
-		} else {
-			$page->insertRedirectEntry( $rt );
-			$fieldValue = 1;
+			$dbw->delete( 'redirect', array( 'rd_from' => $id ),
+				__METHOD__ );
 		}
-
-		// Update the page table to be sure it is an a consistent state
-		$dbw->update( 'page', array( 'page_is_redirect' => $fieldValue ),
-			array( 'page_id' => $id ), __METHOD__ );
 	}
 
 	/**
@@ -225,34 +201,37 @@ class RefreshLinks extends Maintenance {
 	 * @param $id int The page_id
 	 */
 	public static function fixLinksFromArticle( $id ) {
-		$page = WikiPage::newFromID( $id );
+		global $wgParser;
+
+		$title = Title::newFromID( $id );
+		$dbw = wfGetDB( DB_MASTER );
 
 		LinkCache::singleton()->clear();
 
-		if ( $page === null ) {
+		if ( is_null( $title ) ) {
 			return;
 		}
 
-		$content = $page->getContent( Revision::RAW );
-		if ( $content === null ) {
+		$revision = Revision::newFromTitle( $title );
+		if ( !$revision ) {
 			return;
 		}
 
-		$dbw = wfGetDB( DB_MASTER );
-		$dbw->begin( __METHOD__ );
+		$dbw->begin();
 
-		$updates = $content->getSecondaryDataUpdates( $page->getTitle() );
-		DataUpdate::runUpdates( $updates );
-
-		$dbw->commit( __METHOD__ );
+		$options = new ParserOptions;
+		$parserOutput = $wgParser->parse( $revision->getText(), $title, $options, true, true, $revision->getId() );
+		$update = new LinksUpdate( $title, $parserOutput, false );
+		$update->doUpdate();
+		$dbw->commit();
 	}
 
 	/**
 	 * Removes non-existing links from pages from pagelinks, imagelinks,
 	 * categorylinks, templatelinks, externallinks, interwikilinks, langlinks and redirect tables.
 	 *
-	 * @param $maxLag int
-	 * @param $batchSize int The size of deletion batches
+	 * @param $maxLag
+	 * @param $batchSize The size of deletion batches
 	 *
 	 * @author Merlijn van Deen <valhallasw@arctus.nl>
 	 */
@@ -308,7 +287,6 @@ class RefreshLinks extends Maintenance {
 				$dbw->delete( $table, array( $field => $list ), __METHOD__ );
 			}
 			$this->output( "\n" );
-			wfWaitForSlaves();
 		}
 		$lb->closeAll();
 	}

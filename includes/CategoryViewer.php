@@ -1,24 +1,7 @@
 <?php
-/**
- * List and paging of category members.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- */
+
+if ( !defined( 'MEDIAWIKI' ) )
+	die( 1 );
 
 class CategoryViewer extends ContextSource {
 	var $limit, $from, $until,
@@ -71,12 +54,11 @@ class CategoryViewer extends ContextSource {
 	 * @since 1.19 $context is a second, required parameter
 	 * @param $title Title
 	 * @param $context IContextSource
-	 * @param array $from An array with keys page, subcat,
-	 *        and file for offset of results of each section (since 1.17)
-	 * @param array $until An array with 3 keys for until of each section (since 1.17)
+	 * @param $from String
+	 * @param $until String
 	 * @param $query Array
 	 */
-	function __construct( $title, IContextSource $context, $from = array(), $until = array(), $query = array() ) {
+	function __construct( $title, IContextSource $context, $from = '', $until = '', $query = array() ) {
 		global $wgCategoryPagingLimit;
 		$this->title = $title;
 		$this->setContext( $context );
@@ -123,7 +105,7 @@ class CategoryViewer extends ContextSource {
 
 		// Give a proper message if category is empty
 		if ( $r == '' ) {
-			$r = $this->msg( 'category-empty' )->parseAsBlock();
+			$r = wfMsgExt( 'category-empty', array( 'parse' ) );
 		}
 
 		$lang = $this->getLanguage();
@@ -174,7 +156,7 @@ class CategoryViewer extends ContextSource {
 
 	/**
 	 * Add a subcategory to the internal lists, using a title object
-	 * @deprecated since 1.17 kept for compatibility, use addSubcategoryObject instead
+	 * @deprecated since 1.17 kept for compatibility, please use addSubcategoryObject instead
 	 */
 	function addSubcategory( Title $title, $sortkey, $pageLength ) {
 		wfDeprecated( __METHOD__, '1.17' );
@@ -182,16 +164,15 @@ class CategoryViewer extends ContextSource {
 	}
 
 	/**
-	 * Get the character to be used for sorting subcategories.
-	 * If there's a link from Category:A to Category:B, the sortkey of the resulting
-	 * entry in the categorylinks table is Category:A, not A, which it SHOULD be.
-	 * Workaround: If sortkey == "Category:".$title, than use $title for sorting,
-	 * else use sortkey...
-	 *
-	 * @param Title $title
-	 * @param string $sortkey The human-readable sortkey (before transforming to icu or whatever).
-	 * @return string
-	 */
+	* Get the character to be used for sorting subcategories.
+	* If there's a link from Category:A to Category:B, the sortkey of the resulting
+	* entry in the categorylinks table is Category:A, not A, which it SHOULD be.
+	* Workaround: If sortkey == "Category:".$title, than use $title for sorting,
+	* else use sortkey...
+	*
+	* @param Title $title
+	* @param string $sortkey The human-readable sortkey (before transforming to icu or whatever).
+	*/
 	function getSubcategorySortChar( $title, $sortkey ) {
 		global $wgContLang;
 
@@ -249,7 +230,7 @@ class CategoryViewer extends ContextSource {
 		$link = Linker::link( $title );
 		if ( $isRedirect ) {
 			// This seems kind of pointless given 'mw-redirect' class,
-			// but keeping for back-compatibility with user css.
+			// but keeping for back-compatiability with user css.
 			$link = '<span class="redirect-in-category">' . $link . '</span>';
 		}
 		$this->articles[] = $link;
@@ -260,15 +241,15 @@ class CategoryViewer extends ContextSource {
 
 	function finaliseCategoryState() {
 		if ( $this->flip['subcat'] ) {
-			$this->children = array_reverse( $this->children );
+			$this->children            = array_reverse( $this->children );
 			$this->children_start_char = array_reverse( $this->children_start_char );
 		}
 		if ( $this->flip['page'] ) {
-			$this->articles = array_reverse( $this->articles );
+			$this->articles            = array_reverse( $this->articles );
 			$this->articles_start_char = array_reverse( $this->articles_start_char );
 		}
 		if ( !$this->showGallery && $this->flip['file'] ) {
-			$this->imgsNoGallery = array_reverse( $this->imgsNoGallery );
+			$this->imgsNoGallery            = array_reverse( $this->imgsNoGallery );
 			$this->imgsNoGallery_start_char = array_reverse( $this->imgsNoGallery_start_char );
 		}
 	}
@@ -288,10 +269,10 @@ class CategoryViewer extends ContextSource {
 			# the collation in the database differs from the one
 			# set in $wgCategoryCollation, pagination might go totally haywire.
 			$extraConds = array( 'cl_type' => $type );
-			if ( isset( $this->from[$type] ) && $this->from[$type] !== null ) {
+			if ( $this->from[$type] !== null ) {
 				$extraConds[] = 'cl_sortkey >= '
 					. $dbr->addQuotes( $this->collation->getSortKey( $this->from[$type] ) );
-			} elseif ( isset( $this->until[$type] ) && $this->until[$type] !== null ) {
+			} elseif ( $this->until[$type] !== null ) {
 				$extraConds[] = 'cl_sortkey < '
 					. $dbr->addQuotes( $this->collation->getSortKey( $this->until[$type] ) );
 				$this->flip[$type] = true;
@@ -303,7 +284,7 @@ class CategoryViewer extends ContextSource {
 					'page_is_redirect', 'cl_sortkey', 'cat_id', 'cat_title',
 					'cat_subcats', 'cat_pages', 'cat_files',
 					'cl_sortkey_prefix', 'cl_collation' ),
-				array_merge( array( 'cl_to' => $this->title->getDBkey() ), $extraConds ),
+				array_merge( array( 'cl_to' => $this->title->getDBkey() ),  $extraConds ),
 				__METHOD__,
 				array(
 					'USE INDEX' => array( 'categorylinks' => 'cl_sortkey' ),
@@ -311,11 +292,8 @@ class CategoryViewer extends ContextSource {
 					'ORDER BY' => $this->flip[$type] ? 'cl_sortkey DESC' : 'cl_sortkey',
 				),
 				array(
-					'categorylinks' => array( 'INNER JOIN', 'cl_from = page_id' ),
-					'category' => array( 'LEFT JOIN', array(
-						'cat_title = page_title',
-						'page_namespace' => NS_CATEGORY
-					))
+					'categorylinks'  => array( 'INNER JOIN', 'cl_from = page_id' ),
+					'category' => array( 'LEFT JOIN', 'cat_title = page_title AND page_namespace = ' . NS_CATEGORY )
 				)
 			);
 
@@ -373,7 +351,7 @@ class CategoryViewer extends ContextSource {
 		if ( $rescnt > 0 ) {
 			# Showing subcategories
 			$r .= "<div id=\"mw-subcategories\">\n";
-			$r .= '<h2>' . $this->msg( 'subcategories' )->text() . "</h2>\n";
+			$r .= '<h2>' . wfMsg( 'subcategories' ) . "</h2>\n";
 			$r .= $countmsg;
 			$r .= $this->getSectionPagingLinks( 'subcat' );
 			$r .= $this->formatList( $this->children, $this->children_start_char );
@@ -387,12 +365,12 @@ class CategoryViewer extends ContextSource {
 	 * @return string
 	 */
 	function getPagesSection() {
-		$ti = wfEscapeWikiText( $this->title->getText() );
+		$ti = htmlspecialchars( $this->title->getText() );
 		# Don't show articles section if there are none.
 		$r = '';
 
 		# @todo FIXME: Here and in the other two sections: we don't need to bother
-		# with this rigmarole if the entire category contents fit on one page
+		# with this rigamarole if the entire category contents fit on one page
 		# and have already been retrieved.  We can just use $rescnt in that
 		# case and save a query and some logic.
 		$dbcnt = $this->cat->getPageCount() - $this->cat->getSubcatCount()
@@ -402,7 +380,7 @@ class CategoryViewer extends ContextSource {
 
 		if ( $rescnt > 0 ) {
 			$r = "<div id=\"mw-pages\">\n";
-			$r .= '<h2>' . $this->msg( 'category_header', $ti )->text() . "</h2>\n";
+			$r .= '<h2>' . wfMsg( 'category_header', $ti ) . "</h2>\n";
 			$r .= $countmsg;
 			$r .= $this->getSectionPagingLinks( 'page' );
 			$r .= $this->formatList( $this->articles, $this->articles_start_char );
@@ -423,7 +401,7 @@ class CategoryViewer extends ContextSource {
 			$countmsg = $this->getCountMessage( $rescnt, $dbcnt, 'file' );
 
 			$r .= "<div id=\"mw-category-media\">\n";
-			$r .= '<h2>' . $this->msg( 'category-media-header', wfEscapeWikiText( $this->title->getText() ) )->text() . "</h2>\n";
+			$r .= '<h2>' . wfMsg( 'category-media-header', htmlspecialchars( $this->title->getText() ) ) . "</h2>\n";
 			$r .= $countmsg;
 			$r .= $this->getSectionPagingLinks( 'file' );
 			if ( $this->showGallery ) {
@@ -441,13 +419,13 @@ class CategoryViewer extends ContextSource {
 	 * Get the paging links for a section (subcats/pages/files), to go at the top and bottom
 	 * of the output.
 	 *
-	 * @param string $type 'page', 'subcat', or 'file'
+	 * @param $type String: 'page', 'subcat', or 'file'
 	 * @return String: HTML output, possibly empty if there are no other pages
 	 */
 	private function getSectionPagingLinks( $type ) {
-		if ( isset( $this->until[$type] ) && $this->until[$type] !== null ) {
+		if ( $this->until[$type] !== null ) {
 			return $this->pagingLinks( $this->nextPage[$type], $this->until[$type], $type );
-		} elseif ( $this->nextPage[$type] !== null || ( isset( $this->from[$type] ) && $this->from[$type] !== null ) ) {
+		} elseif ( $this->nextPage[$type] !== null || $this->from[$type] !== null ) {
 			return $this->pagingLinks( $this->from[$type], $this->nextPage[$type], $type );
 		} else {
 			return '';
@@ -473,7 +451,7 @@ class CategoryViewer extends ContextSource {
 	 */
 	function formatList( $articles, $articles_start_char, $cutoff = 6 ) {
 		$list = '';
-		if ( count( $articles ) > $cutoff ) {
+		if ( count ( $articles ) > $cutoff ) {
 			$list = self::columnList( $articles, $articles_start_char );
 		} elseif ( count( $articles ) > 0 ) {
 			// for short lists of articles in categories.
@@ -482,7 +460,7 @@ class CategoryViewer extends ContextSource {
 
 		$pageLang = $this->title->getPageLanguage();
 		$attribs = array( 'lang' => $pageLang->getCode(), 'dir' => $pageLang->getDir(),
-			'class' => 'mw-content-' . $pageLang->getDir() );
+			'class' => 'mw-content-'.$pageLang->getDir() );
 		$list = Html::rawElement( 'div', $attribs, $list );
 
 		return $list;
@@ -508,11 +486,11 @@ class CategoryViewer extends ContextSource {
 		# Split into three columns
 		$columns = array_chunk( $columns, ceil( count( $columns ) / 3 ), true /* preserve keys */ );
 
-		$ret = '<table style="width: 100%;"><tr style="vertical-align: top;">';
+		$ret = '<table width="100%"><tr valign="top">';
 		$prevchar = null;
 
 		foreach ( $columns as $column ) {
-			$ret .= '<td style="width: 33.3%;">';
+			$ret .= '<td width="33.3%">';
 			$colContents = array();
 
 			# Kind of like array_flip() here, but we keep duplicates in an
@@ -530,7 +508,7 @@ class CategoryViewer extends ContextSource {
 				if ( $first && $char === $prevchar ) {
 					# We're continuing a previous chunk at the top of a new
 					# column, so add " cont." after the letter.
-					$ret .= ' ' . wfMessage( 'listingcontinuesabbrev' )->escaped();
+					$ret .= ' ' . wfMsgHtml( 'listingcontinuesabbrev' );
 				}
 				$ret .= "</h3>\n";
 
@@ -573,14 +551,14 @@ class CategoryViewer extends ContextSource {
 	/**
 	 * Create paging links, as a helper method to getSectionPagingLinks().
 	 *
-	 * @param string $first The 'until' parameter for the generated URL
-	 * @param string $last The 'from' parameter for the generated URL
-	 * @param string $type A prefix for parameters, 'page' or 'subcat' or
+	 * @param $first String The 'until' parameter for the generated URL
+	 * @param $last String The 'from' parameter for the genererated URL
+	 * @param $type String A prefix for parameters, 'page' or 'subcat' or
 	 *     'file'
 	 * @return String HTML
 	 */
 	private function pagingLinks( $first, $last, $type = '' ) {
-		$prevLink = $this->msg( 'prevn' )->numParams( $this->limit )->escaped();
+		$prevLink = wfMessage( 'prevn' )->numParams( $this->limit )->escaped();
 
 		if ( $first != '' ) {
 			$prevQuery = $this->query;
@@ -594,7 +572,7 @@ class CategoryViewer extends ContextSource {
 			);
 		}
 
-		$nextLink = $this->msg( 'nextn' )->numParams( $this->limit )->escaped();
+		$nextLink = wfMessage( 'nextn' )->numParams( $this->limit )->escaped();
 
 		if ( $last != '' ) {
 			$lastQuery = $this->query;
@@ -608,7 +586,7 @@ class CategoryViewer extends ContextSource {
 			);
 		}
 
-		return $this->msg( 'categoryviewer-pagedlinks' )->rawParams( $prevLink, $nextLink )->escaped();
+		return "($prevLink) ($nextLink)";
 	}
 
 	/**
@@ -616,8 +594,7 @@ class CategoryViewer extends ContextSource {
 	 * corresponds to the correct segment of the category.
 	 *
 	 * @param Title $title: The title (usually $this->title)
-	 * @param string $section: Which section
-	 * @throws MWException
+	 * @param String $section: Which section
 	 * @return Title
 	 */
 	private function addFragmentToTitle( $title, $section ) {
@@ -639,7 +616,6 @@ class CategoryViewer extends ContextSource {
 		return Title::makeTitle( $title->getNamespace(),
 			$title->getDBkey(), $fragment );
 	}
-
 	/**
 	 * What to do if the category table conflicts with the number of results
 	 * returned?  This function says what. Each type is considered independently
@@ -650,9 +626,9 @@ class CategoryViewer extends ContextSource {
 	 * category-subcat-count-limited, category-file-count,
 	 * category-file-count-limited.
 	 *
-	 * @param int $rescnt The number of items returned by our database query.
-	 * @param int $dbcnt The number of items according to the category table.
-	 * @param string $type 'subcat', 'article', or 'file'
+	 * @param $rescnt Int: The number of items returned by our database query.
+	 * @param $dbcnt Int: The number of items according to the category table.
+	 * @param $type String: 'subcat', 'article', or 'file'
 	 * @return String: A message giving the number of items, to output to HTML.
 	 */
 	private function getCountMessage( $rescnt, $dbcnt, $type ) {
@@ -677,15 +653,12 @@ class CategoryViewer extends ContextSource {
 		}
 
 		$fromOrUntil = false;
-		if ( ( isset( $this->from[$pagingType] ) && $this->from[$pagingType] !== null ) ||
-			( isset( $this->until[$pagingType] ) && $this->until[$pagingType] !== null )
-		) {
+		if ( $this->from[$pagingType] !== null || $this->until[$pagingType] !== null ) {
 			$fromOrUntil = true;
 		}
 
-		if ( $dbcnt == $rescnt ||
-			( ( $rescnt == $this->limit || $fromOrUntil ) && $dbcnt > $rescnt )
-		) {
+		if ( $dbcnt == $rescnt || ( ( $rescnt == $this->limit || $fromOrUntil )
+			&& $dbcnt > $rescnt ) ) {
 			# Case 1: seems sane.
 			$totalcnt = $dbcnt;
 		} elseif ( $rescnt < $this->limit && !$fromOrUntil ) {
@@ -697,8 +670,8 @@ class CategoryViewer extends ContextSource {
 			$this->cat->refreshCounts();
 		} else {
 			# Case 3: hopeless.  Don't give a total count at all.
-			return $this->msg( "category-$type-count-limited" )->numParams( $rescnt )->parseAsBlock();
+			return wfMessage( "category-$type-count-limited" )->numParams( $rescnt )->parseAsBlock();
 		}
-		return $this->msg( "category-$type-count" )->numParams( $rescnt, $totalcnt )->parseAsBlock();
+		return wfMessage( "category-$type-count" )->numParams( $rescnt, $totalcnt )->parseAsBlock();
 	}
 }

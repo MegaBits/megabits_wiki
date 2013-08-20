@@ -2,21 +2,6 @@
 /**
  * Output handler for the web installer.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
  * @file
  * @ingroup Deployment
  */
@@ -104,11 +89,11 @@ class WebInstallerOutput {
 
 	/**
 	 * Get the raw vector CSS, flipping if needed
-	 * @param string $dir 'ltr' or 'rtl'
+	 * @param $dir String 'ltr' or 'rtl'
 	 * @return String
 	 */
 	public function getCSS( $dir ) {
-		$skinDir = dirname( dirname( __DIR__ ) ) . '/skins';
+		$skinDir = dirname( dirname( dirname( __FILE__ ) ) ) . '/skins';
 
 		// All these files will be concatenated in sequence and loaded
 		// as one file.
@@ -118,7 +103,6 @@ class WebInstallerOutput {
 		$cssFileNames = array(
 
 			// Basically the "skins.vector" ResourceLoader module styles
-			'common/shared.css',
 			'common/commonElements.css',
 			'common/commonContent.css',
 			'common/commonInterface.css',
@@ -149,15 +133,14 @@ class WebInstallerOutput {
 		if( $dir == 'rtl' ) {
 			$css = CSSJanus::transform( $css, true );
 		}
-
 		return $css;
 	}
 
 	/**
-	 * "<link>" to index.php?css=foobar for the "<head>"
+	 * <link> to index.php?css=foobar for the <head>
 	 * @return String
 	 */
-	private function getCssUrl() {
+	private function getCssUrl( ) {
 		return Html::linkedStyle( $_SERVER['PHP_SELF'] . '?css=' . $this->getDir() );
 	}
 
@@ -219,7 +202,7 @@ class WebInstallerOutput {
 		$dbTypes = $this->parent->getDBTypes();
 
 		$this->parent->request->response()->header( 'Content-Type: text/html; charset=utf-8' );
-		if ( !$this->allowFrames ) {
+		if (!$this->allowFrames) {
 			$this->parent->request->response()->header( 'X-Frame-Options: DENY' );
 		}
 		if ( $this->redirectTarget ) {
@@ -238,8 +221,9 @@ class WebInstallerOutput {
 	<meta name="robots" content="noindex, nofollow" />
 	<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
 	<title><?php $this->outputTitle(); ?></title>
+	<?php echo Html::linkedStyle( '../skins/common/shared.css' ) . "\n"; ?>
 	<?php echo $this->getCssUrl() . "\n"; ?>
-	<?php echo Html::inlineScript( "var dbTypes = " . Xml::encodeJsVar( $dbTypes ) ) . "\n"; ?>
+	<?php echo Html::inlineScript(  "var dbTypes = " . Xml::encodeJsVar( $dbTypes ) ) . "\n"; ?>
 	<?php echo $this->getJQuery() . "\n"; ?>
 	<?php echo Html::linkedScript( '../skins/common/config.js' ) . "\n"; ?>
 </head>
@@ -274,7 +258,7 @@ class WebInstallerOutput {
 	</div>
 	<div class="portal"><div class="body">
 <?php
-	echo $this->parent->parse( wfMessage( 'config-sidebar' )->plain(), true );
+	echo $this->parent->parse( wfMsgNoTrans( 'config-sidebar' ), true );
 ?>
 	</div></div>
 </div>
@@ -302,7 +286,7 @@ class WebInstallerOutput {
 
 	public function outputTitle() {
 		global $wgVersion;
-		echo wfMessage( 'config-title', $wgVersion )->escaped();
+		echo htmlspecialchars( wfMsg( 'config-title', $wgVersion ) );
 	}
 
 	public function getJQuery() {

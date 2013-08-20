@@ -27,26 +27,10 @@
  * @ingroup SpecialPage
  */
 class SpecialChangeEmail extends UnlistedSpecialPage {
-
-	/**
-	 * Users password
-	 * @var string
-	 */
-	protected $mPassword;
-
-	/**
-	 * Users new email address
-	 * @var string
-	 */
-	protected $mNewEmail;
-
 	public function __construct() {
 		parent::__construct( 'ChangeEmail' );
 	}
 
-	/**
-	 * @return Bool
-	 */
 	function isListed() {
 		global $wgAuth;
 		return $wgAuth->allowPropChange( 'emailaddress' );
@@ -58,12 +42,10 @@ class SpecialChangeEmail extends UnlistedSpecialPage {
 	function execute( $par ) {
 		global $wgAuth;
 
+		$this->checkReadOnly();
+
 		$this->setHeaders();
 		$this->outputHeader();
-
-		$out = $this->getOutput();
-		$out->disallowUserJs();
-		$out->addModules( 'mediawiki.special.changeemail' );
 
 		if ( !$wgAuth->allowPropChange( 'emailaddress' ) ) {
 			$this->error( 'cannotchangeemail' );
@@ -83,7 +65,9 @@ class SpecialChangeEmail extends UnlistedSpecialPage {
 			return;
 		}
 
-		$this->checkReadOnly();
+		$out = $this->getOutput();
+		$out->disallowUserJs();
+		$out->addModules( 'mediawiki.special.changeemail' );
 
 		$this->mPassword = $request->getVal( 'wpPassword' );
 		$this->mNewEmail = $request->getVal( 'wpNewEmail' );
@@ -106,9 +90,6 @@ class SpecialChangeEmail extends UnlistedSpecialPage {
 		$this->showForm();
 	}
 
-	/**
-	 * @param $type string
-	 */
 	protected function doReturnTo( $type = 'hard' ) {
 		$titleObj = Title::newFromText( $this->getRequest()->getVal( 'returnto' ) );
 		if ( !$titleObj instanceof Title ) {
@@ -121,15 +102,11 @@ class SpecialChangeEmail extends UnlistedSpecialPage {
 		}
 	}
 
-	/**
-	 * @param $msg string
-	 */
 	protected function error( $msg ) {
 		$this->getOutput()->wrapWikiMsg( "<p class='error'>\n$1\n</p>", $msg );
 	}
 
 	protected function showForm() {
-		global $wgRequirePasswordforEmailChange;
 		$user = $this->getUser();
 
 		$oldEmailText = $user->getEmail()
@@ -146,20 +123,13 @@ class SpecialChangeEmail extends UnlistedSpecialPage {
 			Html::hidden( 'token', $user->getEditToken() ) . "\n" .
 			Html::hidden( 'returnto', $this->getRequest()->getVal( 'returnto' ) ) . "\n" .
 			$this->msg( 'changeemail-text' )->parseAsBlock() . "\n" .
-			Xml::openElement( 'table', array( 'id' => 'mw-changeemail-table' ) ) . "\n"
-		);
-		$items = array(
-			array( 'wpName', 'username', 'text', $user->getName() ),
-			array( 'wpOldEmail', 'changeemail-oldemail', 'text', $oldEmailText ),
-			array( 'wpNewEmail', 'changeemail-newemail', 'email', $this->mNewEmail ),
-		);
-		if ( $wgRequirePasswordforEmailChange ) {
-			$items[] = array( 'wpPassword', 'changeemail-password', 'password', $this->mPassword );
-		}
-
-		$this->getOutput()->addHTML(
-			$this->pretty( $items ) .
-			"\n" .
+			Xml::openElement( 'table', array( 'id' => 'mw-changeemail-table' ) ) . "\n" .
+			$this->pretty( array(
+				array( 'wpName', 'username', 'text', $user->getName() ),
+				array( 'wpOldEmail', 'changeemail-oldemail', 'text', $oldEmailText ),
+				array( 'wpNewEmail', 'changeemail-newemail', 'input', $this->mNewEmail ),
+				array( 'wpPassword', 'yourpassword', 'password', $this->mPassword ),
+			) ) . "\n" .
 			"<tr>\n" .
 				"<td></td>\n" .
 				'<td class="mw-input">' .
@@ -173,10 +143,6 @@ class SpecialChangeEmail extends UnlistedSpecialPage {
 		);
 	}
 
-	/**
-	 * @param $fields array
-	 * @return string
-	 */
 	protected function pretty( $fields ) {
 		$out = '';
 		foreach ( $fields as $list ) {
@@ -195,7 +161,7 @@ class SpecialChangeEmail extends UnlistedSpecialPage {
 			if ( $type != 'text' ) {
 				$out .= Xml::label( $this->msg( $label )->text(), $name );
 			} else {
-				$out .= $this->msg( $label )->escaped();
+				$out .=  $this->msg( $label )->escaped();
 			}
 			$out .= "</td>\n";
 			$out .= "\t<td class='mw-input'>";
@@ -207,14 +173,9 @@ class SpecialChangeEmail extends UnlistedSpecialPage {
 	}
 
 	/**
-	 * @param $user User
-	 * @param $pass string
-	 * @param $newaddr string
 	 * @return bool|string true or string on success, false on failure
 	 */
 	protected function attemptChange( User $user, $pass, $newaddr ) {
-		global $wgAuth;
-
 		if ( $newaddr != '' && !Sanitizer::validateEmail( $newaddr ) ) {
 			$this->error( 'invalidemailaddress' );
 			return false;
@@ -226,8 +187,7 @@ class SpecialChangeEmail extends UnlistedSpecialPage {
 			return false;
 		}
 
-		global $wgRequirePasswordforEmailChange;
-		if ( $wgRequirePasswordforEmailChange && !$user->checkTemporaryPassword( $pass ) && !$user->checkPassword( $pass ) ) {
+		if ( !$user->checkTemporaryPassword( $pass ) && !$user->checkPassword( $pass ) ) {
 			$this->error( 'wrongpassword' );
 			return false;
 		}
@@ -236,26 +196,18 @@ class SpecialChangeEmail extends UnlistedSpecialPage {
 			LoginForm::clearLoginThrottle( $user->getName() );
 		}
 
-		$oldaddr = $user->getEmail();
-		$status = $user->setEmailWithConfirmation( $newaddr );
-		if ( !$status->isGood() ) {
-			$this->getOutput()->addHTML(
-				'<p class="error">' .
-				$this->getOutput()->parseInline( $status->getWikiText( 'mailerror' ) ) .
-				'</p>' );
+		list( $status, $info ) = Preferences::trySetUserEmail( $user, $newaddr );
+		if ( $status !== true ) {
+			if ( $status instanceof Status ) {
+				$this->getOutput()->addHTML(
+					'<p class="error">' .
+					$this->getOutput()->parseInline( $status->getWikiText( $info ) ) .
+					'</p>' );
+			}
 			return false;
 		}
 
-		wfRunHooks( 'PrefsEmailAudit', array( $user, $oldaddr, $newaddr ) );
-
 		$user->saveSettings();
-
-		$wgAuth->updateExternalDB( $user );
-
-		return $status->value;
-	}
-
-	protected function getGroupName() {
-		return 'users';
+		return $info ? $info : true;
 	}
 }

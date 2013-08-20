@@ -37,7 +37,7 @@ define( 'NORMALIZE_INTL', function_exists( 'normalizer_normalize' ) );
  *
  * Not as fast as I'd like, but should be usable for most purposes.
  * UtfNormal::toNFC() will bail early if given ASCII text or text
- * it can quickly determine is already normalized.
+ * it can quickly deterimine is already normalized.
  *
  * All functions can be called static.
  *
@@ -73,7 +73,7 @@ class UtfNormal {
 	 * Fast return for pure ASCII strings; some lesser optimizations for
 	 * strings containing only known-good characters. Not as fast as toNFC().
 	 *
-	 * @param string $string a UTF-8 string
+	 * @param $string String: a UTF-8 string
 	 * @return string a clean, shiny, normalized UTF-8 string
 	 */
 	static function cleanUp( $string ) {
@@ -114,7 +114,7 @@ class UtfNormal {
 	 * Fast return for pure ASCII strings; some lesser optimizations for
 	 * strings containing only known-good characters.
 	 *
-	 * @param string $string a valid UTF-8 string. Input is not validated.
+	 * @param $string String: a valid UTF-8 string. Input is not validated.
 	 * @return string a UTF-8 string in normal form C
 	 */
 	static function toNFC( $string ) {
@@ -132,7 +132,7 @@ class UtfNormal {
 	 * Convert a UTF-8 string to normal form D, canonical decomposition.
 	 * Fast return for pure ASCII strings.
 	 *
-	 * @param string $string a valid UTF-8 string. Input is not validated.
+	 * @param $string String: a valid UTF-8 string. Input is not validated.
 	 * @return string a UTF-8 string in normal form D
 	 */
 	static function toNFD( $string ) {
@@ -151,7 +151,7 @@ class UtfNormal {
 	 * This may cause irreversible information loss, use judiciously.
 	 * Fast return for pure ASCII strings.
 	 *
-	 * @param string $string a valid UTF-8 string. Input is not validated.
+	 * @param $string String: a valid UTF-8 string. Input is not validated.
 	 * @return string a UTF-8 string in normal form KC
 	 */
 	static function toNFKC( $string ) {
@@ -170,7 +170,7 @@ class UtfNormal {
 	 * This may cause irreversible information loss, use judiciously.
 	 * Fast return for pure ASCII strings.
 	 *
-	 * @param string $string a valid UTF-8 string. Input is not validated.
+	 * @param $string String: a valid UTF-8 string. Input is not validated.
 	 * @return string a UTF-8 string in normal form KD
 	 */
 	static function toNFKD( $string ) {
@@ -190,14 +190,14 @@ class UtfNormal {
 	 */
 	static function loadData() {
 		if( !isset( self::$utfCombiningClass ) ) {
-			require_once( __DIR__ . '/UtfNormalData.inc' );
+			require_once( dirname(__FILE__) . '/UtfNormalData.inc' );
 		}
 	}
 
 	/**
 	 * Returns true if the string is _definitely_ in NFC.
 	 * Returns false if not or uncertain.
-	 * @param string $string a valid UTF-8 string. Input is not validated.
+	 * @param $string String: a valid UTF-8 string. Input is not validated.
 	 * @return bool
 	 */
 	static function quickIsNFC( $string ) {
@@ -237,8 +237,7 @@ class UtfNormal {
 	/**
 	 * Returns true if the string is _definitely_ in NFC.
 	 * Returns false if not or uncertain.
-	 * @param string $string a UTF-8 string, altered on output to be valid UTF-8 safe for XML.
-	 * @return bool
+	 * @param $string String: a UTF-8 string, altered on output to be valid UTF-8 safe for XML.
 	 */
 	static function quickIsNFCVerify( &$string ) {
 		# Screen out some characters that eg won't be allowed in XML
@@ -503,8 +502,8 @@ class UtfNormal {
 	 * (depending on which decomposition map is passed to us).
 	 * Input is assumed to be *valid* UTF-8. Invalid code will break.
 	 * @private
-	 * @param string $string valid UTF-8 string
-	 * @param array $map hash of expanded decomposition map
+	 * @param $string String: valid UTF-8 string
+	 * @param $map Array: hash of expanded decomposition map
 	 * @return string a UTF-8 string decomposed, not yet normalized (needs sorting)
 	 */
 	static function fastDecompose( $string, $map ) {
@@ -564,7 +563,7 @@ class UtfNormal {
 	 * Sorts combining characters into canonical order. This is the
 	 * final step in creating decomposed normal forms D and KD.
 	 * @private
-	 * @param string $string a valid, decomposed UTF-8 string. Input is not validated.
+	 * @param $string String: a valid, decomposed UTF-8 string. Input is not validated.
 	 * @return string a UTF-8 string with combining characters sorted in canonical order
 	 */
 	static function fastCombiningSort( $string ) {
@@ -616,7 +615,7 @@ class UtfNormal {
 	 * Produces canonically composed sequences, i.e. normal form C or KC.
 	 *
 	 * @private
-	 * @param string $string a valid UTF-8 string in sorted normal form D or KD. Input is not validated.
+	 * @param $string String: a valid UTF-8 string in sorted normal form D or KD. Input is not validated.
 	 * @return string a UTF-8 string with canonical precomposed characters used where possible
 	 */
 	static function fastCompose( $string ) {
@@ -627,8 +626,8 @@ class UtfNormal {
 		$lastHangul = 0;
 		$startChar = '';
 		$combining = '';
-		$x1 = ord(substr(UTF8_HANGUL_VBASE, 0, 1));
-		$x2 = ord(substr(UTF8_HANGUL_TEND, 0, 1));
+		$x1 = ord(substr(UTF8_HANGUL_VBASE,0,1));
+		$x2 = ord(substr(UTF8_HANGUL_TEND,0,1));
 		for( $i = 0; $i < $len; $i++ ) {
 			$c = $string[$i];
 			$n = ord( $c );
@@ -762,10 +761,10 @@ class UtfNormal {
 	 * Function to replace some characters that we don't want
 	 * but most of the native normalize functions keep.
 	 *
-	 * @param string $string The string
+	 * @param $string String The string
 	 * @return String String with the character codes replaced.
 	 */
-	private static function replaceForNativeNormalize( $string ) {
+	private static function replaceForNativeNormalize( $string ) { 
 		$string = preg_replace(
 			'/[\x00-\x08\x0b\x0c\x0e-\x1f]/',
 			UTF8_REPLACEMENT,

@@ -1,8 +1,8 @@
 <?php
 /**
- * Report number of jobs currently waiting in master database.
- *
  * Based on runJobs.php
+ *
+ * Report number of jobs currently waiting in master database.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,44 +19,34 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @file
  * @ingroup Maintenance
  * @author Tim Starling
  * @author Antoine Musso
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script that reports the number of jobs currently waiting
- * in master database.
- *
- * @ingroup Maintenance
- */
 class ShowJobs extends Maintenance {
 	public function __construct() {
 		parent::__construct();
 		$this->mDescription = "Show number of jobs waiting in master database";
 		$this->addOption( 'group', 'Show number of jobs per job type' );
 	}
-
 	public function execute() {
-		$group = JobQueueGroup::singleton();
+		$dbw = wfGetDB( DB_MASTER );
 		if ( $this->hasOption( 'group' ) ) {
-			foreach ( $group->getQueueTypes() as $type ) {
-				$queue   = $group->get( $type );
-				$pending = $queue->getSize();
-				$claimed = $queue->getAcquiredCount();
-				if ( ( $pending + $claimed ) > 0 ) {
-					$this->output( "{$type}: $pending queued; $claimed acquired\n" );
-				}
+			$res = $dbw->select(
+				'job',
+				array( 'job_cmd', 'count(*) as count' ),
+				array(),
+				__METHOD__,
+				array( 'GROUP BY' => 'job_cmd' )
+			);
+			foreach ( $res as $row ) {
+				$this->output( $row->job_cmd . ': ' . $row->count . "\n" );
 			}
 		} else {
-			$count = 0;
-			foreach ( $group->getQueueTypes() as $type ) {
-				$count += $group->get( $type )->getSize();
-			}
-			$this->output( "$count\n" );
+			$this->output( $dbw->selectField( 'job', 'count(*)', '', __METHOD__ ) . "\n" );
 		}
 	}
 }

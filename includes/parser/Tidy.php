@@ -2,23 +2,7 @@
 /**
  * HTML validation and correction
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
  * @file
- * @ingroup Parser
  */
 
 /**
@@ -30,8 +14,6 @@
  *
  * This re-uses some of the parser's UNIQ tricks, though some of it is private so it's
  * duplicated. Perhaps we should create an abstract marker hiding class.
- *
- * @ingroup Parser
  */
 class MWTidyWrapper {
 
@@ -59,18 +41,12 @@ class MWTidyWrapper {
 			dechex( mt_rand( 0, 0x7fffffff ) ) . dechex( mt_rand( 0, 0x7fffffff ) );
 		$this->mMarkerIndex = 0;
 
-		// Replace <mw:editsection> elements with placeholders
 		$wrappedtext = preg_replace_callback( ParserOutput::EDITSECTION_REGEX,
 			array( &$this, 'replaceEditSectionLinksCallback' ), $text );
 
-		// Modify inline Microdata <link> and <meta> elements so they say <html-link> and <html-meta> so
-		// we can trick Tidy into not stripping them out by including them in tidy's new-empty-tags config
-		$wrappedtext = preg_replace( '!<(link|meta)([^>]*?)(/{0,1}>)!', '<html-$1$2$3', $wrappedtext );
-
-		// Wrap the whole thing in a doctype and body for Tidy.
-		$wrappedtext = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"' .
-			' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html>' .
-			'<head><title>test</title></head><body>' . $wrappedtext . '</body></html>';
+		$wrappedtext = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"'.
+			' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html>'.
+			'<head><title>test</title></head><body>'.$wrappedtext.'</body></html>';
 
 		return $wrappedtext;
 	}
@@ -92,13 +68,7 @@ class MWTidyWrapper {
 	 * @return string
 	 */
 	public function postprocess( $text ) {
-		// Revert <html-{link,meta}> back to <{link,meta}>
-		$text = preg_replace( '!<html-(link|meta)([^>]*?)(/{0,1}>)!', '<$1$2$3', $text );
-
-		// Restore the contents of placeholder tokens
-		$text = $this->mTokens->replace( $text );
-
-		return $text;
+		return $this->mTokens->replace( $text );
 	}
 
 }
@@ -118,7 +88,7 @@ class MWTidy {
 	 * If tidy isn't able to correct the markup, the original will be
 	 * returned in all its glory with a warning comment appended.
 	 *
-	 * @param string $text hideous HTML input
+	 * @param $text String: hideous HTML input
 	 * @return String: corrected HTML output
 	 */
 	public static function tidy( $text ) {
@@ -171,9 +141,9 @@ class MWTidy {
 	 * Spawn an external HTML tidy process and get corrected markup back from it.
 	 * Also called in OutputHandler.php for full page validation
 	 *
-	 * @param string $text HTML to check
+	 * @param $text String: HTML to check
 	 * @param $stderr Boolean: Whether to read result from STDERR rather than STDOUT
-	 * @param &$retval int Exit code (-1 on internal error)
+	 * @param &$retval Exit code (-1 on internal error)
 	 * @return mixed String or null
 	 */
 	private static function execExternalTidy( $text, $stderr = false, &$retval = null ) {
@@ -235,9 +205,9 @@ class MWTidy {
 	 * Use the HTML tidy extension to use the tidy library in-process,
 	 * saving the overhead of spawning a new process.
 	 *
-	 * @param string $text HTML to check
+	 * @param $text String: HTML to check
 	 * @param $stderr Boolean: Whether to read result from error status instead of output
-	 * @param &$retval int Exit code (-1 on internal error)
+	 * @param &$retval Exit code (-1 on internal error)
 	 * @return mixed String or null
 	 */
 	private static function execInternalTidy( $text, $stderr = false, &$retval = null ) {
@@ -260,24 +230,24 @@ class MWTidy {
 
 			wfProfileOut( __METHOD__ );
 			return $tidy->errorBuffer;
-		}
-
-		$tidy->cleanRepair();
-		$retval = $tidy->getStatus();
-		if ( $retval == 2 ) {
-			// 2 is magic number for fatal error
-			// http://www.php.net/manual/en/function.tidy-get-status.php
-			$cleansource = null;
 		} else {
-			$cleansource = tidy_get_output( $tidy );
-			if ( $wgDebugTidy && $retval > 0 ) {
-				$cleansource .= "<!--\nTidy reports:\n" .
-					str_replace( '-->', '--&gt;', $tidy->errorBuffer ) .
-					"\n-->";
+			$tidy->cleanRepair();
+			$retval = $tidy->getStatus();
+			if ( $retval == 2 ) {
+				// 2 is magic number for fatal error
+				// http://www.php.net/manual/en/function.tidy-get-status.php
+				$cleansource = null;
+			} else {
+				$cleansource = tidy_get_output( $tidy );
+				if ( $wgDebugTidy && $retval > 0 ) {
+					$cleansource .= "<!--\nTidy reports:\n" .
+						str_replace( '-->', '--&gt;', $tidy->errorBuffer ) .
+						"\n-->";
+				}
 			}
-		}
 
-		wfProfileOut( __METHOD__ );
-		return $cleansource;
+			wfProfileOut( __METHOD__ );
+			return $cleansource;
+		}
 	}
 }

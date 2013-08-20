@@ -8,7 +8,7 @@
 # Explicitly using Unicode 6.0
 BASE=http://www.unicode.org/Public/6.0.0/ucd
 
-# Can override to php-cli or php5 or whatever
+# Can override to php-cli or php5 or whatevah
 PHP=php
 #PHP=php-cli
 

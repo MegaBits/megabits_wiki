@@ -23,25 +23,17 @@
  * @author Timo Tijhof
  */
 
-/**
- * Page edition handler
- *
- * This is a wrapper that will call the EditPage class, or ExternalEdit
- * if $wgUseExternalEditor is set to true and requested by the user.
- *
- * @ingroup Actions
- */
 class EditAction extends FormlessAction {
 
 	public function getName() {
 		return 'edit';
 	}
 
-	public function onView() {
+	public function onView(){
 		return null;
 	}
 
-	public function show() {
+	public function show(){
 		$page = $this->page;
 		$request = $this->getRequest();
 		$user = $this->getUser();
@@ -64,20 +56,13 @@ class EditAction extends FormlessAction {
 
 }
 
-/**
- * Edit submission handler
- *
- * This is the same as EditAction; except that it sets the session cookie.
- *
- * @ingroup Actions
- */
 class SubmitAction extends EditAction {
 
 	public function getName() {
 		return 'submit';
 	}
 
-	public function show() {
+	public function show(){
 		if ( session_id() == '' ) {
 			// Send a cookie so anons get talk message notifications
 			wfSetupSession();

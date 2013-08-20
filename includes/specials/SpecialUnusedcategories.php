@@ -26,9 +26,7 @@
  */
 class UnusedCategoriesPage extends QueryPage {
 
-	function isExpensive() {
-		return true;
-	}
+	function isExpensive() { return true; }
 
 	function __construct( $name = 'Unusedcategories' ) {
 		parent::__construct( $name );
@@ -41,9 +39,9 @@ class UnusedCategoriesPage extends QueryPage {
 	function getQueryInfo() {
 		return array (
 			'tables' => array ( 'page', 'categorylinks' ),
-			'fields' => array ( 'namespace' => 'page_namespace',
-					'title' => 'page_title',
-					'value' => 'page_title' ),
+			'fields' => array ( 'page_namespace AS namespace',
+					'page_title AS title',
+					'page_title AS value' ),
 			'conds' => array ( 'cl_from IS NULL',
 					'page_namespace' => NS_CATEGORY,
 					'page_is_redirect' => 0 ),
@@ -54,7 +52,6 @@ class UnusedCategoriesPage extends QueryPage {
 
 	/**
 	 * A should come before Z (bug 30907)
-	 * @return bool
 	 */
 	function sortDescending() {
 		return false;
@@ -63,9 +60,5 @@ class UnusedCategoriesPage extends QueryPage {
 	function formatResult( $skin, $result ) {
 		$title = Title::makeTitle( NS_CATEGORY, $result->title );
 		return Linker::link( $title, htmlspecialchars( $title->getText() ) );
-	}
-
-	protected function getGroupName() {
-		return 'maintenance';
 	}
 }

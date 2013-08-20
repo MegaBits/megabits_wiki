@@ -1,28 +1,7 @@
 <?php
-/**
- * Kazakh (Қазақша) specific code.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- * @ingroup Language
- */
 
-require_once( __DIR__ . '/../LanguageConverter.php' );
-require_once( __DIR__ . '/LanguageKk_cyrl.php' );
+require_once( dirname( __FILE__ ) . '/../LanguageConverter.php' );
+require_once( dirname( __FILE__ ) . '/LanguageKk_cyrl.php' );
 
 define( 'KK_C_UC', 'АӘБВГҒДЕЁЖЗИЙКҚЛМНҢОӨПРСТУҰҮФХҺЦЧШЩЪЫІЬЭЮЯ' ); # Kazakh Cyrillic uppercase
 define( 'KK_C_LC', 'аәбвгғдеёжзийкқлмнңоөпрстуұүфхһцчшщъыіьэюя' ); # Kazakh Cyrillic lowercase
@@ -32,8 +11,8 @@ define( 'KK_L_LC', 'aäbcçdeéfgğhıiïjklmnñoöpqrsştuüvwxyýz' ); # Kazak
 define( 'H_HAMZA', 'ٴ' ); # U+0674 ARABIC LETTER HIGH HAMZA
 // define( 'ZWNJ', '‌' ); # U+200C ZERO WIDTH NON-JOINER
 
-/**
- * Kazakh (Қазақша) converter routines
+/** Kazakh (Қазақша)
+ * converter routines
  *
  * @ingroup Language
  */
@@ -62,7 +41,7 @@ class KkConverter extends LanguageConverter {
 	}
 
 	function loadDefaultTables() {
-		// require( __DIR__."/../../includes/KkConversion.php" );
+		// require( dirname(__FILE__)."/../../includes/KkConversion.php" );
 		// Placeholder for future implementing. Remove variables declarations
 		// after generating KkConversion.php
 		$kk2Cyrl = array();
@@ -134,7 +113,7 @@ class KkConverter extends LanguageConverter {
 			# # Punctuation
 			'/#|No\./' => '№',
 			# # Şç
-			'/ŞÇʹ/u' => 'ЩЬ', '/Şçʹ/u' => 'Щь',
+			'/ŞÇʹ/u' => 'ЩЬ', '/Şçʹ/u' => 'Щь', '/Şçʹ/u' => 'Щь',
 			'/Ş[Çç]/u' => 'Щ', '/şç/u' => 'щ',
 			# # soft and hard signs
 			'/([' . KK_L_UC . '])ʺ([' . KK_L_UC . '])/u' => '$1Ъ$2',
@@ -391,6 +370,21 @@ class KkConverter extends LanguageConverter {
 	}
 
 	/**
+	 * We want our external link captions to be converted in variants,
+	 * so we return the original text instead -{$text}-, except for URLs
+	 *
+	 * @param $text string
+	 * @param $noParse string|bool
+	 *
+	 * @return string
+	 */
+	function markNoConversion( $text, $noParse = false ) {
+		if ( $noParse || preg_match( "/^https?:\/\/|ftp:\/\/|irc:\/\//", $text ) )
+			return parent::markNoConversion( $text );
+		return $text;
+	}
+
+	/**
 	 * @param $key string
 	 * @return String
 	 */
@@ -425,7 +419,21 @@ class LanguageKk extends LanguageKk_cyrl {
 
 		$this->mConverter = new KkConverter( $this, 'kk', $variants, $variantfallbacks );
 
-		$wgHooks['PageContentSaveComplete'][] = $this->mConverter;
+		$wgHooks['ArticleSaveComplete'][] = $this->mConverter;
+	}
+
+	/**
+	 * Work around for right-to-left direction support in kk-arab and kk-cn
+	 *
+	 * @return bool
+	 */
+	function isRTL() {
+		$variant = $this->getPreferredVariant();
+		if ( $variant == 'kk-arab' || $variant == 'kk-cn' ) {
+			return true;
+		} else {
+			return parent::isRTL();
+		}
 	}
 
 	/**

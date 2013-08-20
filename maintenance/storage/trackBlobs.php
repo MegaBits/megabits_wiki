@@ -22,7 +22,7 @@
  * @see wfWaitForSlaves()
  */
 
-require( __DIR__ . '/../commandLine.inc' );
+require( dirname( __FILE__ ) . '/../commandLine.inc' );
 
 
 if ( count( $args ) < 1 ) {
@@ -37,12 +37,12 @@ $tracker->run();
 echo "All done.\n";
 
 class TrackBlobs {
-	public $clusters, $textClause;
-	public $doBlobOrphans;
-	public $trackedBlobs = array();
+	var $clusters, $textClause;
+	var $doBlobOrphans;
+	var $trackedBlobs = array();
 
-	public $batchSize = 1000;
-	public $reportingInterval = 10;
+	var $batchSize = 1000;
+	var $reportingInterval = 10;
 
 	function __construct( $clusters ) {
 		$this->clusters = $clusters;
@@ -113,7 +113,7 @@ class TrackBlobs {
 			$dbw->query( 'DROP TABLE ' . $dbw->tableName( 'blob_tracking' ) );
 			$dbw->query( 'DROP TABLE ' . $dbw->tableName( 'blob_orphans' ) );
 		}
-		$dbw->sourceFile( __DIR__ . '/blob_tracking.sql' );
+		$dbw->sourceFile( dirname( __FILE__ ) . '/blob_tracking.sql' );
 	}
 
 	function getTextClause() {

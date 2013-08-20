@@ -1,29 +1,13 @@
 <?php
 /**
- * Simple lock server daemon that accepts lock/unlock requests.
- *
- * This code should not require MediaWiki setup or PHP files.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
  * @file
  * @ingroup LockManager Maintenance
  */
 
-if ( PHP_SAPI !== 'cli' ) {
+/**
+ * This code should not require MediaWiki setup or PHP files.
+ */
+if ( php_sapi_name() !== 'cli' ) {
 	die( "This is not a valid entry point.\n" );
 }
 error_reporting( E_ALL );
@@ -39,8 +23,6 @@ LockServerDaemon::init(
 
 /**
  * Simple lock server daemon that accepts lock/unlock requests
- *
- * @ingroup LockManager Maintenance
  */
 class LockServerDaemon {
 	/** @var resource */
@@ -68,8 +50,6 @@ class LockServerDaemon {
 
 	/**
 	 * @params $config Array
-	 * @param array $config
-	 * @throws Exception
 	 * @return LockServerDaemon
 	 */
 	public static function init( array $config ) {
@@ -79,9 +59,9 @@ class LockServerDaemon {
 		foreach ( array( 'address', 'port', 'authKey' ) as $par ) {
 			if ( !isset( $config[$par] ) ) {
 				die( "Usage: php LockServerDaemon.php " .
-					"--address <address> --port <port> --authKey <key> " .
+					"--address <address> --port <port> --authkey <key> " .
 					"[--lockTimeout <seconds>] " .
-					"[--maxLocks <integer>] [--maxClients <integer>] [--maxBacklog <integer>]\n"
+					"[--maxLocks <integer>] [--maxClients <integer>] [--maxBacklog <integer>]"
 				);
 			}
 		}
@@ -115,7 +95,6 @@ class LockServerDaemon {
 	}
 
 	/**
-	 * @throws Exception
 	 * @return void
 	 */
 	protected function setupServerSocket() {
@@ -242,11 +221,9 @@ class LockServerDaemon {
 		$m = explode( ':', $data ); // <session, key, command, type, values>
 		if ( count( $m ) == 5 ) {
 			list( $session, $key, $command, $type, $values ) = $m;
-			$goodKey = hash_hmac( 'sha1',
-				"{$session}\n{$command}\n{$type}\n{$values}", $this->authKey );
-			if ( $goodKey !== $key ) {
+			if ( sha1( $session . $command . $type . $values . $this->authKey ) !== $key ) {
 				return 'BAD_KEY';
-			} elseif ( strlen( $session ) !== 32 ) {
+			} elseif ( strlen( $session ) !== 31 ) {
 				return 'BAD_SESSION';
 			}
 			$values = explode( '|', $values );
@@ -279,9 +256,9 @@ class LockServerDaemon {
 	/**
 	 * Remove a socket's corresponding session from tracking and
 	 * store it in the dead session tracking if it still has locks.
-	 *
+	 * 
 	 * @param $socket resource
-	 * @return bool
+	 * @return book
 	 */
 	protected function recordDeadSocket( $socket ) {
 		$session = array_search( $socket, $this->sessions );
@@ -316,7 +293,7 @@ class LockServerDaemon {
 
 	/**
 	 * Get the current timestamp and memory usage
-	 *
+	 * 
 	 * @return string
 	 */
 	protected function stat() {
@@ -405,7 +382,7 @@ class SocketArray {
 
 	/**
 	 * @param $sock resource
-	 * @return string|bool
+	 * @return string|false
 	 */
 	public function readRcvBuffer( $sock ) {
 		$key = array_search( $sock, $this->clients );
@@ -486,10 +463,10 @@ class LockHolder {
 
 	/**
 	 * @param $session string
-	 * @return bool
+	 * @return bool 
 	 */
 	public function sessionHasLocks( $session ) {
-		return isset( $this->sessionIndexSh[$session] )
+		return isset( $this->sessionIndexSh[$session] ) 
 			|| isset( $this->sessionIndexEx[$session] );
 	}
 

@@ -10,6 +10,7 @@
  */
 
 class SpecialGadgets extends SpecialPage {
+
 	/**
 	 * Constructor
 	 */
@@ -35,82 +36,70 @@ class SpecialGadgets extends SpecialPage {
 	 * Displays form showing the list of installed gadgets
 	 */
 	public function showMainForm() {
-		global $wgContLang;
+		global $wgOut, $wgUser, $wgLang, $wgContLang;
 
-		$output = $this->getOutput();
 		$this->setHeaders();
-		$output->setPagetitle( $this->msg( 'gadgets-title' ) );
-		$output->addWikiMsg( 'gadgets-pagetext' );
+		$wgOut->setPagetitle( wfMsg( "gadgets-title" ) );
+		$wgOut->addWikiMsg( 'gadgets-pagetext' );
 
 		$gadgets = Gadget::loadStructuredList();
-		if ( !$gadgets ) {
-			return;
-		}
+		if ( !$gadgets ) return;
 
-		$lang = $this->getLanguage();
-		$langSuffix = "";
-		if ( $lang->getCode() != $wgContLang->getCode() ) {
-			$langSuffix = "/" . $lang->getCode();
+		$lang = "";
+		if ( $wgLang->getCode() != $wgContLang->getCode() ) {
+			$lang = "/" . $wgLang->getCode();
 		}
 
 		$listOpen = false;
 
-		$editInterfaceMessage = $this->getUser()->isAllowed( 'editinterface' )
+		$msgOpt = array( 'parseinline', 'parsemag' );
+		$editInterfaceMessage = $wgUser->isAllowed( 'editinterface' )
 			? 'edit'
 			: 'viewsource';
 
 		foreach ( $gadgets as $section => $entries ) {
 			if ( $section !== false && $section !== '' ) {
-				$t = Title::makeTitleSafe( NS_MEDIAWIKI, "Gadget-section-$section$langSuffix" );
+				$t = Title::makeTitleSafe( NS_MEDIAWIKI, "Gadget-section-$section$lang" );
 				$lnkTarget = $t
-					? Linker::link( $t, $this->msg( $editInterfaceMessage )->escaped(), array(), array( 'action' => 'edit' ) )
+					? Linker::link( $t, wfMsgHTML( $editInterfaceMessage ), array(), array( 'action' => 'edit' ) )
 					: htmlspecialchars( $section );
 				$lnk =  "&#160; &#160; [$lnkTarget]";
 
-				$ttext = $this->msg( "gadget-section-$section" )->parse();
+				$ttext = wfMsgExt( "gadget-section-$section", $msgOpt );
 
 				if ( $listOpen ) {
-					$output->addHTML( Xml::closeElement( 'ul' ) . "\n" );
+					$wgOut->addHTML( Xml::closeElement( 'ul' ) . "\n" );
 					$listOpen = false;
 				}
 
-				$output->addHTML( Html::rawElement( 'h2', array(), $ttext . $lnk ) . "\n" );
+				$wgOut->addHTML( Html::rawElement( 'h2', array(), $ttext . $lnk ) . "\n" );
 			}
 
 			/**
 			 * @var $gadget Gadget
 			 */
 			foreach ( $entries as $gadget ) {
-				$t = Title::makeTitleSafe( NS_MEDIAWIKI, "Gadget-{$gadget->getName()}$langSuffix" );
+				$t = Title::makeTitleSafe( NS_MEDIAWIKI, "Gadget-{$gadget->getName()}$lang" );
 
 				if ( !$t ) {
 					continue;
 				}
 
 				$links = array();
-				$links[] = Linker::link(
-					$t,
-					$this->msg( $editInterfaceMessage )->escaped(),
-					array(),
-					array( 'action' => 'edit' )
-				);
-				$links[] = Linker::link(
-					$this->getTitle( "export/{$gadget->getName()}" ),
-					$this->msg( 'gadgets-export' )->escaped()
-				);
+				$links[] = Linker::link( $t, wfMsgHTML( $editInterfaceMessage ), array(), array( 'action' => 'edit' ) );
+				$links[] = Linker::link( $this->getTitle( "export/{$gadget->getName()}" ), wfMsgHtml( 'gadgets-export' ) );
 
-				$ttext = $this->msg( "gadget-{$gadget->getName()}" )->parse();
+				$ttext = wfMsgExt( "gadget-{$gadget->getName()}", $msgOpt );
 
 				if ( !$listOpen ) {
 					$listOpen = true;
-					$output->addHTML( Xml::openElement( 'ul' ) );
+					$wgOut->addHTML( Xml::openElement( 'ul' ) );
 				}
 
-				$lnk = '&#160;&#160;' . $this->msg( 'parentheses', $lang->pipeList( $links ) )->text();
-				$output->addHTML( Xml::openElement( 'li' ) .
+				$lnk = '&#160;&#160;' . wfMsg( 'parentheses', $wgLang->pipeList( $links ) );
+				$wgOut->addHTML( Xml::openElement( 'li' ) .
 						$ttext . $lnk . "<br />" .
-						$this->msg( 'gadgets-uses' )->escaped() .
-						$this->msg( 'colon-separator' )->escaped()
+						wfMsgHTML( 'gadgets-uses' ) . wfMsg( 'colon-separator' )
 				);
 
 				$lnk = array();
@@ -123,15 +112,15 @@ class SpecialGadgets extends SpecialPage {
 
 					$lnk[] = Linker::link( $t, htmlspecialchars( $t->getText() ) );
 				}
-				$output->addHTML( $lang->commaList( $lnk ) );
+				$wgOut->addHTML( $wgLang->commaList( $lnk ) );
 
 				$rights = array();
 				foreach ( $gadget->getRequiredRights() as $right ) {
-					$rights[] = '* ' . $this->msg( "right-$right" )->plain();
+					$rights[] = '* ' . wfMessage( "right-$right" )->plain();
 				}
 				if ( count( $rights ) ) {
-					$output->addHTML( '<br />' .
-							$this->msg( 'gadgets-required-rights', implode( "\n", $rights ), count( $rights ) )->parse()
+					$wgOut->addHTML( '<br />' .
+						wfMessage( 'gadgets-required-rights', implode( "\n", $rights ), count( $rights ) )->parse()
 					);
 				}
 
@@ -139,29 +128,27 @@ class SpecialGadgets extends SpecialPage {
 				$validskins = Skin::getSkinNames();
 				foreach ( $gadget->getRequiredSkins() as $skinid ) {
 					if ( isset( $validskins[$skinid] ) ) {
-						$skins[] = $this->msg( "skinname-$skinid" )->plain();
+						$skins[] = wfMessage( "skinname-$skinid" )->plain();
 					} else {
 						$skins[] = $skinid;
 					}
 				}
 				if ( count( $skins ) ) {
-					$output->addHTML(
-						'<br />' .
-						$this->msg( 'gadgets-required-skins', $lang->commaList( $skins ) )
-							->numParams( count( $skins ) )->parse()
+					$wgOut->addHTML( '<br />' .
+						wfMessage( 'gadgets-required-skins', $wgLang->commaList( $skins ), count( $skins ) )->parse()
 					);
 				}
 
 				if ( $gadget->isOnByDefault() ) {
-					$output->addHTML( '<br />' . $this->msg( 'gadgets-default' )->parse() );
+					$wgOut->addHTML( '<br />' . wfMessage( 'gadgets-default' )->parse() );
 				}
 
-				$output->addHTML( Xml::closeElement( 'li' ) . "\n" );
+				$wgOut->addHTML( Xml::closeElement( 'li' ) . "\n" );
 			}
 		}
 
 		if ( $listOpen ) {
-			$output->addHTML( Xml::closeElement( 'ul' ) . "\n" );
+			$wgOut->addHTML( Xml::closeElement( 'ul' ) . "\n" );
 		}
 	}
 
@@ -170,12 +157,11 @@ class SpecialGadgets extends SpecialPage {
 	 * @param $gadget String Name of gadget to export
 	 */
 	public function showExportForm( $gadget ) {
-		global $wgScript;
+		global $wgOut, $wgScript;
 
-		$output = $this->getOutput();
 		$gadgets = Gadget::loadList();
 		if ( !isset( $gadgets[$gadget] ) ) {
-			$output->showErrorPage( 'error', 'gadgets-not-found', array( $gadget ) );
+			$wgOut->showErrorPage( 'error', 'gadgets-not-found', array( $gadget ) );
 			return;
 		}
 
@@ -184,20 +170,20 @@ class SpecialGadgets extends SpecialPage {
 		 */
 		$g = $gadgets[$gadget];
 		$this->setHeaders();
-		$output->setPagetitle( $this->msg( 'gadgets-export-title' ) );
-		$output->addWikiMsg( 'gadgets-export-text', $gadget, $g->getDefinition() );
+		$wgOut->setPagetitle( wfMsg( "gadgets-export-title" ) );
+		$wgOut->addWikiMsg( 'gadgets-export-text', $gadget, $g->getDefinition() );
 
 		$exportList = "MediaWiki:gadget-$gadget\n";
 		foreach ( $g->getScriptsAndStyles() as $page ) {
 			$exportList .= "MediaWiki:$page\n";
 		}
 
-		$output->addHTML( Html::openElement( 'form', array( 'method' => 'get', 'action' => $wgScript ) )
+		$wgOut->addHTML( Html::openElement( 'form', array( 'method' => 'get', 'action' => $wgScript ) )
 			. Html::hidden( 'title', SpecialPage::getTitleFor( 'Export' )->getPrefixedDBKey() )
 			. Html::hidden( 'pages', $exportList )
 			. Html::hidden( 'wpDownload', '1' )
 			. Html::hidden( 'templates', '1' )
-			. Xml::submitButton( $this->msg( 'gadgets-export-download' )->text() )
+			. Xml::submitButton( wfMsg( 'gadgets-export-download' ) )
 			. Html::closeElement( 'form' )
 		);
 	}

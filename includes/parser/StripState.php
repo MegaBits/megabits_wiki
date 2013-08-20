@@ -1,25 +1,4 @@
 <?php
-/**
- * Holder for stripped items when parsing wiki markup.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- * @ingroup Parser
- */
 
 /**
  * @todo document, briefly.
@@ -31,10 +10,6 @@ class StripState {
 	protected $regex;
 
 	protected $tempType, $tempMergePrefix;
-	protected $circularRefGuard;
-	protected $recursionLevel = 0;
-
-	const UNSTRIP_RECURSION_LIMIT = 20;
 
 	/**
 	 * @param $prefix string
@@ -46,7 +21,6 @@ class StripState {
 			'general' => array()
 		);
 		$this->regex = "/{$this->prefix}([^\x7f]+)" . Parser::MARKER_SUFFIX . '/';
-		$this->circularRefGuard = array();
 	}
 
 	/**
@@ -112,16 +86,18 @@ class StripState {
 	 * @return mixed
 	 */
 	protected function unstripType( $type, $text ) {
-		// Shortcut
+		// Shortcut 
 		if ( !count( $this->data[$type] ) ) {
 			return $text;
 		}
 
 		wfProfileIn( __METHOD__ );
-		$oldType = $this->tempType;
 		$this->tempType = $type;
-		$text = preg_replace_callback( $this->regex, array( $this, 'unstripCallback' ), $text );
-		$this->tempType = $oldType;
+		do {
+			$oldText = $text;
+			$text = preg_replace_callback( $this->regex, array( $this, 'unstripCallback' ), $text );
+		} while ( $text !== $oldText );
+		$this->tempType = null;
 		wfProfileOut( __METHOD__ );
 		return $text;
 	}
@@ -131,32 +107,15 @@ class StripState {
 	 * @return array
 	 */
 	protected function unstripCallback( $m ) {
-		$marker = $m[1];
-		if ( isset( $this->data[$this->tempType][$marker] ) ) {
-			if ( isset( $this->circularRefGuard[$marker] ) ) {
-				return '<span class="error">'
-					. wfMessage( 'parser-unstrip-loop-warning' )->inContentLanguage()->text()
-					. '</span>';
-			}
-			if ( $this->recursionLevel >= self::UNSTRIP_RECURSION_LIMIT ) {
-				return '<span class="error">' .
-					wfMessage( 'parser-unstrip-recursion-limit' )
-						->numParams( self::UNSTRIP_RECURSION_LIMIT )->inContentLanguage()->text() .
-					'</span>';
-			}
-			$this->circularRefGuard[$marker] = true;
-			$this->recursionLevel++;
-			$ret = $this->unstripType( $this->tempType, $this->data[$this->tempType][$marker] );
-			$this->recursionLevel--;
-			unset( $this->circularRefGuard[$marker] );
-			return $ret;
+		if ( isset( $this->data[$this->tempType][$m[1]] ) ) {
+			return $this->data[$this->tempType][$m[1]];
 		} else {
 			return $m[0];
 		}
 	}
 
 	/**
-	 * Get a StripState object which is sufficient to unstrip the given text.
+	 * Get a StripState object which is sufficient to unstrip the given text. 
 	 * It will contain the minimum subset of strip items necessary.
 	 *
 	 * @param $text string
@@ -233,3 +192,4 @@ class StripState {
 		return preg_replace( $this->regex, '', $text );
 	}
 }
+

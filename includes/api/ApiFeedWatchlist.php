@@ -4,7 +4,7 @@
  *
  * Created on Oct 13, 2006
  *
- * Copyright © 2006 Yuri Astrakhan "<Firstname><Lastname>@gmail.com"
+ * Copyright © 2006 Yuri Astrakhan <Firstname><Lastname>@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +33,10 @@
  */
 class ApiFeedWatchlist extends ApiBase {
 
+	public function __construct( $main, $action ) {
+		parent::__construct( $main, $action );
+	}
+
 	/**
 	 * This module uses a custom feed wrapper printer.
 	 *
@@ -58,8 +62,11 @@ class ApiFeedWatchlist extends ApiBase {
 				$this->dieUsage( 'Syndication feeds are not available', 'feed-unavailable' );
 			}
 
-			if( !isset( $wgFeedClasses[$params['feedformat']] ) ) {
+			if( !isset( $wgFeedClasses[ $params['feedformat'] ] ) ) {
 				$this->dieUsage( 'Invalid subscription feed type', 'feed-invalid' );
+			}
+			if ( !is_null( $params['wlexcludeuser'] ) ) {
+				$fauxReqArr['wlexcludeuser'] = $params['wlexcludeuser'];
 			}
 
 			// limit to the number of hours going from now back
@@ -77,14 +84,11 @@ class ApiFeedWatchlist extends ApiBase {
 				'wllimit' => ( 50 > $wgFeedLimit ) ? $wgFeedLimit : 50
 			);
 
-			if ( $params['wlowner'] !== null ) {
+			if ( !is_null( $params['wlowner'] ) ) {
 				$fauxReqArr['wlowner'] = $params['wlowner'];
 			}
-			if ( $params['wltoken'] !== null ) {
+			if ( !is_null( $params['wltoken'] ) ) {
 				$fauxReqArr['wltoken'] = $params['wltoken'];
-			}
-			if ( $params['wlexcludeuser'] !== null ) {
-				$fauxReqArr['wlexcludeuser'] = $params['wlexcludeuser'];
 			}
 
 			// Support linking to diffs instead of article
@@ -113,7 +117,7 @@ class ApiFeedWatchlist extends ApiBase {
 				$feedItems[] = $this->createFeedItem( $info );
 			}
 
-			$msg = wfMessage( 'watchlist' )->inContentLanguage()->text();
+			$msg = wfMsgForContent( 'watchlist' );
 
 			$feedTitle = $wgSitename . ' - ' . $msg . ' [' . $wgLanguageCode . ']';
 			$feedUrl = SpecialPage::getTitleFor( 'Watchlist' )->getFullURL();
@@ -127,12 +131,11 @@ class ApiFeedWatchlist extends ApiBase {
 			// Error results should not be cached
 			$this->getMain()->setCacheMaxAge( 0 );
 
-			$feedTitle = $wgSitename . ' - Error - ' . wfMessage( 'watchlist' )->inContentLanguage()->text() . ' [' . $wgLanguageCode . ']';
+			$feedTitle = $wgSitename . ' - Error - ' . wfMsgForContent( 'watchlist' ) . ' [' . $wgLanguageCode . ']';
 			$feedUrl = SpecialPage::getTitleFor( 'Watchlist' )->getFullURL();
 
 			$feedFormat = isset( $params['feedformat'] ) ? $params['feedformat'] : 'rss';
-			$msg = wfMessage( 'watchlist' )->inContentLanguage()->escaped();
-			$feed = new $wgFeedClasses[$feedFormat] ( $feedTitle, $msg, $feedUrl );
+			$feed = new $wgFeedClasses[$feedFormat] ( $feedTitle, htmlspecialchars( wfMsgForContent( 'watchlist' ) ), $feedUrl );
 
 			if ( $e instanceof UsageException ) {
 				$errorCode = $e->getCodeString();
@@ -228,5 +231,9 @@ class ApiFeedWatchlist extends ApiBase {
 
 	public function getHelpUrls() {
 		return 'https://www.mediawiki.org/wiki/API:Watchlist_feed';
+	}
+
+	public function getVersion() {
+		return __CLASS__ . ': $Id$';
 	}
 }

@@ -1,25 +1,4 @@
 <?php
-/**
- * Batch query to determine page existence.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- * @ingroup Cache
- */
 
 /**
  * Class representing a list of titles
@@ -66,11 +45,6 @@ class LinkBatch {
 		}
 	}
 
-	/**
-	 * @param $ns int
-	 * @param $dbkey string
-	 * @return mixed
-	 */
 	public function add( $ns, $dbkey ) {
 		if ( $ns < 0 ) {
 			return;
@@ -216,14 +190,14 @@ class LinkBatch {
 		}
 
 		$genderCache = GenderCache::singleton();
-		$genderCache->doLinkBatch( $this->data, $this->caller );
+		$genderCache->dolinkBatch( $this->data, $this->caller );
 		return true;
 	}
 
 	/**
 	 * Construct a WHERE clause which will match all the given titles.
 	 *
-	 * @param string $prefix the appropriate table's field name prefix ('page', 'pl', etc)
+	 * @param $prefix String: the appropriate table's field name prefix ('page', 'pl', etc)
 	 * @param $db DatabaseBase object to use
 	 * @return mixed string with SQL where clause fragment, or false if no items.
 	 */

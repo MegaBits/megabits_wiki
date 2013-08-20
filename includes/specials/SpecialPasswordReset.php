@@ -65,9 +65,6 @@ class SpecialPasswordReset extends FormSpecialPage {
 				'type' => 'text',
 				'label-message' => 'passwordreset-username',
 			);
-			if( $this->getUser()->isLoggedIn() ) {
-				$a['Username']['default'] = $this->getUser()->getName();
-			}
 		}
 
 		if ( isset( $wgPasswordResetRoutes['email'] ) && $wgPasswordResetRoutes['email'] ) {
@@ -86,7 +83,7 @@ class SpecialPasswordReset extends FormSpecialPage {
 			);
 		}
 
-		if( $this->getUser()->isAllowed( 'passwordreset' ) ) {
+		if( $this->getUser()->isAllowed( 'passwordreset' ) ){
 			$a['Capture'] = array(
 				'type' => 'check',
 				'label-message' => 'passwordreset-capture',
@@ -98,7 +95,7 @@ class SpecialPasswordReset extends FormSpecialPage {
 	}
 
 	public function alterForm( HTMLForm $form ) {
-		$form->setSubmitTextMsg( 'mailmypassword' );
+		$form->setSubmitText( wfMessage( "mailmypassword" ) );
 	}
 
 	protected function preText() {
@@ -113,7 +110,7 @@ class SpecialPasswordReset extends FormSpecialPage {
 		if ( isset( $wgPasswordResetRoutes['domain'] ) && $wgPasswordResetRoutes['domain'] ) {
 			$i++;
 		}
-		return $this->msg( 'passwordreset-pretext', $i )->parseAsBlock();
+		return wfMessage( 'passwordreset-pretext', $i )->parseAsBlock();
 	}
 
 	/**
@@ -121,8 +118,6 @@ class SpecialPasswordReset extends FormSpecialPage {
 	 * userCanExecute(), and if the data array contains 'Username', etc, then Username
 	 * resets are allowed.
 	 * @param $data array
-	 * @throws MWException
-	 * @throws ThrottledError|PermissionsError
 	 * @return Bool|Array
 	 */
 	public function onSubmit( array $data ) {
@@ -136,7 +131,7 @@ class SpecialPasswordReset extends FormSpecialPage {
 			}
 		}
 
-		if( isset( $data['Capture'] ) && !$this->getUser()->isAllowed( 'passwordreset' ) ) {
+		if( isset( $data['Capture'] ) && !$this->getUser()->isAllowed( 'passwordreset' ) ){
 			// The user knows they don't have the passwordreset permission, but they tried to spoof the form.  That's naughty
 			throw new PermissionsError( 'passwordreset' );
 		}
@@ -156,13 +151,13 @@ class SpecialPasswordReset extends FormSpecialPage {
 			$method = 'email';
 			$res = wfGetDB( DB_SLAVE )->select(
 				'user',
-				User::selectFields(),
+				'*',
 				array( 'user_email' => $data['Email'] ),
 				__METHOD__
 			);
 			if ( $res ) {
 				$users = array();
-				foreach( $res as $row ) {
+				foreach( $res as $row ){
 					$users[] = User::newFromRow( $row );
 				}
 			} else {
@@ -180,8 +175,8 @@ class SpecialPasswordReset extends FormSpecialPage {
 			return array( $error );
 		}
 
-		if( count( $users ) == 0 ) {
-			if( $method == 'email' ) {
+		if( count( $users ) == 0 ){
+			if( $method == 'email' ){
 				// Don't reveal whether or not an email address is in use
 				return true;
 			} else {
@@ -239,23 +234,23 @@ class SpecialPasswordReset extends FormSpecialPage {
 			$password = $user->randomPassword();
 			$user->setNewpassword( $password );
 			$user->saveSettings();
-			$passwords[] = $this->msg( 'passwordreset-emailelement', $user->getName(), $password
-				)->inLanguage( $userLanguage )->text(); // We'll escape the whole thing later
+			$passwords[] = wfMessage( 'passwordreset-emailelement', $user->getName(), $password
+				)->inLanguage( $userLanguage )->plain(); // We'll escape the whole thing later
 		}
 		$passwordBlock = implode( "\n\n", $passwords );
 
-		$this->email = $this->msg( $msg )->inLanguage( $userLanguage );
+		$this->email = wfMessage( $msg )->inLanguage( $userLanguage );
 		$this->email->params(
 			$username,
 			$passwordBlock,
 			count( $passwords ),
-			'<' . Title::newMainPage()->getCanonicalUrl() . '>',
+			Title::newMainPage()->getCanonicalUrl(),
 			round( $wgNewPasswordExpiry / 86400 )
 		);
 
-		$title = $this->msg( 'passwordreset-emailtitle' );
+		$title = wfMessage( 'passwordreset-emailtitle' );
 
-		$this->result = $firstUser->sendMail( $title->escaped(), $this->email->text() );
+		$this->result = $firstUser->sendMail( $title->escaped(), $this->email->escaped() );
 
 		// Blank the email if the user is not supposed to see it
 		if( !isset( $data['Capture'] ) || !$data['Capture'] ) {
@@ -264,7 +259,7 @@ class SpecialPasswordReset extends FormSpecialPage {
 
 		if ( $this->result->isGood() ) {
 			return true;
-		} elseif( isset( $data['Capture'] ) && $data['Capture'] ) {
+		} elseif( isset( $data['Capture'] ) && $data['Capture'] ){
 			// The email didn't send, but maybe they knew that and that's why they captured it
 			return true;
 		} else {
@@ -275,10 +270,10 @@ class SpecialPasswordReset extends FormSpecialPage {
 	}
 
 	public function onSuccess() {
-		if( $this->getUser()->isAllowed( 'passwordreset' ) && $this->email != null ) {
+		if( $this->getUser()->isAllowed( 'passwordreset' ) && $this->email != null ){
 			// @todo: Logging
 
-			if( $this->result->isGood() ) {
+			if( $this->result->isGood() ){
 				$this->getOutput()->addWikiMsg( 'passwordreset-emailsent-capture' );
 			} else {
 				$this->getOutput()->addWikiMsg( 'passwordreset-emailerror-capture', $this->result->getMessage() );
@@ -325,9 +320,5 @@ class SpecialPasswordReset extends FormSpecialPage {
 		}
 
 		return false;
-	}
-
-	protected function getGroupName() {
-		return 'users';
 	}
 }

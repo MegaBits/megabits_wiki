@@ -1,21 +1,6 @@
 <?php
 /**
- * Generator of database load balancing objects.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
+ * Generator of database load balancing objects
  *
  * @file
  * @ingroup Database
@@ -86,7 +71,7 @@ abstract class LBFactory {
 	 * Create a new load balancer object. The resulting object will be untracked,
 	 * not chronology-protected, and the caller is responsible for cleaning it up.
 	 *
-	 * @param string $wiki wiki ID, or false for the current wiki
+	 * @param $wiki String: wiki ID, or false for the current wiki
 	 * @return LoadBalancer
 	 */
 	abstract function newMainLB( $wiki = false );
@@ -94,7 +79,7 @@ abstract class LBFactory {
 	/**
 	 * Get a cached (tracked) load balancer object.
 	 *
-	 * @param string $wiki wiki ID, or false for the current wiki
+	 * @param $wiki String: wiki ID, or false for the current wiki
 	 * @return LoadBalancer
 	 */
 	abstract function getMainLB( $wiki = false );
@@ -104,8 +89,8 @@ abstract class LBFactory {
 	 * untracked, not chronology-protected, and the caller is responsible for
 	 * cleaning it up.
 	 *
-	 * @param string $cluster external storage cluster, or false for core
-	 * @param string $wiki wiki ID, or false for the current wiki
+	 * @param $cluster String: external storage cluster, or false for core
+	 * @param $wiki String: wiki ID, or false for the current wiki
 	 *
 	 * @return LoadBalancer
 	 */
@@ -114,8 +99,8 @@ abstract class LBFactory {
 	/**
 	 * Get a cached (tracked) load balancer for external storage
 	 *
-	 * @param string $cluster external storage cluster, or false for core
-	 * @param string $wiki wiki ID, or false for the current wiki
+	 * @param $cluster String: external storage cluster, or false for core
+	 * @param $wiki String: wiki ID, or false for the current wiki
 	 *
 	 * @return LoadBalancer
 	 */
@@ -191,16 +176,6 @@ class LBFactory_Simple extends LBFactory {
 			$servers = $wgDBservers;
 		} else {
 			global $wgDBserver, $wgDBuser, $wgDBpassword, $wgDBname, $wgDBtype, $wgDebugDumpSql;
-			global $wgDBssl, $wgDBcompress;
-
-			$flags = ( $wgDebugDumpSql ? DBO_DEBUG : 0 ) | DBO_DEFAULT;
-			if ( $wgDBssl ) {
-				$flags |= DBO_SSL;
-			}
-			if ( $wgDBcompress ) {
-				$flags |= DBO_COMPRESS;
-			}
-
 			$servers = array(array(
 				'host' => $wgDBserver,
 				'user' => $wgDBuser,
@@ -208,7 +183,7 @@ class LBFactory_Simple extends LBFactory {
 				'dbname' => $wgDBname,
 				'type' => $wgDBtype,
 				'load' => 1,
-				'flags' => $flags
+				'flags' => ($wgDebugDumpSql ? DBO_DEBUG : 0) | DBO_DEFAULT
 			));
 		}
 
@@ -240,7 +215,7 @@ class LBFactory_Simple extends LBFactory {
 	function newExternalLB( $cluster, $wiki = false ) {
 		global $wgExternalServers;
 		if ( !isset( $wgExternalServers[$cluster] ) ) {
-			throw new MWException( __METHOD__ . ": Unknown cluster \"$cluster\"" );
+			throw new MWException( __METHOD__.": Unknown cluster \"$cluster\"" );
 		}
 		return new LoadBalancer( array(
 			'servers' => $wgExternalServers[$cluster]
@@ -345,7 +320,7 @@ class ChronologyProtector {
 		if ( $lb->getServerCount() > 1 && !empty( $this->startupPos[$masterName] ) ) {
 			$info = $lb->parentInfo();
 			$pos = $this->startupPos[$masterName];
-			wfDebug( __METHOD__ . ": LB " . $info['id'] . " waiting for master pos $pos\n" );
+			wfDebug( __METHOD__.": LB " . $info['id'] . " waiting for master pos $pos\n" );
 			$lb->waitFor( $this->startupPos[$masterName] );
 		}
 	}
@@ -370,11 +345,11 @@ class ChronologyProtector {
 		$db = $lb->getAnyOpenConnection( 0 );
 		$info = $lb->parentInfo();
 		if ( !$db || !$db->doneWrites() ) {
-			wfDebug( __METHOD__ . ": LB {$info['id']}, no writes done\n" );
+			wfDebug( __METHOD__.": LB {$info['id']}, no writes done\n" );
 			return;
 		}
 		$pos = $db->getMasterPos();
-		wfDebug( __METHOD__ . ": LB {$info['id']} has master pos $pos\n" );
+		wfDebug( __METHOD__.": LB {$info['id']} has master pos $pos\n" );
 		$this->shutdownPos[$masterName] = $pos;
 	}
 
@@ -384,7 +359,7 @@ class ChronologyProtector {
 	 */
 	function shutdown() {
 		if ( session_id() != '' && count( $this->shutdownPos ) ) {
-			wfDebug( __METHOD__ . ": saving master pos for " .
+			wfDebug( __METHOD__.": saving master pos for " .
 				count( $this->shutdownPos ) . " master(s)\n" );
 			$_SESSION[__CLASS__] = $this->shutdownPos;
 		}

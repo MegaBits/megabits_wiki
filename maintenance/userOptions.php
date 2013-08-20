@@ -1,6 +1,8 @@
 <?php
 /**
- * Script to change users preferences on the fly.
+ * Script to change users skins on the fly.
+ * This is for at least MediaWiki 1.10alpha (r19611) and have not been
+ * tested with previous versions. It should probably work with 1.7+.
  *
  * Made on an original idea by Fooey (freenode)
  *
@@ -33,3 +35,4 @@ $uo = new userOptions( $options, $args );
 $uo->run();
 
 print "Done.\n";
+

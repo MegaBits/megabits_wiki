@@ -26,91 +26,70 @@
  *
  * @ingroup SpecialPage
  */
-class DisambiguationsPage extends QueryPage {
+class DisambiguationsPage extends PageQueryPage {
 
 	function __construct( $name = 'Disambiguations' ) {
 		parent::__construct( $name );
 	}
 
-	function isExpensive() {
-		return true;
-	}
-
-	function isSyndicated() {
-		return false;
-	}
+	function isExpensive() { return true; }
+	function isSyndicated() { return false; }
 
 	function getPageHeader() {
 		return $this->msg( 'disambiguations-text' )->parseAsBlock();
 	}
 
-	/**
-	 * @return string|bool False on failure
-	 */
-	function getQueryFromLinkBatch() {
+	function getQueryInfo() {
 		$dbr = wfGetDB( DB_SLAVE );
 		$dMsgText = $this->msg( 'disambiguationspage' )->inContentLanguage()->text();
 		$linkBatch = new LinkBatch;
 
 		# If the text can be treated as a title, use it verbatim.
 		# Otherwise, pull the titles from the links table
-		$dp = Title::newFromText( $dMsgText );
+		$dp = Title::newFromText($dMsgText);
 		if( $dp ) {
 			if( $dp->getNamespace() != NS_TEMPLATE ) {
 				# @todo FIXME: We assume the disambiguation message is a template but
 				# the page can potentially be from another namespace :/
-				wfDebug( "Mediawiki:disambiguationspage message does not refer to a template!\n" );
+				wfDebug("Mediawiki:disambiguationspage message does not refer to a template!\n");
 			}
 			$linkBatch->addObj( $dp );
 		} else {
 				# Get all the templates linked from the Mediawiki:Disambiguationspage
 				$disPageObj = Title::makeTitleSafe( NS_MEDIAWIKI, 'disambiguationspage' );
 				$res = $dbr->select(
-					array( 'pagelinks', 'page' ),
+					array('pagelinks', 'page'),
 					'pl_title',
-					array( 'page_id = pl_from',
+					array('page_id = pl_from',
 						'pl_namespace' => NS_TEMPLATE,
 						'page_namespace' => $disPageObj->getNamespace(),
-						'page_title' => $disPageObj->getDBkey()
-					), __METHOD__ );
+						'page_title' => $disPageObj->getDBkey()),
+					__METHOD__ );
 
 				foreach ( $res as $row ) {
 					$linkBatch->addObj( Title::makeTitle( NS_TEMPLATE, $row->pl_title ));
 				}
 		}
 		$set = $linkBatch->constructSet( 'tl', $dbr );
-
 		if( $set === false ) {
 			# We must always return a valid SQL query, but this way
 			# the DB will always quickly return an empty result
 			$set = 'FALSE';
-			wfDebug( "Mediawiki:disambiguationspage message does not link to any templates!\n" );
+			wfDebug("Mediawiki:disambiguationspage message does not link to any templates!\n");
 		}
-		return $set;
-	}
 
-	function getQueryInfo() {
 		// @todo FIXME: What are pagelinks and p2 doing here?
 		return array (
-			'tables' => array(
-				'templatelinks',
-				'p1' => 'page',
-				'pagelinks',
-				'p2' => 'page'
-			),
-			'fields' => array(
-				'namespace' => 'p1.page_namespace',
-				'title' => 'p1.page_title',
-				'value' => 'pl_from'
-			),
-			'conds' => array(
-				$this->getQueryFromLinkBatch(),
-				'p1.page_id = tl_from',
-				'pl_namespace = p1.page_namespace',
-				'pl_title = p1.page_title',
-				'p2.page_id = pl_from',
-				'p2.page_namespace' => MWNamespace::getContentNamespaces()
-			)
+			'tables' => array( 'templatelinks', 'p1' => 'page', 'pagelinks', 'p2' => 'page' ),
+			'fields' => array( 'p1.page_namespace AS namespace',
+					'p1.page_title AS title',
+					'pl_from AS value' ),
+			'conds' => array( $set,
+					'p1.page_id = tl_from',
+					'pl_namespace = p1.page_namespace',
+					'pl_title = p1.page_title',
+					'p2.page_id = pl_from',
+					'p2.page_namespace' => MWNamespace::getContentNamespaces() )
 		);
 	}
 
@@ -129,17 +108,17 @@ class DisambiguationsPage extends QueryPage {
 	 * @param $res
 	 */
 	function preprocessResults( $db, $res ) {
-		if ( !$res->numRows() ) {
-			return;
-		}
-
 		$batch = new LinkBatch;
 		foreach ( $res as $row ) {
 			$batch->add( $row->namespace, $row->title );
 		}
 		$batch->execute();
 
-		$res->seek( 0 );
+		// Back to start for display
+		if ( $db->numRows( $res ) > 0 ) {
+			// If there are no rows we get an error seeking.
+			$db->dataSeek( $res, 0 );
+		}
 	}
 
 	function formatResult( $skin, $result ) {
@@ -147,19 +126,11 @@ class DisambiguationsPage extends QueryPage {
 		$dp = Title::makeTitle( $result->namespace, $result->title );
 
 		$from = Linker::link( $title );
-		$edit = Linker::link(
-			$title,
-			$this->msg( 'parentheses', $this->msg( 'editlink' )->text() )->escaped(),
-			array(),
-			array( 'redirect' => 'no', 'action' => 'edit' )
-		);
-		$arr = $this->getLanguage()->getArrow();
-		$to = Linker::link( $dp );
+		$edit = Linker::link( $title, $this->msg( 'parentheses', $this->msg( 'editlink' )->text() )->escaped(),
+			array(), array( 'redirect' => 'no', 'action' => 'edit' ) );
+		$arr  = $this->getLanguage()->getArrow();
+		$to   = Linker::link( $dp );
 
 		return "$from $edit $arr $to";
-	}
-
-	protected function getGroupName() {
-		return 'pages';
 	}
 }

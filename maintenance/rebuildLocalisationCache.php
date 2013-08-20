@@ -25,41 +25,21 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @file
  * @ingroup Maintenance
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script to rebuild the localisation cache.
- *
- * @ingroup Maintenance
- */
 class RebuildLocalisationCache extends Maintenance {
 	public function __construct() {
 		parent::__construct();
 		$this->mDescription = "Rebuild the localisation cache";
 		$this->addOption( 'force', 'Rebuild all files, even ones not out of date' );
 		$this->addOption( 'threads', 'Fork more than one thread', false, true );
-		$this->addOption( 'outdir', 'Override the output directory (normally $wgCacheDirectory)',
-			false, true );
 	}
 
 	public function memoryLimit() {
-		if ( $this->hasOption( 'memory-limit' ) ) {
-			return parent::memoryLimit();
-		}
-		return '1000M';
-	}
-
-	public function finalSetup() {
-		# This script needs to be run to build the inital l10n cache. But if
-		# $wgLanguageCode is not 'en', it won't be able to run because there is
-		# no l10n cache. Break the cycle by forcing $wgLanguageCode = 'en'.
-		global $wgLanguageCode;
-		$wgLanguageCode = 'en';
-		return parent::finalSetup();
+		return '200M';
 	}
 
 	public function execute() {
@@ -85,12 +65,9 @@ class RebuildLocalisationCache extends Maintenance {
 		if ( $force ) {
 			$conf['forceRecache'] = true;
 		}
-		if ( $this->hasOption( 'outdir' ) ) {
-			$conf['storeDirectory'] = $this->getOption( 'outdir' );
-		}
 		$lc = new LocalisationCache_BulkLoad( $conf );
 
-		$codes = array_keys( Language::fetchLanguageNames( null, 'mwfile' ) );
+		$codes = array_keys( Language::getLanguageNames( true ) );
 		sort( $codes );
 
 		// Initialise and split into chunks
@@ -134,7 +111,7 @@ class RebuildLocalisationCache extends Maintenance {
 	/**
 	 * Helper function to rebuild list of languages codes. Prints the code
 	 * for each language which is rebuilt.
-	 * @param $codes array List of language codes to rebuild.
+	 * @param $codes  list  List of language codes to rebuild.
 	 * @param $lc LocalisationCache Instance of LocalisationCache_BulkLoad (?)
 	 * @param $force bool Rebuild up-to-date languages
 	 * @return int Number of rebuilt languages
