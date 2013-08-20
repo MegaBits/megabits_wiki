@@ -1,8 +1,6 @@
 <?php
 /**
- * Benchmark for wfIsWindows().
- *
- * This come from r75429 message.
+ * This come from r75429 message
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,13 +22,7 @@
  * @author  Platonides
  */
 
-require_once( __DIR__ . '/Benchmarker.php' );
-
-/**
- * Maintenance script that benchmarks wfIsWindows().
- *
- * @ingroup Benchmark
- */
+require_once( dirname( __FILE__ ) . '/Benchmarker.php' );
 class bench_wfIsWindows extends Benchmarker {
 
 	public function __construct() {

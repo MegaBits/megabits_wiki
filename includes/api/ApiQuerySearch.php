@@ -4,7 +4,7 @@
  *
  * Created on July 30, 2007
  *
- * Copyright © 2007 Yuri Astrakhan "<Firstname><Lastname>@gmail.com"
+ * Copyright © 2007 Yuri Astrakhan <Firstname><Lastname>@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -168,7 +168,7 @@ class ApiQuerySearch extends ApiQueryGeneratorBase {
 					}
 				}
 				if ( isset( $prop['hasrelated'] ) && $result->hasRelated() ) {
-					$vals['hasrelated'] = '';
+					$vals['hasrelated'] = "";
 				}
 
 				// Add item to results and see whether it fits
@@ -205,7 +205,7 @@ class ApiQuerySearch extends ApiQueryGeneratorBase {
 				ApiBase::PARAM_REQUIRED => true
 			),
 			'namespace' => array(
-				ApiBase::PARAM_DFLT => NS_MAIN,
+				ApiBase::PARAM_DFLT => 0,
 				ApiBase::PARAM_TYPE => 'namespace',
 				ApiBase::PARAM_ISMULTI => true,
 			),
@@ -280,63 +280,6 @@ class ApiQuerySearch extends ApiQueryGeneratorBase {
 		);
 	}
 
-	public function getResultProperties() {
-		return array(
-			'' => array(
-				'ns' => 'namespace',
-				'title' => 'string'
-			),
-			'snippet' => array(
-				'snippet' => 'string'
-			),
-			'size' => array(
-				'size' => 'integer'
-			),
-			'wordcount' => array(
-				'wordcount' => 'integer'
-			),
-			'timestamp' => array(
-				'timestamp' => 'timestamp'
-			),
-			'score' => array(
-				'score' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				)
-			),
-			'titlesnippet' => array(
-				'titlesnippet' => 'string'
-			),
-			'redirecttitle' => array(
-				'redirecttitle' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				)
-			),
-			'redirectsnippet' => array(
-				'redirectsnippet' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				)
-			),
-			'sectiontitle' => array(
-				'sectiontitle' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				)
-			),
-			'sectionsnippet' => array(
-				'sectionsnippet' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				)
-			),
-			'hasrelated' => array(
-				'hasrelated' => 'boolean'
-			)
-		);
-	}
-
 	public function getDescription() {
 		return 'Perform a full text search';
 	}
@@ -358,5 +301,9 @@ class ApiQuerySearch extends ApiQueryGeneratorBase {
 
 	public function getHelpUrls() {
 		return 'https://www.mediawiki.org/wiki/API:Search';
+	}
+
+	public function getVersion() {
+		return __CLASS__ . ': $Id$';
 	}
 }

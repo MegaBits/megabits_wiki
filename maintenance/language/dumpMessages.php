@@ -18,30 +18,24 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @file
  * @ingroup MaintenanceLanguage
- * @todo Make this more useful, right now just dumps $wgContLang
+ * @todo Make this more useful, right now just dumps $wgContentLang
  */
 
-require_once( __DIR__ . '/../Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/../Maintenance.php' );
 
-/**
- * Maintenance script that dumps an entire language, using the keys from English.
- *
- * @ingroup MaintenanceLanguage
- */
 class DumpMessages extends Maintenance {
 	public function __construct() {
 		parent::__construct();
 		$this->mDescription = "Dump an entire language, using the keys from English";
 	}
-
+	
 	public function execute() {
 		global $wgVersion;
 
 		$messages = array();
 		foreach ( array_keys( Language::getMessagesFor( 'en' ) ) as $key ) {
-			$messages[$key] = wfMessage( $key )->text();
+			$messages[$key] = wfMsg( $key );
 		}
 		$this->output( "MediaWiki $wgVersion language file\n" );
 		$this->output( serialize( $messages ) );

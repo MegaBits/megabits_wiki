@@ -1,7 +1,7 @@
 <?php
 /**
- * Provide a better count of the number of articles
- * and update the site statistics table, if desired.
+ * Maintenance script to provide a better count of the number of articles
+ * and update the site statistics table, if desired
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,14 +23,8 @@
  * @author Rob Church <robchur@gmail.com>
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script to provide a better count of the number of articles
- * and update the site statistics table, if desired.
- *
- * @ingroup Maintenance
- */
 class UpdateArticleCount extends Maintenance {
 
 	public function __construct() {

@@ -1,28 +1,24 @@
-( function ( mw, $ ) {
-	$( function () {
-		var $sortableTables;
+jQuery( document ).ready( function( $ ) {
 
-		/* Emulate placeholder if not supported by browser */
-		if ( !( 'placeholder' in document.createElement( 'input' ) ) ) {
-			$( 'input[placeholder]' ).placeholder();
-		}
+	/* Emulate placeholder if not supported by browser */
+	if ( !( 'placeholder' in document.createElement( 'input' ) ) ) {
+		$( 'input[placeholder]' ).placeholder();
+	}
 
-		/* Enable makeCollapsible */
-		$( '.mw-collapsible' ).makeCollapsible();
+	/* Enable makeCollapsible */
+	$( '.mw-collapsible' ).makeCollapsible();
 
-		/* Lazy load jquery.tablesorter */
-		$sortableTables = $( 'table.sortable' );
-		if ( $sortableTables.length ) {
-			mw.loader.using( 'jquery.tablesorter', function () {
-				$sortableTables.tablesorter();
-			});
-		}
+	/* Lazy load jquery.tablesorter */
+	if ( $( 'table.sortable' ).length ) {
+		mw.loader.using( 'jquery.tablesorter', function() {
+			$( 'table.sortable' ).tablesorter();
+		});
+	}
 
-		/* Enable CheckboxShiftClick */
-		$( 'input[type=checkbox]:not(.noshiftselect)' ).checkboxShiftClick();
+	/* Enable CheckboxShiftClick */
+	$( 'input[type=checkbox]:not(.noshiftselect)' ).checkboxShiftClick();
 
-		/* Add accesskey hints to the tooltips */
-		mw.util.updateTooltipAccessKeys();
+	/* Add accesskey hints to the tooltips */
+	mw.util.updateTooltipAccessKeys();
 
-	} );
-}( mediaWiki, jQuery ) );
+} );

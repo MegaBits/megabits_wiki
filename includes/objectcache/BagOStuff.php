@@ -56,158 +56,49 @@ abstract class BagOStuff {
 	/**
 	 * Get an item with the given key. Returns false if it does not exist.
 	 * @param $key string
-	 * @param $casToken[optional] mixed
-	 * @return mixed Returns false on failure
+	 *
+	 * @return bool|Object
 	 */
-	abstract public function get( $key, &$casToken = null );
+	abstract public function get( $key );
 
 	/**
 	 * Set an item.
 	 * @param $key string
 	 * @param $value mixed
-	 * @param int $exptime Either an interval in seconds or a unix timestamp for expiry
-	 * @return bool success
+	 * @param $exptime int Either an interval in seconds or a unix timestamp for expiry
 	 */
 	abstract public function set( $key, $value, $exptime = 0 );
 
 	/**
-	 * Check and set an item.
-	 * @param $casToken mixed
-	 * @param $key string
-	 * @param $value mixed
-	 * @param int $exptime Either an interval in seconds or a unix timestamp for expiry
-	 * @return bool success
-	 */
-	abstract public function cas( $casToken, $key, $value, $exptime = 0 );
-
-	/**
 	 * Delete an item.
 	 * @param $key string
-	 * @param int $time Amount of time to delay the operation (mostly memcached-specific)
-	 * @return bool True if the item was deleted or not found, false on failure
+	 * @param $time int Amount of time to delay the operation (mostly memcached-specific)
 	 */
 	abstract public function delete( $key, $time = 0 );
 
-	/**
-	 * Merge changes into the existing cache value (possibly creating a new one).
-	 * The callback function returns the new value given the current value (possibly false),
-	 * and takes the arguments: (this BagOStuff object, cache key, current value).
-	 *
-	 * @param $key string
-	 * @param $callback closure Callback method to be executed
-	 * @param int $exptime Either an interval in seconds or a unix timestamp for expiry
-	 * @param int $attempts The amount of times to attempt a merge in case of failure
-	 * @return bool success
-	 */
-	public function merge( $key, closure $callback, $exptime = 0, $attempts = 10 ) {
-		return $this->mergeViaCas( $key, $callback, $exptime, $attempts );
+	public function lock( $key, $timeout = 0 ) {
+		/* stub */
+		return true;
 	}
 
-	/**
-	 * @see BagOStuff::merge()
-	 *
-	 * @param $key string
-	 * @param $callback closure Callback method to be executed
-	 * @param int $exptime Either an interval in seconds or a unix timestamp for expiry
-	 * @param int $attempts The amount of times to attempt a merge in case of failure
-	 * @return bool success
-	 */
-	protected function mergeViaCas( $key, closure $callback, $exptime = 0, $attempts = 10 ) {
-		do {
-			$casToken = null; // passed by reference
-			$currentValue = $this->get( $key, $casToken ); // get the old value
-			$value = $callback( $this, $key, $currentValue ); // derive the new value
-
-			if ( $value === false ) {
-				$success = true; // do nothing
-			} elseif ( $currentValue === false ) {
-				// Try to create the key, failing if it gets created in the meantime
-				$success = $this->add( $key, $value, $exptime );
-			} else {
-				// Try to update the key, failing if it gets changed in the meantime
-				$success = $this->cas( $casToken, $key, $value, $exptime );
-			}
-		} while ( !$success && --$attempts );
-
-		return $success;
-	}
-
-	/**
-	 * @see BagOStuff::merge()
-	 *
-	 * @param $key string
-	 * @param $callback closure Callback method to be executed
-	 * @param int $exptime Either an interval in seconds or a unix timestamp for expiry
-	 * @param int $attempts The amount of times to attempt a merge in case of failure
-	 * @return bool success
-	 */
-	protected function mergeViaLock( $key, closure $callback, $exptime = 0, $attempts = 10 ) {
-		if ( !$this->lock( $key, 60 ) ) {
-			return false;
-		}
-
-		$currentValue = $this->get( $key ); // get the old value
-		$value = $callback( $this, $key, $currentValue ); // derive the new value
-
-		if ( $value === false ) {
-			$success = true; // do nothing
-		} else {
-			$success = $this->set( $key, $value, $exptime ); // set the new value
-		}
-
-		if ( !$this->unlock( $key ) ) {
-			// this should never happen
-			trigger_error( "Could not release lock for key '$key'." );
-		}
-
-		return $success;
-	}
-
-	/**
-	 * @param $key string
-	 * @param $timeout integer [optional]
-	 * @return bool success
-	 */
-	public function lock( $key, $timeout = 60 ) {
-		$timestamp = microtime( true ); // starting UNIX timestamp
-		if ( $this->add( "{$key}:lock", $timeout ) ) {
-			return true;
-		}
-
-		$uRTT = ceil( 1e6 * ( microtime( true ) - $timestamp ) ); // estimate RTT (us)
-		$sleep = 2*$uRTT; // rough time to do get()+set()
-
-		$locked = false; // lock acquired
-		$attempts = 0; // failed attempts
-		do {
-			if ( ++$attempts >= 3 && $sleep <= 1e6 ) {
-				// Exponentially back off after failed attempts to avoid network spam.
-				// About 2*$uRTT*(2^n-1) us of "sleep" happen for the next n attempts.
-				$sleep *= 2;
-			}
-			usleep( $sleep ); // back off
-			$locked = $this->add( "{$key}:lock", $timeout );
-		} while( !$locked );
-
-		return $locked;
-	}
-
-	/**
-	 * @param $key string
-	 * @return bool success
-	 */
 	public function unlock( $key ) {
-		return $this->delete( "{$key}:lock" );
+		/* stub */
+		return true;
+	}
+
+	public function keys() {
+		/* stub */
+		return array();
 	}
 
 	/**
 	 * Delete all objects expiring before a certain date.
-	 * @param string $date The reference date in MW format
-	 * @param $progressCallback callback|bool Optional, a function which will be called
+	 * @param $date The reference date in MW format
+	 * @param $progressCallback Optional, a function which will be called 
 	 *     regularly during long-running operations with the percentage progress
 	 *     as the first parameter.
 	 *
-	 * @return bool on success, false if unimplemented
+	 * @return true on success, false if unimplemented
 	 */
 	public function deleteObjectsExpiringBefore( $date, $progressCallback = false ) {
 		// stub
@@ -216,83 +107,45 @@ abstract class BagOStuff {
 
 	/* *** Emulated functions *** */
 
-	/**
-	 * Get an associative array containing the item for each of the keys that have items.
-	 * @param array $keys List of strings
-	 * @return Array
-	 */
-	public function getMulti( array $keys ) {
-		$res = array();
-		foreach ( $keys as $key ) {
-			$val = $this->get( $key );
-			if ( $val !== false ) {
-				$res[$key] = $val;
-			}
-		}
-		return $res;
-	}
-
-	/**
-	 * @param $key string
-	 * @param $value mixed
-	 * @param $exptime integer
-	 * @return bool success
-	 */
 	public function add( $key, $value, $exptime = 0 ) {
-		if ( $this->get( $key ) === false ) {
-			return $this->set( $key, $value, $exptime );
+		if ( !$this->get( $key ) ) {
+			$this->set( $key, $value, $exptime );
+
+			return true;
 		}
-		return false; // key already set
 	}
 
-	/**
-	 * @param $key string
-	 * @param $value mixed
-	 * @param $exptime int
-	 * @return bool success
-	 */
 	public function replace( $key, $value, $exptime = 0 ) {
 		if ( $this->get( $key ) !== false ) {
-			return $this->set( $key, $value, $exptime );
+			$this->set( $key, $value, $exptime );
 		}
-		return false; // key not already set
 	}
 
 	/**
-	 * Increase stored value of $key by $value while preserving its TTL
-	 * @param string $key Key to increase
+	 * @param $key String: Key to increase
 	 * @param $value Integer: Value to add to $key (Default 1)
-	 * @return integer|bool New value or false on failure
+	 * @return null if lock is not possible else $key value increased by $value
 	 */
 	public function incr( $key, $value = 1 ) {
 		if ( !$this->lock( $key ) ) {
-			return false;
+			return null;
 		}
-		$n = $this->get( $key );
-		if ( $this->isInteger( $n ) ) { // key exists?
-			$n += intval( $value );
-			$this->set( $key, max( 0, $n ) ); // exptime?
-		} else {
-			$n = false;
+
+		$value = intval( $value );
+
+		if ( ( $n = $this->get( $key ) ) !== false ) {
+			$n += $value;
+			$this->set( $key, $n ); // exptime?
 		}
 		$this->unlock( $key );
 
 		return $n;
 	}
 
-	/**
-	 * Decrease stored value of $key by $value while preserving its TTL
-	 * @param $key String
-	 * @param $value Integer
-	 * @return integer
-	 */
 	public function decr( $key, $value = 1 ) {
 		return $this->incr( $key, - $value );
 	}
 
-	/**
-	 * @param $text string
-	 */
 	public function debug( $text ) {
 		if ( $this->debugMode ) {
 			$class = get_class( $this );
@@ -302,8 +155,6 @@ abstract class BagOStuff {
 
 	/**
 	 * Convert an optionally relative time to an absolute time
-	 * @param $exptime integer
-	 * @return int
 	 */
 	protected function convertExpiry( $exptime ) {
 		if ( ( $exptime != 0 ) && ( $exptime < 86400 * 3650 /* 10 years */ ) ) {
@@ -312,33 +163,6 @@ abstract class BagOStuff {
 			return $exptime;
 		}
 	}
-
-	/**
-	 * Convert an optionally absolute expiry time to a relative time. If an
-	 * absolute time is specified which is in the past, use a short expiry time.
-	 *
-	 * @param $exptime integer
-	 * @return integer
-	 */
-	protected function convertToRelative( $exptime ) {
-		if ( $exptime >= 86400 * 3650 /* 10 years */ ) {
-			$exptime -= time();
-			if ( $exptime <= 0 ) {
-				$exptime = 1;
-			}
-			return $exptime;
-		} else {
-			return $exptime;
-		}
-	}
-
-	/**
-	 * Check if a value is an integer
-	 *
-	 * @param $value mixed
-	 * @return bool
-	 */
-	protected function isInteger( $value ) {
-		return ( is_int( $value ) || ctype_digit( $value ) );
-	}
 }
+
+

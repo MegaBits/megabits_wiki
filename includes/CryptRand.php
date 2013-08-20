@@ -5,21 +5,6 @@
  * This is based in part on Drupal code as well as what we used in our own code
  * prior to introduction of this class.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
  * @author Daniel Friesen
  * @file
  */
@@ -69,7 +54,7 @@ class MWCryptRand {
 		// It'll also vary slightly across different machines
 		$state = serialize( $_SERVER );
 
-		// To try vary the system information of the state a bit more
+		// To try and vary the system information of the state a bit more
 		// by including the system's hostname into the state
 		$state .= wfHostname();
 
@@ -78,22 +63,13 @@ class MWCryptRand {
 
 		// Include some information about the filesystem's current state in the random state
 		$files = array();
-
-		// We know this file is here so grab some info about ourselves
+		// We know this file is here so grab some info about ourself
 		$files[] = __FILE__;
-
-		// We must also have a parent folder, and with the usual file structure, a grandparent
-		$files[] = __DIR__;
-		$files[] = dirname( __DIR__ );
-
 		// The config file is likely the most often edited file we know should be around
-		// so include its stat info into the state.
-		// The constant with its location will almost always be defined, as WebStart.php defines
-		// MW_CONFIG_FILE to $IP/LocalSettings.php unless being configured with MW_CONFIG_CALLBACK (eg. the installer)
+		// so if the constant with it's location is defined include it's stat info into the state
 		if ( defined( 'MW_CONFIG_FILE' ) ) {
 			$files[] = MW_CONFIG_FILE;
 		}
-
 		foreach ( $files as $file ) {
 			wfSuppressWarnings();
 			$stat = stat( $file );
@@ -106,11 +82,7 @@ class MWCryptRand {
 					}
 				}
 				// The absolute filename itself will differ from install to install so don't leave it out
-				if( ( $path = realpath( $file ) ) !== false ) {
-					$state .= $path;
-				} else {
-					$state .= $file;
-				}
+				$state .= realpath( $file );
 				$state .= implode( '', $stat );
 			} else {
 				// The fact that the file isn't there is worth at least a
@@ -148,7 +120,7 @@ class MWCryptRand {
 	/**
 	 * Randomly hash data while mixing in clock drift data for randomness
 	 *
-	 * @param string $data The data to randomly hash.
+	 * @param $data string The data to randomly hash.
 	 * @return String The hashed bytes
 	 * @author Tim Starling
 	 */
@@ -162,7 +134,7 @@ class MWCryptRand {
 		$buffer = str_repeat( ' ', $bufLength );
 		$bufPos = 0;
 
-		// Iterate for $duration seconds or at least $minIterations number of iterations
+		// Iterate for $duration seconds or at least $minIerations number of iterations
 		$iterations = 0;
 		$startTime = microtime( true );
 		$currentTime = $startTime;
@@ -303,7 +275,7 @@ class MWCryptRand {
 		if ( strlen( $buffer ) < $bytes ) {
 			// If available make use of mcrypt_create_iv URANDOM source to generate randomness
 			// On unix-like systems this reads from /dev/urandom but does it without any buffering
-			// and bypasses openbasedir restrictions, so it's preferable to reading directly
+			// and bypasses openbasdir restrictions so it's preferable to reading directly
 			// On Windows starting in PHP 5.3.0 Windows' native CryptGenRandom is used to generate
 			// entropy so this is also preferable to just trying to read urandom because it may work
 			// on Windows systems as well.
@@ -322,10 +294,9 @@ class MWCryptRand {
 		}
 
 		if ( strlen( $buffer ) < $bytes ) {
-			// If available make use of openssl's random_pseudo_bytes method to attempt to generate randomness.
+			// If available make use of openssl's random_pesudo_bytes method to attempt to generate randomness.
 			// However don't do this on Windows with PHP < 5.3.4 due to a bug:
 			// http://stackoverflow.com/questions/1940168/openssl-random-pseudo-bytes-is-slow-php
-			// http://git.php.net/?p=php-src.git;a=commitdiff;h=cd62a70863c261b07f6dadedad9464f7e213cad5
 			if ( function_exists( 'openssl_random_pseudo_bytes' )
 				&& ( !wfIsWindows() || version_compare( PHP_VERSION, '5.3.4', '>=' ) )
 			) {
@@ -395,7 +366,7 @@ class MWCryptRand {
 		// We hash the random state with more salt to avoid the state from leaking
 		// out and being used to predict the /randomness/ that follows.
 		if ( strlen( $buffer ) < $bytes ) {
-			wfDebug( __METHOD__ . ": Falling back to using a pseudo random state to generate randomness.\n" );
+			wfDebug( __METHOD__ . ": Falling back to using a pseudo random state to generate randomness.\n" ); 
 		}
 		while ( strlen( $buffer ) < $bytes ) {
 			wfProfileIn( __METHOD__ . '-fallback' );
@@ -468,8 +439,8 @@ class MWCryptRand {
 	 * You can use MWCryptRand::wasStrong() if you wish to know if the source used
 	 * was cryptographically strong.
 	 *
-	 * @param int $bytes the number of bytes of random data to generate
-	 * @param bool $forceStrong Pass true if you want generate to prefer cryptographically
+	 * @param $bytes int the number of bytes of random data to generate
+	 * @param $forceStrong bool Pass true if you want generate to prefer cryptographically
 	 *                          strong sources of entropy even if reading from them may steal
 	 *                          more entropy from the system than optimal.
 	 * @return String Raw binary random data
@@ -484,8 +455,8 @@ class MWCryptRand {
 	 * You can use MWCryptRand::wasStrong() if you wish to know if the source used
 	 * was cryptographically strong.
 	 *
-	 * @param int $chars the number of hex chars of random data to generate
-	 * @param bool $forceStrong Pass true if you want generate to prefer cryptographically
+	 * @param $chars int the number of hex chars of random data to generate
+	 * @param $forceStrong bool Pass true if you want generate to prefer cryptographically
 	 *                          strong sources of entropy even if reading from them may steal
 	 *                          more entropy from the system than optimal.
 	 * @return String Hexadecimal random data

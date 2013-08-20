@@ -27,13 +27,10 @@
  * @ingroup SpecialPage
  */
 class WantedPagesPage extends WantedQueryPage {
-
+	
 	function __construct( $name = 'Wantedpages' ) {
 		parent::__construct( $name );
-	}
-
-	function isIncludable() {
-		return true;
+		$this->mIncludable = true;
 	}
 
 	function execute( $par ) {
@@ -63,9 +60,9 @@ class WantedPagesPage extends WantedQueryPage {
 				'pg2' => 'page'
 			),
 			'fields' => array(
-				'namespace' => 'pl_namespace',
-				'title' => 'pl_title',
-				'value' => 'COUNT(*)'
+				'pl_namespace AS namespace',
+				'pl_title AS title',
+				'COUNT(*) AS value'
 			),
 			'conds' => array(
 				'pg1.page_namespace IS NULL',
@@ -75,7 +72,7 @@ class WantedPagesPage extends WantedQueryPage {
 			),
 			'options' => array(
 				'HAVING' => "COUNT(*) > $count",
-				'GROUP BY' => array( 'pl_namespace', 'pl_title' )
+				'GROUP BY' => 'pl_namespace, pl_title'
 			),
 			'join_conds' => array(
 				'pg1' => array(
@@ -90,9 +87,5 @@ class WantedPagesPage extends WantedQueryPage {
 		// Replacement for the WantedPages::getSQL hook
 		wfRunHooks( 'WantedPages::getQueryInfo', array( &$this, &$query ) );
 		return $query;
-	}
-
-	protected function getGroupName() {
-		return 'maintenance';
 	}
 }

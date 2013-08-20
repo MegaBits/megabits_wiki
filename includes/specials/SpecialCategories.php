@@ -50,10 +50,6 @@ class SpecialCategories extends SpecialPage {
 			Html::closeElement( 'div' )
 		);
 	}
-
-	protected function getGroupName() {
-		return 'pages';
-	}
 }
 
 /**
@@ -63,21 +59,24 @@ class SpecialCategories extends SpecialPage {
  * @ingroup SpecialPage Pager
  */
 class CategoryPager extends AlphabeticPager {
+	private $conds = array( 'cat_pages > 0' );
+
 	function __construct( IContextSource $context, $from ) {
 		parent::__construct( $context );
 		$from = str_replace( ' ', '_', $from );
 		if( $from !== '' ) {
 			$from = Title::capitalize( $from, NS_CATEGORY );
-			$this->setOffset( $from );
-			$this->setIncludeOffset( true );
+			$dbr = wfGetDB( DB_SLAVE );
+			$this->conds[] = 'cat_title >= ' . $dbr->addQuotes( $from );
+			$this->setOffset( '' );
 		}
 	}
 
 	function getQueryInfo() {
 		return array(
 			'tables' => array( 'category' ),
-			'fields' => array( 'cat_title', 'cat_pages' ),
-			'conds' => array( 'cat_pages > 0' ),
+			'fields' => array( 'cat_title','cat_pages' ),
+			'conds' => $this->conds,
 			'options' => array( 'USE INDEX' => 'cat_title' ),
 		);
 	}
@@ -116,7 +115,7 @@ class CategoryPager extends AlphabeticPager {
 		return parent::getBody();
 	}
 
-	function formatRow( $result ) {
+	function formatRow($result) {
 		$title = Title::makeTitle( NS_CATEGORY, $result->cat_title );
 		$titleText = Linker::link( $title, htmlspecialchars( $title->getText() ) );
 		$count = $this->msg( 'nmembers' )->numParams( $result->cat_pages )->escaped();

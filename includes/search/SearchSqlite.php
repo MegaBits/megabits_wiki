@@ -62,7 +62,7 @@ class SearchSqlite extends SearchEngine {
 
 		$m = array();
 		if( preg_match_all( '/([-+<>~]?)(([' . $lc . ']+)(\*?)|"[^"]*")/',
-				$filteredText, $m, PREG_SET_ORDER ) ) {
+			  $filteredText, $m, PREG_SET_ORDER ) ) {
 			foreach( $m as $bits ) {
 				@list( /* all */, $modifier, $term, $nonQuoted, $wildcard ) = $bits;
 
@@ -156,7 +156,7 @@ class SearchSqlite extends SearchEngine {
 	/**
 	 * Perform a full text search query and return a result set.
 	 *
-	 * @param string $term raw search term
+	 * @param $term String: raw search term
 	 * @return SqliteSearchResultSet
 	 */
 	function searchText( $term ) {
@@ -166,7 +166,7 @@ class SearchSqlite extends SearchEngine {
 	/**
 	 * Perform a title-only search query and return a result set.
 	 *
-	 * @param string $term raw search term
+	 * @param $term String: raw search term
 	 * @return SqliteSearchResultSet
 	 */
 	function searchTitle( $term ) {
@@ -196,6 +196,7 @@ class SearchSqlite extends SearchEngine {
 		return new SqliteSearchResultSet( $resultSet, $this->searchTerms, $total );
 	}
 
+
 	/**
 	 * Return a partial WHERE clause to exclude redirects, if so set
 	 * @return String
@@ -213,7 +214,7 @@ class SearchSqlite extends SearchEngine {
 	 * @return String
 	 */
 	function queryNamespaces() {
-		if( is_null( $this->namespaces ) )
+		if( is_null($this->namespaces) )
 			return '';  # search all
 		if ( !count( $this->namespaces ) ) {
 			$namespaces = '0';
@@ -237,7 +238,6 @@ class SearchSqlite extends SearchEngine {
 	 * The guts shoulds be constructed in queryMain()
 	 * @param $filteredTerm String
 	 * @param $fulltext Boolean
-	 * @return String
 	 */
 	function getQuery( $filteredTerm, $fulltext ) {
 		return $this->limitResult(
@@ -265,7 +265,7 @@ class SearchSqlite extends SearchEngine {
 	 */
 	function queryMain( $filteredTerm, $fulltext ) {
 		$match = $this->parseQuery( $filteredTerm, $fulltext );
-		$page = $this->db->tableName( 'page' );
+		$page        = $this->db->tableName( 'page' );
 		$searchindex = $this->db->tableName( 'searchindex' );
 		return "SELECT $searchindex.rowid, page_namespace, page_title " .
 			"FROM $page,$searchindex " .
@@ -274,7 +274,7 @@ class SearchSqlite extends SearchEngine {
 
 	function getCountQuery( $filteredTerm, $fulltext ) {
 		$match = $this->parseQuery( $filteredTerm, $fulltext );
-		$page = $this->db->tableName( 'page' );
+		$page        = $this->db->tableName( 'page' );
 		$searchindex = $this->db->tableName( 'searchindex' );
 		return "SELECT COUNT(*) AS c " .
 			"FROM $page,$searchindex " .
@@ -316,7 +316,7 @@ class SearchSqlite extends SearchEngine {
 	 * @param $id Integer
 	 * @param $title String
 	 */
-	function updateTitle( $id, $title ) {
+    function updateTitle( $id, $title ) {
 		if ( !$this->fulltextSearchSupported() ) {
 			return;
 		}

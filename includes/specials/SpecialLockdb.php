@@ -87,11 +87,13 @@ class SpecialLockdb extends FormSpecialPage {
 		}
 		fwrite( $fp, $data['Reason'] );
 		$timestamp = wfTimestampNow();
-		fwrite( $fp, "\n<p>" . $this->msg( 'lockedbyandtime',
+		fwrite( $fp, "\n<p>" . wfMsgExt(
+			'lockedbyandtime',
+			array( 'content', 'parsemag' ),
 			$this->getUser()->getName(),
-			$wgContLang->date( $timestamp, false, false ),
-			$wgContLang->time( $timestamp, false, false )
-		)->inContentLanguage()->text() . "</p>\n" );
+			$wgContLang->date( $timestamp ),
+			$wgContLang->time( $timestamp )
+		) . "</p>\n" );
 		fclose( $fp );
 
 		return Status::newGood();
@@ -101,9 +103,5 @@ class SpecialLockdb extends FormSpecialPage {
 		$out = $this->getOutput();
 		$out->addSubtitle( $this->msg( 'lockdbsuccesssub' ) );
 		$out->addWikiMsg( 'lockdbsuccesstext' );
-	}
-
-	protected function getGroupName() {
-		return 'wiki';
 	}
 }

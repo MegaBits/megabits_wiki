@@ -10,14 +10,14 @@ class Asirra extends SimpleCaptcha {
 	// As we don't have to store anything but some other things to do,
 	// we're going to replace that constructor completely.
 	function __construct() {
-		global $wgExtensionAssetsPath;
+		global $wgExtensionAssetsPath, $wgAsirraScriptPath;
 		$this->asirra_localpath = "$wgExtensionAssetsPath/ConfirmEdit";
 	}
 
 	function getForm() {
-		global $wgOut;
+		global $wgAsirraEnlargedPosition, $wgAsirraCellsPerRow, $wgOut, $wgLang;
 
-		$wgOut->addModules( 'ext.confirmEdit.asirra' );
+		$wgOut->addModules( 'ext.confirmedit.asirra' );
 		$js = Html::linkedScript( $this->asirra_clientscript );
 
 		$message = Xml::encodeJsVar( wfMessage( 'asirra-createaccount-fail' )->plain() );
@@ -27,14 +27,6 @@ JAVASCRIPT
 		);
 		$js .=  '<noscript>' . wfMessage( 'asirra-nojs' )->parse() . '</noscript>';
 		return $js;
-	}
-
-	function getMessage( $action ) {
-		$name = 'asirra-' . $action;
-		$text = wfMessage( $name )->text();
-		# Obtain a more tailored message, if possible, otherwise, fall
-		# back to the default for edits
-		return wfMessage( $name, $text )->isDisabled() ? wfMessage( 'asirra-edit' )->text() : $text;
 	}
 
 	function passCaptcha() {

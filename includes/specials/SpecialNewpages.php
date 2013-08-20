@@ -53,13 +53,12 @@ class SpecialNewpages extends IncludableSpecialPage {
 		$opts->add( 'hidepatrolled', $this->getUser()->getBoolOption( 'newpageshidepatrolled' ) );
 		$opts->add( 'hidebots', false );
 		$opts->add( 'hideredirs', true );
-		$opts->add( 'limit', $this->getUser()->getIntOption( 'rclimit' ) );
+		$opts->add( 'limit', (int)$this->getUser()->getOption( 'rclimit' ) );
 		$opts->add( 'offset', '' );
 		$opts->add( 'namespace', '0' );
 		$opts->add( 'username', '' );
 		$opts->add( 'feed', '' );
 		$opts->add( 'tagfilter', '' );
-		$opts->add( 'invert', false );
 
 		$this->customFilters = array();
 		wfRunHooks( 'SpecialNewPagesFilters', array( $this, &$this->customFilters ) );
@@ -106,7 +105,7 @@ class SpecialNewpages extends IncludableSpecialPage {
 			}
 			// PG offsets not just digits!
 			if ( preg_match( '/^offset=([^=]+)$/', $bit, $m ) ) {
-				$this->opts->setValue( 'offset', intval( $m[1] ) );
+				$this->opts->setValue( 'offset',  intval( $m[1] ) );
 			}
 			if ( preg_match( '/^username=(.*)$/', $bit, $m ) ) {
 				$this->opts->setValue( 'username', $m[1] );
@@ -114,7 +113,7 @@ class SpecialNewpages extends IncludableSpecialPage {
 			if ( preg_match( '/^namespace=(.*)$/', $bit, $m ) ) {
 				$ns = $this->getLanguage()->getNsIndex( $m[1] );
 				if( $ns !== false ) {
-					$this->opts->setValue( 'namespace', $ns );
+					$this->opts->setValue( 'namespace',  $ns );
 				}
 			}
 		}
@@ -141,13 +140,10 @@ class SpecialNewpages extends IncludableSpecialPage {
 
 			$feedType = $this->opts->getValue( 'feed' );
 			if( $feedType ) {
-				$this->feed( $feedType );
-				return;
+				return $this->feed( $feedType );
 			}
 
-			$allValues = $this->opts->getAllValues();
-			unset( $allValues['feed'] );
-			$out->setFeedAppendQuery( wfArrayToCgi( $allValues ) );
+			$out->setFeedAppendQuery( wfArrayToCGI( $this->opts->getAllValues() ) );
 		}
 
 		$pager = new NewPagesPager( $this, $this->opts );
@@ -166,8 +162,10 @@ class SpecialNewpages extends IncludableSpecialPage {
 	}
 
 	protected function filterLinks() {
+		global $wgGroupPermissions;
+
 		// show/hide links
-		$showhide = array( $this->msg( 'show' )->escaped(), $this->msg( 'hide' )->escaped() );
+		$showhide = array( wfMsgHtml( 'show' ), wfMsgHtml( 'hide' ) );
 
 		// Option value -> message mapping
 		$filters = array(
@@ -181,7 +179,8 @@ class SpecialNewpages extends IncludableSpecialPage {
 		}
 
 		// Disable some if needed
-		if ( !User::groupHasPermission( '*', 'createpage' ) ) {
+		# @todo FIXME: Throws E_NOTICEs if not set; and doesn't obey hooks etc.
+		if ( $wgGroupPermissions['*']['createpage'] !== true ) {
 			unset( $filters['hideliu'] );
 		}
 		if ( !$this->getUser()->useNPPatrol() ) {
@@ -198,7 +197,7 @@ class SpecialNewpages extends IncludableSpecialPage {
 			$link = Linker::link( $self, $showhide[$onoff], array(),
 					array( $key => $onoff ) + $changed
 			);
-			$links[$key] = $this->msg( $msg )->rawParams( $link )->escaped();
+			$links[$key] = wfMsgHtml( $msg, $link );
 		}
 
 		return $this->getLanguage()->pipeList( $links );
@@ -212,7 +211,6 @@ class SpecialNewpages extends IncludableSpecialPage {
 		$namespace = $this->opts->consumeValue( 'namespace' );
 		$username = $this->opts->consumeValue( 'username' );
 		$tagFilterVal = $this->opts->consumeValue( 'tagfilter' );
-		$nsinvert = $this->opts->consumeValue( 'invert' );
 
 		// Check username input validity
 		$ut = Title::makeTitleSafe( NS_USER, $username );
@@ -232,30 +230,14 @@ class SpecialNewpages extends IncludableSpecialPage {
 
 		$form = Xml::openElement( 'form', array( 'action' => $wgScript ) ) .
 			Html::hidden( 'title', $this->getTitle()->getPrefixedDBkey() ) .
-			Xml::fieldset( $this->msg( 'newpages' )->text() ) .
+			Xml::fieldset( wfMsg( 'newpages' ) ) .
 			Xml::openElement( 'table', array( 'id' => 'mw-newpages-table' ) ) .
 			'<tr>
 				<td class="mw-label">' .
-					Xml::label( $this->msg( 'namespace' )->text(), 'namespace' ) .
+					Xml::label( wfMsg( 'namespace' ), 'namespace' ) .
 				'</td>
 				<td class="mw-input">' .
-					Html::namespaceSelector(
-						array(
-							'selected' => $namespace,
-							'all' => 'all',
-						), array(
-							'name'  => 'namespace',
-							'id'    => 'namespace',
-							'class' => 'namespaceselector',
-						)
-					) . '&#160;' .
-					Xml::checkLabel(
-						$this->msg( 'invert' )->text(),
-						'invert',
-						'nsinvert',
-						$nsinvert,
-						array( 'title' => $this->msg( 'tooltip-invert' )->text() )
-					) .
+					Xml::namespaceSelector( $namespace, 'all' ) .
 				'</td>
 			</tr>' . ( $tagFilter ? (
 			'<tr>
@@ -269,7 +251,7 @@ class SpecialNewpages extends IncludableSpecialPage {
 			( $wgEnableNewpagesUserFilter ?
 			'<tr>
 				<td class="mw-label">' .
-					Xml::label( $this->msg( 'newpages-username' )->text(), 'mw-np-username' ) .
+					Xml::label( wfMsg( 'newpages-username' ), 'mw-np-username' ) .
 				'</td>
 				<td class="mw-input">' .
 					Xml::input( 'username', 30, $userText, array( 'id' => 'mw-np-username' ) ) .
@@ -277,7 +259,7 @@ class SpecialNewpages extends IncludableSpecialPage {
 			</tr>' : '' ) .
 			'<tr> <td></td>
 				<td class="mw-submit">' .
-					Xml::submitButton( $this->msg( 'allpagessubmit' )->text() ) .
+					Xml::submitButton( wfMsg( 'allpagessubmit' ) ) .
 				'</td>
 			</tr>' .
 			'<tr>
@@ -301,25 +283,23 @@ class SpecialNewpages extends IncludableSpecialPage {
 	 * @return String
 	 */
 	public function formatRow( $result ) {
-		$title = Title::newFromRow( $result );
-
 		# Revision deletion works on revisions, so we should cast one
 		$row = array(
-			'comment' => $result->rc_comment,
-			'deleted' => $result->rc_deleted,
-			'user_text' => $result->rc_user_text,
-			'user' => $result->rc_user,
-		);
+					  'comment' => $result->rc_comment,
+					  'deleted' => $result->rc_deleted,
+					  'user_text' => $result->rc_user_text,
+					  'user' => $result->rc_user,
+					);
 		$rev = new Revision( $row );
-		$rev->setTitle( $title );
 
 		$classes = array();
 
 		$lang = $this->getLanguage();
 		$dm = $lang->getDirMark();
 
+		$title = Title::newFromRow( $result );
 		$spanTime = Html::element( 'span', array( 'class' => 'mw-newpages-time' ),
-			$lang->userTimeAndDate( $result->rc_timestamp, $this->getUser() )
+			$lang->timeanddate( $result->rc_timestamp, true )
 		);
 		$time = Linker::linkKnown(
 			$title,
@@ -335,25 +315,23 @@ class SpecialNewpages extends IncludableSpecialPage {
 			$query['rcid'] = $result->rc_id;
 		}
 
-		// Linker::linkKnown() uses 'known' and 'noclasses' options. This breaks the colouration for stubs.
-		$plink = Linker::link(
+		$plink = Linker::linkKnown(
 			$title,
 			null,
 			array( 'class' => 'mw-newpages-pagename' ),
 			$query,
-			array( 'known' )
+			array( 'known' ) // Set explicitly to avoid the default of 'known','noclasses'. This breaks the colouration for stubs
 		);
 		$histLink = Linker::linkKnown(
 			$title,
-			$this->msg( 'hist' )->escaped(),
+			wfMsgHtml( 'hist' ),
 			array(),
 			array( 'action' => 'history' )
 		);
-		$hist = Html::rawElement( 'span', array( 'class' => 'mw-newpages-history' ),
-			$this->msg( 'parentheses' )->rawParams( $histLink )->escaped() );
+		$hist = Html::rawElement( 'span', array( 'class' => 'mw-newpages-history' ), wfMsg( 'parentheses', $histLink ) );
 
 		$length = Html::element( 'span', array( 'class' => 'mw-newpages-length' ),
-			$this->msg( 'brackets' )->params( $this->msg( 'nbytes' )->numParams( $result->length )->text() )
+				'[' . $this->msg( 'nbytes' )->numParams( $result->length )->text() . ']'
 		);
 
 		$ulink = Linker::revUserTools( $rev );
@@ -368,8 +346,8 @@ class SpecialNewpages extends IncludableSpecialPage {
 			$classes[] = 'mw-newpages-zero-byte-page';
 		}
 
-		# Tags, if any.
-		if( isset( $result->ts_tags ) ) {
+		# Tags, if any. check for including due to bug 23293
+		if ( !$this->including() ) {
 			list( $tagDisplay, $newClasses ) = ChangeTags::formatSummaryRow( $result->ts_tags, 'newpages' );
 			$classes = array_merge( $classes, $newClasses );
 		} else {
@@ -378,11 +356,11 @@ class SpecialNewpages extends IncludableSpecialPage {
 
 		$css = count( $classes ) ? ' class="' . implode( ' ', $classes ) . '"' : '';
 
-		# Display the old title if the namespace/title has been changed
+		# Display the old title if the namespace has been changed
 		$oldTitleText = '';
-		$oldTitle = Title::makeTitle( $result->rc_namespace, $result->rc_title );
-		if ( !$title->equals( $oldTitle ) ) {
-			$oldTitleText = $this->msg( 'rc-old-title' )->params( $oldTitle->getPrefixedText() )->escaped();
+		if ( $result->page_namespace !== $result->rc_namespace ) {
+			$oldTitleText = wfMessage( 'rc-old-title' )->params( Title::makeTitle( $result->rc_namespace, $result->rc_title )
+			                                           ->getPrefixedText() )->escaped();	
 		}
 
 		return "<li{$css}>{$time} {$dm}{$plink} {$hist} {$dm}{$length} {$dm}{$ulink} {$comment} {$tagDisplay} {$oldTitleText}</li>\n";
@@ -418,7 +396,7 @@ class SpecialNewpages extends IncludableSpecialPage {
 
 		$feed = new $wgFeedClasses[$type](
 			$this->feedTitle(),
-			$this->msg( 'tagline' )->text(),
+			wfMsgExt( 'tagline', 'parsemag' ),
 			$this->getTitle()->getFullUrl()
 		);
 
@@ -442,7 +420,7 @@ class SpecialNewpages extends IncludableSpecialPage {
 	}
 
 	protected function feedItem( $row ) {
-		$title = Title::makeTitle( intval( $row->rc_namespace ), $row->rc_title );
+		$title = Title::MakeTitle( intval( $row->rc_namespace ), $row->rc_title );
 		if( $title ) {
 			$date = $row->rc_timestamp;
 			$comments = $title->getTalkPage()->getFullURL();
@@ -467,18 +445,12 @@ class SpecialNewpages extends IncludableSpecialPage {
 	protected function feedItemDesc( $row ) {
 		$revision = Revision::newFromId( $row->rev_id );
 		if( $revision ) {
-			//XXX: include content model/type in feed item?
-			return '<p>' . htmlspecialchars( $revision->getUserText() ) .
-				$this->msg( 'colon-separator' )->inContentLanguage()->escaped() .
+			return '<p>' . htmlspecialchars( $revision->getUserText() ) . wfMsgForContent( 'colon-separator' ) .
 				htmlspecialchars( FeedItem::stripComment( $revision->getComment() ) ) .
 				"</p>\n<hr />\n<div>" .
-				nl2br( htmlspecialchars( $revision->getContent()->serialize() ) ) . "</div>";
+				nl2br( htmlspecialchars( $revision->getText() ) ) . "</div>";
 		}
 		return '';
-	}
-
-	protected function getGroupName() {
-		return 'changes';
 	}
 }
 
@@ -501,7 +473,7 @@ class NewPagesPager extends ReverseChronologicalPager {
 	}
 
 	function getQueryInfo() {
-		global $wgEnableNewpagesUserFilter;
+		global $wgEnableNewpagesUserFilter, $wgGroupPermissions;
 		$conds = array();
 		$conds['rc_new'] = 1;
 
@@ -512,11 +484,7 @@ class NewPagesPager extends ReverseChronologicalPager {
 		$user = Title::makeTitleSafe( NS_USER, $username );
 
 		if( $namespace !== false ) {
-			if ( $this->opts->getValue( 'invert' ) ) {
-				$conds[] = 'rc_namespace != ' . $this->mDb->addQuotes( $namespace );
-			} else {
-				$conds['rc_namespace'] = $namespace;
-			}
+			$conds['rc_namespace'] = $namespace;
 			$rcIndexes = array( 'new_name_timestamp' );
 		} else {
 			$rcIndexes = array( 'rc_timestamp' );
@@ -527,7 +495,7 @@ class NewPagesPager extends ReverseChronologicalPager {
 			$conds['rc_user_text'] = $user->getText();
 			$rcIndexes = 'rc_user_text';
 		# If anons cannot make new pages, don't "exclude logged in users"!
-		} elseif( User::groupHasPermission( '*', 'createpage' ) && $this->opts->getValue( 'hideliu' ) ) {
+		} elseif( $wgGroupPermissions['*']['createpage'] && $this->opts->getValue( 'hideliu' ) ) {
 			$conds['rc_user'] = 0;
 		}
 		# If this user cannot see patrolled edits or they are off, don't do dumb queries!
@@ -547,7 +515,7 @@ class NewPagesPager extends ReverseChronologicalPager {
 		$fields = array(
 			'rc_namespace', 'rc_title', 'rc_cur_id', 'rc_user', 'rc_user_text',
 			'rc_comment', 'rc_timestamp', 'rc_patrolled','rc_id', 'rc_deleted',
-			'length' => 'page_len', 'rev_id' => 'page_latest', 'rc_this_oldid',
+			'page_len AS length', 'page_latest AS rev_id', 'ts_tags', 'rc_this_oldid',
 			'page_namespace', 'page_title'
 		);
 		$join_conds = array( 'page' => array( 'INNER JOIN', 'page_id=rc_cur_id' ) );
@@ -563,10 +531,13 @@ class NewPagesPager extends ReverseChronologicalPager {
 			'join_conds' => $join_conds
 		);
 
+		// Empty array for fields, it'll be set by us anyway.
+		$fields = array();
+
 		// Modify query for tags
 		ChangeTags::modifyDisplayQuery(
 			$info['tables'],
-			$info['fields'],
+			$fields,
 			$info['conds'],
 			$info['join_conds'],
 			$info['options'],

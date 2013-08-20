@@ -42,7 +42,7 @@ class ApiQueryStashImageInfo extends ApiQueryImageInfo {
 		$result = $this->getResult();
 
 		if ( !$params['filekey'] && !$params['sessionkey'] ) {
-			$this->dieUsage( "One of filekey or sessionkey must be supplied", 'nofilekey' );
+			$this->dieUsage( "One of filekey or sessionkey must be supplied", 'nofilekey');
 		}
 
 		// Alias sessionkey to filekey, but give an existing filekey precedence.
@@ -113,7 +113,7 @@ class ApiQueryStashImageInfo extends ApiQueryImageInfo {
 	public function getParamDescription() {
 		$p = $this->getModulePrefix();
 		return array(
-			'prop' => self::getPropertyDescriptions( $this->propertyFilter, $p ),
+			'prop' => self::getPropertyDescriptions( $this->propertyFilter ),
 			'filekey' => 'Key that identifies a previous upload that was stashed temporarily.',
 			'sessionkey' => 'Alias for filekey, for backward compatibility.',
 			'urlwidth' => "If {$p}prop=url is set, a URL to an image scaled to this width will be returned.",
@@ -121,10 +121,6 @@ class ApiQueryStashImageInfo extends ApiQueryImageInfo {
 			'urlparam' => array( "A handler specific parameter string. For example, pdf's ",
 				"might use 'page15-100px'. {$p}urlwidth must be used and be consistent with {$p}urlparam" ),
 		);
-	}
-
-	public function getResultProperties() {
-		return ApiQueryImageInfo::getResultPropertiesFiltered( $this->propertyFilter );
 	}
 
 	public function getDescription() {
@@ -138,4 +134,9 @@ class ApiQueryStashImageInfo extends ApiQueryImageInfo {
 		);
 	}
 
+	public function getVersion() {
+		return __CLASS__ . ': $Id$';
+	}
+
 }
+

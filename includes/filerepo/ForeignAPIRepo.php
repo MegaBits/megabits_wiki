@@ -2,21 +2,6 @@
 /**
  * Foreign repository accessible through api.php requests.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
  * @file
  * @ingroup FileRepo
  */
@@ -51,9 +36,6 @@ class ForeignAPIRepo extends FileRepo {
 	protected $mQueryCache = array();
 	protected $mFileExists = array();
 
-	/**
-	 * @param $info array|null
-	 */
 	function __construct( $info ) {
 		global $wgLocalFileRepo;
 		parent::__construct( $info );
@@ -84,8 +66,6 @@ class ForeignAPIRepo extends FileRepo {
 	 * Per docs in FileRepo, this needs to return false if we don't support versioned
 	 * files. Well, we don't.
 	 *
-	 * @param $title Title
-	 * @param $time string|bool
 	 * @return File
 	 */
 	function newFile( $title, $time = false ) {
@@ -96,10 +76,38 @@ class ForeignAPIRepo extends FileRepo {
 	}
 
 	/**
-	 * @param $files array
-	 * @return array
+	 * No-ops
 	 */
-	function fileExistsBatch( array $files ) {
+
+	function storeBatch( $triplets, $flags = 0 ) {
+		return false;
+	}
+
+	function storeTemp( $originalName, $srcPath ) {
+		return false;
+	}
+
+	function concatenate( $fileList, $targetPath, $flags = 0 ){
+		return false;
+	}
+
+	function append( $srcPath, $toAppendPath, $flags = 0 ){
+		return false;
+	}
+
+	function appendFinish( $toAppendPath ){
+		return false;
+	}
+
+	function publishBatch( $triplets, $flags = 0 ) {
+		return false;
+	}
+
+	function deleteBatch( $sourceDestPairs ) {
+		return false;
+	}
+
+	function fileExistsBatch( $files, $flags = 0 ) {
 		$results = array();
 		foreach ( $files as $k => $f ) {
 			if ( isset( $this->mFileExists[$k] ) ) {
@@ -111,10 +119,6 @@ class ForeignAPIRepo extends FileRepo {
 				# same repo.
 				$results[$k] = false;
 				unset( $files[$k] );
-			} elseif ( FileBackend::isStoragePath( $f ) ) {
-				$results[$k] = false;
-				unset( $files[$k] );
-				wfWarn( "Got mwstore:// path '$f'." );
 			}
 		}
 
@@ -130,25 +134,17 @@ class ForeignAPIRepo extends FileRepo {
 		return $results;
 	}
 
-	/**
-	 * @param $virtualUrl string
-	 * @return bool
-	 */
 	function getFileProps( $virtualUrl ) {
 		return false;
 	}
 
-	/**
-	 * @param $query array
-	 * @return string
-	 */
 	function fetchImageQuery( $query ) {
 		global $wgMemc;
 
 		$query = array_merge( $query,
 			array(
-				'format'    => 'json',
-				'action'    => 'query',
+				'format' => 'json',
+				'action' => 'query',
 				'redirects' => 'true'
 			) );
 		if ( $this->mApiBase ) {
@@ -177,10 +173,6 @@ class ForeignAPIRepo extends FileRepo {
 		return FormatJson::decode( $this->mQueryCache[$url], true );
 	}
 
-	/**
-	 * @param $data array
-	 * @return bool|array
-	 */
 	function getImageInfo( $data ) {
 		if( $data && isset( $data['query']['pages'] ) ) {
 			foreach( $data['query']['pages'] as $info ) {
@@ -192,10 +184,6 @@ class ForeignAPIRepo extends FileRepo {
 		return false;
 	}
 
-	/**
-	 * @param $hash string
-	 * @return array
-	 */
 	function findBySha1( $hash ) {
 		$results = $this->fetchImageQuery( array(
 										'aisha1base36' => $hash,
@@ -214,14 +202,6 @@ class ForeignAPIRepo extends FileRepo {
 		return $ret;
 	}
 
-	/**
-	 * @param $name string
-	 * @param $width int
-	 * @param $height int
-	 * @param $result null
-	 * @param $otherParams string
-	 * @return bool
-	 */
 	function getThumbUrl( $name, $width = -1, $height = -1, &$result = null, $otherParams = '' ) {
 		$data = $this->fetchImageQuery( array(
 			'titles' => 'File:' . $name,
@@ -247,17 +227,13 @@ class ForeignAPIRepo extends FileRepo {
 	 * If the url has been requested today, get it from cache
 	 * Otherwise retrieve remote thumb url, check for local file.
 	 *
-	 * @param string $name is a dbkey form of a title
+	 * @param $name String is a dbkey form of a title
 	 * @param $width
 	 * @param $height
-	 * @param string $params Other rendering parameters (page number, etc) from handler's makeParamString.
-	 * @return bool|string
+	 * @param String $param Other rendering parameters (page number, etc) from handler's makeParamString.
 	 */
-	function getThumbUrlFromCache( $name, $width, $height, $params = "" ) {
+	function getThumbUrlFromCache( $name, $width, $height, $params="" ) {
 		global $wgMemc;
-		// We can't check the local cache using FileRepo functions because
-		// we override fileExistsBatch(). We have to use the FileBackend directly.
-		$backend = $this->getBackend(); // convenience
 
 		if ( !$this->canCacheThumbs() ) {
 			$result = null; // can't pass "null" by reference, but it's ok as default value
@@ -267,14 +243,14 @@ class ForeignAPIRepo extends FileRepo {
 		$sizekey = "$width:$height:$params";
 
 		/* Get the array of urls that we already know */
-		$knownThumbUrls = $wgMemc->get( $key );
+		$knownThumbUrls = $wgMemc->get($key);
 		if( !$knownThumbUrls ) {
 			/* No knownThumbUrls for this file */
 			$knownThumbUrls = array();
 		} else {
 			if( isset( $knownThumbUrls[$sizekey] ) ) {
 				wfDebug( __METHOD__ . ': Got thumburl from local cache: ' .
-					"{$knownThumbUrls[$sizekey]} \n" );
+					"{$knownThumbUrls[$sizekey]} \n");
 				return $knownThumbUrls[$sizekey];
 			}
 			/* This size is not yet known */
@@ -294,15 +270,13 @@ class ForeignAPIRepo extends FileRepo {
 			wfDebug( __METHOD__ . " The deduced filename $fileName is not safe\n" );
 			return false;
 		}
-		$localPath = $this->getZonePath( 'thumb' ) . "/" . $this->getHashPath( $name ) . $name;
+		$localPath =  $this->getZonePath( 'thumb' ) . "/" . $this->getHashPath( $name ) . $name;
 		$localFilename = $localPath . "/" . $fileName;
-		$localUrl = $this->getZoneUrl( 'thumb' ) . "/" . $this->getHashPath( $name ) . rawurlencode( $name ) . "/" . rawurlencode( $fileName );
+		$localUrl =  $this->getZoneUrl( 'thumb' ) . "/" . $this->getHashPath( $name ) . rawurlencode( $name ) . "/" . rawurlencode( $fileName );
 
-		if( $backend->fileExists( array( 'src' => $localFilename ) )
-			&& isset( $metadata['timestamp'] ) )
-		{
+		if( $this->fileExists( $localFilename ) && isset( $metadata['timestamp'] ) ) {
 			wfDebug( __METHOD__ . " Thumbnail was already downloaded before\n" );
-			$modified = $backend->getFileTimestamp( array( 'src' => $localFilename ) );
+			$modified = $this->getFileTimestamp( $localFilename );
 			$remoteModified = strtotime( $metadata['timestamp'] );
 			$current = time();
 			$diff = abs( $modified - $current );
@@ -321,12 +295,15 @@ class ForeignAPIRepo extends FileRepo {
 		}
 
 		# @todo FIXME: Delete old thumbs that aren't being used. Maintenance script?
-		$backend->prepare( array( 'dir' => dirname( $localFilename ) ) );
-		$params = array( 'dst' => $localFilename, 'content' => $thumb );
-		if( !$backend->quickCreate( $params )->isOK() ) {
-			wfDebug( __METHOD__ . " could not write to thumb path '$localFilename'\n" );
+		wfSuppressWarnings();
+		$backend = $this->getBackend();
+		$op = array( 'op' => 'create', 'dst' => $localFilename, 'content' => $thumb );
+		if( !$backend->doOperation( $op )->isOK() ) {
+			wfRestoreWarnings();
+			wfDebug( __METHOD__ . " could not write to thumb path\n" );
 			return $foreignUrl;
 		}
+		wfRestoreWarnings();
 		$knownThumbUrls[$sizekey] = $localUrl;
 		$wgMemc->set( $key, $knownThumbUrls, $this->apiThumbCacheExpiry );
 		wfDebug( __METHOD__ . " got local thumb $localUrl, saving to cache \n" );
@@ -335,25 +312,20 @@ class ForeignAPIRepo extends FileRepo {
 
 	/**
 	 * @see FileRepo::getZoneUrl()
-	 * @param $zone String
-	 * @param string|null $ext Optional file extension
-	 * @return String
 	 */
-	function getZoneUrl( $zone, $ext = null ) {
+	function getZoneUrl( $zone ) {
 		switch ( $zone ) {
 			case 'public':
 				return $this->url;
 			case 'thumb':
 				return $this->thumbUrl;
 			default:
-				return parent::getZoneUrl( $zone, $ext );
+				return parent::getZoneUrl( $zone );
 		}
 	}
 
 	/**
 	 * Get the local directory corresponding to one of the basic zones
-	 * @param $zone string
-	 * @return bool|null|string
 	 */
 	function getZonePath( $zone ) {
 		$supported = array( 'public', 'thumb' );
@@ -373,7 +345,6 @@ class ForeignAPIRepo extends FileRepo {
 
 	/**
 	 * The user agent the ForeignAPIRepo will use.
-	 * @return string
 	 */
 	public static function getUserAgent() {
 		return Http::userAgent() . " ForeignAPIRepo/" . self::VERSION;
@@ -382,10 +353,6 @@ class ForeignAPIRepo extends FileRepo {
 	/**
 	 * Like a Http:get request, but with custom User-Agent.
 	 * @see Http:get
-	 * @param $url string
-	 * @param $timeout string
-	 * @param $options array
-	 * @return bool|String
 	 */
 	public static function httpGet( $url, $timeout = 'default', $options = array() ) {
 		$options['timeout'] = $timeout;
@@ -395,7 +362,7 @@ class ForeignAPIRepo extends FileRepo {
 		$options['method'] = "GET";
 
 		if ( !isset( $options['timeout'] ) ) {
-			$options['timeout'] = 'default';
+		        $options['timeout'] = 'default';
 		}
 
 		$req = MWHttpRequest::factory( $url, $options );
@@ -403,24 +370,13 @@ class ForeignAPIRepo extends FileRepo {
 		$status = $req->execute();
 
 		if ( $status->isOK() ) {
-			return $req->getContent();
+		        return $req->getContent();
 		} else {
-			return false;
+		        return false;
 		}
 	}
 
-	/**
-	 * @param $callback Array|string
-	 * @throws MWException
-	 */
 	function enumFiles( $callback ) {
 		throw new MWException( 'enumFiles is not supported by ' . get_class( $this ) );
-	}
-
-	/**
-	 * @throws MWException
-	 */
-	protected function assertWritableRepo() {
-		throw new MWException( get_class( $this ) . ': write operations are not supported.' );
 	}
 }

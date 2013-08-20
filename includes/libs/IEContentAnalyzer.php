@@ -1,10 +1,4 @@
 <?php
-/**
- * Simulation of Microsoft Internet Explorer's MIME type detection algorithm.
- *
- * @file
- * @todo Define the exact license of this file.
- */
 
 /**
  * This class simulates Microsoft Internet Explorer's terribly broken and
@@ -329,9 +323,9 @@ class IEContentAnalyzer {
 	 * Get the MIME types from getMimesFromData(), but convert the result from IE's
 	 * idiosyncratic private types into something other apps will understand.
 	 *
-	 * @param string $fileName the file name (unused at present)
-	 * @param string $chunk the first 256 bytes of the file
-	 * @param string $proposed the MIME type proposed by the server
+	 * @param $fileName String: the file name (unused at present)
+	 * @param $chunk String: the first 256 bytes of the file
+	 * @param $proposed String: the MIME type proposed by the server
 	 *
 	 * @return Array: map of IE version to detected mime type
 	 */
@@ -367,9 +361,9 @@ class IEContentAnalyzer {
 	/**
 	 * Get the untranslated MIME types for all known versions
 	 *
-	 * @param string $fileName the file name (unused at present)
-	 * @param string $chunk the first 256 bytes of the file
-	 * @param string $proposed the MIME type proposed by the server
+	 * @param $fileName String: the file name (unused at present)
+	 * @param $chunk String: the first 256 bytes of the file
+	 * @param $proposed String: the MIME type proposed by the server
 	 *
 	 * @return Array: map of IE version to detected mime type
 	 */
@@ -848,3 +842,4 @@ class IEContentAnalyzer {
 		return 'unknown';
 	}
 }
+

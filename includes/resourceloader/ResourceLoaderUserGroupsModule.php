@@ -1,7 +1,5 @@
 <?php
 /**
- * Resource loader module for user customizations.
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -33,32 +31,21 @@ class ResourceLoaderUserGroupsModule extends ResourceLoaderWikiModule {
 	 * @return array
 	 */
 	protected function getPages( ResourceLoaderContext $context ) {
-		global $wgUser;
-
-		$userName = $context->getUser();
-		if ( $userName === null ) {
-			return array();
-		}
-
-		// Use $wgUser is possible; allows to skip a lot of code
-		if ( is_object( $wgUser ) && $wgUser->getName() == $userName ) {
-			$user = $wgUser;
-		} else {
-			$user = User::newFromName( $userName );
-			if ( !$user instanceof User ) {
-				return array();
+		if ( $context->getUser() ) {
+			$user = User::newFromName( $context->getUser() );
+			if ( $user instanceof User ) {
+				$pages = array();
+				foreach( $user->getEffectiveGroups() as $group ) {
+					if ( in_array( $group, array( '*', 'user' ) ) ) {
+						continue;
+					}
+					$pages["MediaWiki:Group-$group.js"] = array( 'type' => 'script' );
+					$pages["MediaWiki:Group-$group.css"] = array( 'type' => 'style' );
+				}
+				return $pages;
 			}
 		}
-
-		$pages = array();
-		foreach( $user->getEffectiveGroups() as $group ) {
-			if ( in_array( $group, array( '*', 'user' ) ) ) {
-				continue;
-			}
-			$pages["MediaWiki:Group-$group.js"] = array( 'type' => 'script' );
-			$pages["MediaWiki:Group-$group.css"] = array( 'type' => 'style' );
-		}
-		return $pages;
+		return array();
 	}
 
 	/* Methods */

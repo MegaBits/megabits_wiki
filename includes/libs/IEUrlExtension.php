@@ -1,24 +1,4 @@
 <?php
-/**
- * Checks for validity of requested URL's extension.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- */
 
 /**
  * Internet Explorer derives a cache filename from a URL, and then in certain
@@ -55,8 +35,8 @@ class IEUrlExtension {
 	 *
 	 * If the a variable is unset in $_SERVER, it should be unset in $vars.
 	 *
-	 * @param array $vars A subset of $_SERVER.
-	 * @param array $extWhitelist Extensions which are allowed, assumed harmless.
+	 * @param $vars A subset of $_SERVER.
+	 * @param $extWhitelist Extensions which are allowed, assumed harmless.
 	 * @return bool
 	 */
 	public static function areServerVarsBad( $vars, $extWhitelist = array() ) {
@@ -92,8 +72,8 @@ class IEUrlExtension {
 	 * Given a right-hand portion of a URL, determine whether IE would detect
 	 * a potentially harmful file extension.
 	 *
-	 * @param string $urlPart The right-hand portion of a URL
-	 * @param array $extWhitelist An array of file extensions which may occur in this
+	 * @param $urlPart string The right-hand portion of a URL
+	 * @param $extWhitelist An array of file extensions which may occur in this
 	 *    URL, and which should be allowed.
 	 * @return bool
 	 */
@@ -187,7 +167,7 @@ class IEUrlExtension {
 	 * - if we find a possible extension followed by a dot or another illegal
 	 *   character, we ignore it and continue searching
 	 *
-	 * @param string $url URL
+	 * @param $url string URL
 	 * @return mixed Detected extension (string), or false if none found
 	 */
 	public static function findIE6Extension( $url ) {
@@ -245,7 +225,7 @@ class IEUrlExtension {
 	 * whether the script filename has been obscured.
 	 *
 	 * The function returns false if the server is not known to have this
-	 * behavior. Microsoft IIS in particular is known to decode escaped script
+	 * behaviour. Microsoft IIS in particular is known to decode escaped script
 	 * filenames.
 	 *
 	 * SERVER_SOFTWARE typically contains either a plain string such as "Zeus",

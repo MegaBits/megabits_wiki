@@ -1,7 +1,5 @@
 <?php
 /**
- * Benchmark if elseif... versus switch case.
- *
  * This come from r75429 message
  *
  * This program is free software; you can redistribute it and/or modify
@@ -24,13 +22,7 @@
  * @author  Platonides
  */
 
-require_once( __DIR__ . '/Benchmarker.php' );
-
-/**
- * Maintenance script that benchmark if elseif... versus switch case.
- *
- * @ingroup Maintenance
- */
+require_once( dirname( __FILE__ ) . '/Benchmarker.php' );
 class bench_if_switch extends Benchmarker {
 
 	public function __construct() {

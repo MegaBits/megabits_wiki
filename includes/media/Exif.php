@@ -1,7 +1,5 @@
 <?php
 /**
- * Extraction and validation of image metadata.
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -31,15 +29,15 @@
  */
 class Exif {
 
-	const BYTE = 1; //!< An 8-bit (1-byte) unsigned integer.
-	const ASCII = 2; //!< An 8-bit byte containing one 7-bit ASCII code. The final byte is terminated with NULL.
-	const SHORT = 3; //!< A 16-bit (2-byte) unsigned integer.
-	const LONG = 4; //!< A 32-bit (4-byte) unsigned integer.
-	const RATIONAL = 5; //!< Two LONGs. The first LONG is the numerator and the second LONG expresses the denominator
-	const UNDEFINED = 7; //!< An 8-bit byte that can take any value depending on the field definition
-	const SLONG = 9; //!< A 32-bit (4-byte) signed integer (2's complement notation),
-	const SRATIONAL = 10; //!< Two SLONGs. The first SLONG is the numerator and the second SLONG is the denominator.
-	const IGNORE = -1; // A fake value for things we don't want or don't support.
+	const BYTE      = 1;    //!< An 8-bit (1-byte) unsigned integer.
+	const ASCII     = 2;    //!< An 8-bit byte containing one 7-bit ASCII code. The final byte is terminated with NULL.
+	const SHORT     = 3;    //!< A 16-bit (2-byte) unsigned integer.
+	const LONG      = 4;    //!< A 32-bit (4-byte) unsigned integer.
+	const RATIONAL  = 5;    //!< Two LONGs. The first LONG is the numerator and the second LONG expresses the denominator
+	const UNDEFINED = 7;    //!< An 8-bit byte that can take any value depending on the field definition
+	const SLONG     = 9;    //!< A 32-bit (4-byte) signed integer (2's complement notation),
+	const SRATIONAL = 10;   //!< Two SLONGs. The first SLONG is the numerator and the second SLONG is the denominator.
+	const IGNORE    = -1;   // A fake value for things we don't want or don't support.
 
 	//@{
 	/* @var array
@@ -102,9 +100,8 @@ class Exif {
 	/**
 	 * Constructor
 	 *
-	 * @param string $file filename.
-	 * @param string $byteOrder Type of byte ordering either 'BE' (Big Endian) or 'LE' (Little Endian). Default ''.
-	 * @throws MWException
+	 * @param $file String: filename.
+	 * @param $byteOrder String Type of byte ordering either 'BE' (Big Endian) or 'LE' (Little Endian). Default ''.
 	 * @todo FIXME: The following are broke:
 	 * SubjectArea. Need to test the more obscure tags.
 	 *
@@ -290,8 +287,8 @@ class Exif {
 			// Only give a warning for b/c, since originally we didn't
 			// require this. The number of things affected by this is
 			// rather small.
-			wfWarn( 'Exif class did not have byte order specified. ' .
-				'Some properties may be decoded incorrectly.' );
+			wfWarn( 'Exif class did not have byte order specified. '
+			 . 'Some properties may be decoded incorrectly.' );
 			$this->byteOrder = 'BE'; // BE seems about twice as popular as LE in jpg's.
 		}
 
@@ -322,7 +319,7 @@ class Exif {
 
 		foreach ( array_keys( $this->mRawExifData ) as $section ) {
 			if ( !in_array( $section, array_keys( $this->mExifTags ) ) ) {
-				$this->debug( $section, __FUNCTION__, "'$section' is not a valid Exif section" );
+				$this->debug( $section , __FUNCTION__, "'$section' is not a valid Exif section" );
 				continue;
 			}
 
@@ -346,24 +343,24 @@ class Exif {
 	}
 
 	/**
-	 * Collapse some fields together.
-	 * This converts some fields from exif form, to a more friendly form.
-	 * For example GPS latitude to a single number.
-	 *
-	 * The rationale behind this is that we're storing data, not presenting to the user
-	 * For example a longitude is a single number describing how far away you are from
-	 * the prime meridian. Well it might be nice to split it up into minutes and seconds
-	 * for the user, it doesn't really make sense to split a single number into 4 parts
-	 * for storage. (degrees, minutes, second, direction vs single floating point number).
-	 *
-	 * Other things this might do (not really sure if they make sense or not):
-	 * Dates -> mediawiki date format.
-	 * convert values that can be in different units to be in one standardized unit.
-	 *
-	 * As an alternative approach, some of this could be done in the validate phase
-	 * if we make up our own types like Exif::DATE.
-	 */
-	function collapseData() {
+	* Collapse some fields together.
+	* This converts some fields from exif form, to a more friendly form.
+	* For example GPS latitude to a single number.
+	*
+	* The rationale behind this is that we're storing data, not presenting to the user
+	* For example a longitude is a single number describing how far away you are from
+	* the prime meridian. Well it might be nice to split it up into minutes and seconds
+	* for the user, it doesn't really make sense to split a single number into 4 parts
+	* for storage. (degrees, minutes, second, direction vs single floating point number).
+	*
+	* Other things this might do (not really sure if they make sense or not):
+	* Dates -> mediawiki date format.
+	* convert values that can be in different units to be in one standardized unit.
+	*
+	* As an alternative approach, some of this could be done in the validate phase
+	* if we make up our own types like Exif::DATE.
+	*/
+	function collapseData( ) {
 
 		$this->exifGPStoNumber( 'GPSLatitude' );
 		$this->exifGPStoNumber( 'GPSDestLatitude' );
@@ -371,12 +368,6 @@ class Exif {
 		$this->exifGPStoNumber( 'GPSDestLongitude' );
 
 		if ( isset( $this->mFilteredExifData['GPSAltitude'] ) && isset( $this->mFilteredExifData['GPSAltitudeRef'] ) ) {
-
-			// We know altitude data is a <num>/<denom> from the validation functions ran earlier.
-			// But multiplying such a string by -1 doesn't work well, so convert.
-			list( $num, $denom ) = explode( '/', $this->mFilteredExifData['GPSAltitude'] );
-			$this->mFilteredExifData['GPSAltitude'] = $num / $denom;
-
 			if ( $this->mFilteredExifData['GPSAltitudeRef'] === "\1" ) {
 				$this->mFilteredExifData['GPSAltitude'] *= - 1;
 			}
@@ -387,22 +378,22 @@ class Exif {
 		$this->exifPropToOrd( 'SceneType' );
 
 		$this->charCodeString( 'UserComment' );
-		$this->charCodeString( 'GPSProcessingMethod' );
+		$this->charCodeString( 'GPSProcessingMethod');
 		$this->charCodeString( 'GPSAreaInformation' );
-
+		
 		//ComponentsConfiguration should really be an array instead of a string...
 		//This turns a string of binary numbers into an array of numbers.
 
 		if ( isset ( $this->mFilteredExifData['ComponentsConfiguration'] ) ) {
 			$val = $this->mFilteredExifData['ComponentsConfiguration'];
 			$ccVals = array();
-			for ( $i = 0; $i < strlen( $val ); $i++ ) {
-				$ccVals[$i] = ord( substr( $val, $i, 1 ) );
+			for ($i = 0; $i < strlen($val); $i++) {
+				$ccVals[$i] = ord( substr($val, $i, 1) );
 			}
 			$ccVals['_type'] = 'ol'; //this is for formatting later.
 			$this->mFilteredExifData['ComponentsConfiguration'] = $ccVals;
 		}
-
+	
 		//GPSVersion(ID) is treated as the wrong type by php exif support.
 		//Go through each byte turning it into a version string.
 		//For example: "\x02\x02\x00\x00" -> "2.2.0.0"
@@ -413,11 +404,11 @@ class Exif {
 		if ( isset ( $this->mFilteredExifData['GPSVersion'] ) ) {
 			$val = $this->mFilteredExifData['GPSVersion'];
 			$newVal = '';
-			for ( $i = 0; $i < strlen( $val ); $i++ ) {
+			for ($i = 0; $i < strlen($val); $i++) {
 				if ( $i !== 0 ) {
 					$newVal .= '.';
 				}
-				$newVal .= ord( substr( $val, $i, 1 ) );
+				$newVal .= ord( substr($val, $i, 1) );
 			}
 			if ( $this->byteOrder === 'LE' ) {
 				// Need to reverse the string
@@ -434,25 +425,26 @@ class Exif {
 
 	}
 	/**
-	 * Do userComment tags and similar. See pg. 34 of exif standard.
-	 * basically first 8 bytes is charset, rest is value.
-	 * This has not been tested on any shift-JIS strings.
-	 * @param string $prop prop name.
-	 */
+	* Do userComment tags and similar. See pg. 34 of exif standard.
+	* basically first 8 bytes is charset, rest is value.
+	* This has not been tested on any shift-JIS strings.
+	* @param $prop String prop name.
+	*/
 	private function charCodeString ( $prop ) {
 		if ( isset( $this->mFilteredExifData[$prop] ) ) {
 
-			if ( strlen( $this->mFilteredExifData[$prop] ) <= 8 ) {
+			if ( strlen($this->mFilteredExifData[$prop]) <= 8 ) {
 				//invalid. Must be at least 9 bytes long.
 
-				$this->debug( $this->mFilteredExifData[$prop], __FUNCTION__, false );
-				unset( $this->mFilteredExifData[$prop] );
+				$this->debug( $this->mFilteredExifData[$prop] , __FUNCTION__, false );
+				unset($this->mFilteredExifData[$prop]);
 				return;
 			}
-			$charCode = substr( $this->mFilteredExifData[$prop], 0, 8 );
-			$val = substr( $this->mFilteredExifData[$prop], 8 );
-
-			switch ( $charCode ) {
+			$charCode = substr( $this->mFilteredExifData[$prop], 0, 8);
+			$val = substr( $this->mFilteredExifData[$prop], 8);
+			
+			
+			switch ($charCode) {
 				case "\x4A\x49\x53\x00\x00\x00\x00\x00":
 					//JIS
 					$charset = "Shift-JIS";
@@ -466,9 +458,9 @@ class Exif {
 			}
 			// This could possibly check to see if iconv is really installed
 			// or if we're using the compatibility wrapper in globalFunctions.php
-			if ( $charset ) {
+			if ($charset) {
 				wfSuppressWarnings();
-				$val = iconv( $charset, 'UTF-8//IGNORE', $val );
+				$val = iconv($charset, 'UTF-8//IGNORE', $val);
 				wfRestoreWarnings();
 			} else {
 				// if valid utf-8, assume that, otherwise assume windows-1252
@@ -476,17 +468,17 @@ class Exif {
 				UtfNormal::quickIsNFCVerify( $valCopy ); //validates $valCopy.
 				if ( $valCopy !== $val ) {
 					wfSuppressWarnings();
-					$val = iconv( 'Windows-1252', 'UTF-8//IGNORE', $val );
+					$val = iconv('Windows-1252', 'UTF-8//IGNORE', $val);
 					wfRestoreWarnings();
 				}
 			}
-
+			
 			//trim and check to make sure not only whitespace.
-			$val = trim( $val );
+			$val = trim($val);
 			if ( strlen( $val ) === 0 ) {
 				//only whitespace.
-				$this->debug( $this->mFilteredExifData[$prop], __FUNCTION__, "$prop: Is only whitespace" );
-				unset( $this->mFilteredExifData[$prop] );
+				$this->debug( $this->mFilteredExifData[$prop] , __FUNCTION__, "$prop: Is only whitespace" );
+				unset($this->mFilteredExifData[$prop]);
 				return;
 			}
 
@@ -495,21 +487,21 @@ class Exif {
 		}
 	}
 	/**
-	 * Convert an Exif::UNDEFINED from a raw binary string
-	 * to its value. This is sometimes needed depending on
-	 * the type of UNDEFINED field
-	 * @param string $prop name of property
-	 */
+	* Convert an Exif::UNDEFINED from a raw binary string
+	* to its value. This is sometimes needed depending on
+	* the type of UNDEFINED field
+	* @param $prop String name of property
+	*/
 	private function exifPropToOrd ( $prop ) {
 		if ( isset( $this->mFilteredExifData[$prop] ) ) {
 			$this->mFilteredExifData[$prop] = ord( $this->mFilteredExifData[$prop] );
 		}
 	}
 	/**
-	 * Convert gps in exif form to a single floating point number
-	 * for example 10 degress 20`40`` S -> -10.34444
-	 * @param string $prop a gps coordinate exif tag name (like GPSLongitude)
-	 */
+	* Convert gps in exif form to a single floating point number
+	* for example 10 degress 20`40`` S -> -10.34444
+	* @param String $prop a gps coordinate exif tag name (like GPSLongitude)
+	*/
 	private function exifGPStoNumber ( $prop ) {
 		$loc =& $this->mFilteredExifData[$prop];
 		$dir =& $this->mFilteredExifData[$prop . 'Ref'];
@@ -545,7 +537,7 @@ class Exif {
 	 *
 	 * @deprecated since 1.18
 	 */
-	function makeFormattedData() {
+	function makeFormattedData( ) {
 		wfDeprecated( __METHOD__, '1.18' );
 		$this->mFormattedExifData = FormatMetadata::getFormattedData(
 			$this->mFilteredExifData );
@@ -557,7 +549,6 @@ class Exif {
 	 */
 	/**
 	 * Get $this->mRawExifData
-	 * @return array
 	 */
 	function getData() {
 		return $this->mRawExifData;
@@ -580,7 +571,7 @@ class Exif {
 	 */
 	function getFormattedData() {
 		wfDeprecated( __METHOD__, '1.18' );
-		if ( !$this->mFormattedExifData ) {
+		if (!$this->mFormattedExifData) {
 			$this->makeFormattedData();
 		}
 		return $this->mFormattedExifData;
@@ -612,7 +603,7 @@ class Exif {
 	 * @return bool
 	 */
 	private function isByte( $in ) {
-		if ( !is_array( $in ) && sprintf( '%d', $in ) == $in && $in >= 0 && $in <= 255 ) {
+		if ( !is_array( $in ) && sprintf('%d', $in) == $in && $in >= 0 && $in <= 255 ) {
 			$this->debug( $in, __FUNCTION__, true );
 			return true;
 		} else {
@@ -648,7 +639,7 @@ class Exif {
 	 * @return bool
 	 */
 	private function isShort( $in ) {
-		if ( !is_array( $in ) && sprintf( '%d', $in ) == $in && $in >= 0 && $in <= 65536 ) {
+		if ( !is_array( $in ) && sprintf('%d', $in) == $in && $in >= 0 && $in <= 65536 ) {
 			$this->debug( $in, __FUNCTION__, true );
 			return true;
 		} else {
@@ -662,7 +653,7 @@ class Exif {
 	 * @return bool
 	 */
 	private function isLong( $in ) {
-		if ( !is_array( $in ) && sprintf( '%d', $in ) == $in && $in >= 0 && $in <= 4294967296 ) {
+		if ( !is_array( $in ) && sprintf('%d', $in) == $in && $in >= 0 && $in <= 4294967296 ) {
 			$this->debug( $in, __FUNCTION__, true );
 			return true;
 		} else {
@@ -677,7 +668,7 @@ class Exif {
 	 */
 	private function isRational( $in ) {
 		$m = array();
-		if ( !is_array( $in ) && preg_match( '/^(\d+)\/(\d+[1-9]|[1-9]\d*)$/', $in, $m ) ) { # Avoid division by zero
+		if ( !is_array( $in ) && @preg_match( '/^(\d+)\/(\d+[1-9]|[1-9]\d*)$/', $in, $m ) ) { # Avoid division by zero
 			return $this->isLong( $m[1] ) && $this->isLong( $m[2] );
 		} else {
 			$this->debug( $in, __FUNCTION__, 'fed a non-fraction value' );
@@ -727,8 +718,8 @@ class Exif {
 	 * Validates if a tag has a legal value according to the Exif spec
 	 *
 	 * @private
-	 * @param string $section section where tag is located.
-	 * @param string $tag the tag to check.
+	 * @param $section String: section where tag is located.
+	 * @param $tag String: the tag to check.
 	 * @param $val Mixed: the value of the tag.
 	 * @param $recursive Boolean: true if called recursively for array types.
 	 * @return bool
@@ -748,10 +739,10 @@ class Exif {
 			return false;
 		}
 		if( $count > 1 ) {
-			foreach( $val as $v ) {
+			foreach( $val as $v ) { 
 				if( !$this->validate( $section, $tag, $v, true ) ) {
-					return false;
-				}
+					return false; 
+				} 
 			}
 			return true;
 		}
@@ -813,13 +804,13 @@ class Exif {
 		}
 
 		if ( $action === true ) {
-			wfDebugLog( $this->log, "$class::$fname: accepted: '$in' (type: $type)\n" );
+			wfDebugLog( $this->log, "$class::$fname: accepted: '$in' (type: $type)\n");
 		} elseif ( $action === false ) {
-			wfDebugLog( $this->log, "$class::$fname: rejected: '$in' (type: $type)\n" );
+			wfDebugLog( $this->log, "$class::$fname: rejected: '$in' (type: $type)\n");
 		} elseif ( $action === null ) {
-			wfDebugLog( $this->log, "$class::$fname: input was: '$in' (type: $type)\n" );
+			wfDebugLog( $this->log, "$class::$fname: input was: '$in' (type: $type)\n");
 		} else {
-			wfDebugLog( $this->log, "$class::$fname: $action (type: $type; content: '$in')\n" );
+			wfDebugLog( $this->log, "$class::$fname: $action (type: $type; content: '$in')\n");
 		}
 	}
 
@@ -828,7 +819,7 @@ class Exif {
 	 *
 	 * @private
 	 *
-	 * @param string $fname the name of the function calling this function
+	 * @param $fname String: the name of the function calling this function
 	 * @param $io Boolean: Specify whether we're beginning or ending
 	 */
 	private function debugFile( $fname, $io ) {
@@ -843,3 +834,4 @@ class Exif {
 		}
 	}
 }
+

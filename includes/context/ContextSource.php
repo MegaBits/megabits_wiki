@@ -28,6 +28,7 @@
  * member variable and provide accessors to it.
  */
 abstract class ContextSource implements IContextSource {
+
 	/**
 	 * @var IContextSource
 	 */
@@ -41,7 +42,7 @@ abstract class ContextSource implements IContextSource {
 	public function getContext() {
 		if ( $this->context === null ) {
 			$class = get_class( $this );
-			wfDebug( __METHOD__ . " ($class): called and \$context is null. Using RequestContext::getMain() for sanity\n" );
+			wfDebug( __METHOD__  . " ($class): called and \$context is null. Using RequestContext::getMain() for sanity\n" );
 			$this->context = RequestContext::getMain();
 		}
 		return $this->context;
@@ -51,7 +52,7 @@ abstract class ContextSource implements IContextSource {
 	 * Set the IContextSource object
 	 *
 	 * @since 1.18
-	 * @param IContextSource $context
+	 * @param $context IContextSource
 	 */
 	public function setContext( IContextSource $context ) {
 		$this->context = $context;
@@ -106,7 +107,7 @@ abstract class ContextSource implements IContextSource {
 	 * Get the OutputPage object
 	 *
 	 * @since 1.18
-	 * @return OutputPage
+	 * @return OutputPage object
 	 */
 	public function getOutput() {
 		return $this->getContext()->getOutput();
@@ -158,21 +159,12 @@ abstract class ContextSource implements IContextSource {
 	 * Parameters are the same as wfMessage()
 	 *
 	 * @since 1.18
-	 * @return Message
+	 * @return Message object
 	 */
 	public function msg( /* $args */ ) {
 		$args = func_get_args();
 		return call_user_func_array( array( $this->getContext(), 'msg' ), $args );
 	}
-
-	/**
-	 * Export the resolved user IP, HTTP headers, user ID, and session ID.
-	 * The result will be reasonably sized to allow for serialization.
-	 *
-	 * @return Array
-	 * @since 1.21
-	 */
-	public function exportSession() {
-		return $this->getContext()->exportSession();
-	}
+	
 }
+

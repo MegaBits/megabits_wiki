@@ -21,13 +21,8 @@
  * @ingroup Maintenance
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script to show database lag.
- *
- * @ingroup Maintenance
- */
 class DatabaseLag extends Maintenance {
 	public function __construct() {
 		parent::__construct();
@@ -51,7 +46,7 @@ class DatabaseLag extends Maintenance {
 				unset( $lags[0] );
 				echo gmdate( 'H:i:s' ) . ' ';
 				foreach ( $lags as $lag ) {
-					printf( "%-12s ", $lag === false ? 'false' : $lag );
+					printf( "%-12s " , $lag === false ? 'false' : $lag );
 				}
 				echo "\n";
 				sleep( 5 );
@@ -61,7 +56,7 @@ class DatabaseLag extends Maintenance {
 			$lags = $lb->getLagTimes();
 			foreach ( $lags as $i => $lag ) {
 				$name = $lb->getServerName( $i );
-				$this->output( sprintf( "%-20s %s\n", $name, $lag === false ? 'false' : $lag ) );
+				$this->output( sprintf( "%-20s %s\n" , $name, $lag === false ? 'false' : $lag ) );
 			}
 		}
 	}

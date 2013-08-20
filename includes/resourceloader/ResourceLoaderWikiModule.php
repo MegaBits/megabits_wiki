@@ -1,7 +1,5 @@
 <?php
 /**
- * Abstraction for resource loader modules which pull from wiki pages.
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -21,6 +19,8 @@
  * @author Trevor Parscal
  * @author Roan Kattouw
  */
+
+defined( 'MEDIAWIKI' ) || die( 1 );
 
 /**
  * Abstraction for resource loader modules which pull from wiki pages
@@ -42,20 +42,8 @@ abstract class ResourceLoaderWikiModule extends ResourceLoaderModule {
 	/* Abstract Protected Methods */
 
 	/**
-	 * Subclasses should return an associative array of resources in the module.
-	 * Keys should be the title of a page in the MediaWiki or User namespace.
-	 *
-	 * Values should be a nested array of options.  The supported keys are 'type' and
-	 * (CSS only) 'media'.
-	 *
-	 * For scripts, 'type' should be 'script'.
-	 *
-	 * For stylesheets, 'type' should be 'style'.
-	 * There is an optional media key, the value of which can be the
-	 * medium ('screen', 'print', etc.) of the stylesheet.
-	 *
+	 * @abstract
 	 * @param $context ResourceLoaderContext
-	 * @return array
 	 */
 	abstract protected function getPages( ResourceLoaderContext $context );
 
@@ -81,29 +69,18 @@ abstract class ResourceLoaderWikiModule extends ResourceLoaderModule {
 	 * @return null|string
 	 */
 	protected function getContent( $title ) {
+		if ( $title->getNamespace() === NS_MEDIAWIKI ) {
+			$message = wfMessage( $title->getDBkey() )->inContentLanguage();
+			return $message->exists() ? $message->plain() : '';
+		}
 		if ( !$title->isCssJsSubpage() && !$title->isCssOrJsPage() ) {
 			return null;
 		}
-		$revision = Revision::newFromTitle( $title, false, Revision::READ_NORMAL );
+		$revision = Revision::newFromTitle( $title );
 		if ( !$revision ) {
 			return null;
 		}
-
-		$content = $revision->getContent( Revision::RAW );
-
-		if ( !$content ) {
-			wfDebug( __METHOD__ . "failed to load content of JS/CSS page!\n" );
-			return null;
-		}
-
-		$model = $content->getModel();
-
-		if ( $model !== CONTENT_MODEL_CSS && $model !== CONTENT_MODEL_JAVASCRIPT ) {
-			wfDebug( __METHOD__ . "bad content model $model for JS/CSS page!\n" );
-			return null;
-		}
-
-		return $content->getNativeData(); //NOTE: this is safe, we know it's JS or CSS
+		return $revision->getRawText();
 	}
 
 	/* Methods */
@@ -126,7 +103,7 @@ abstract class ResourceLoaderWikiModule extends ResourceLoaderModule {
 			if ( strval( $script ) !== '' ) {
 				$script = $this->validateScriptFile( $titleText, $script );
 				if ( strpos( $titleText, '*/' ) === false ) {
-					$scripts .= "/* $titleText */\n";
+					$scripts .=  "/* $titleText */\n";
 				}
 				$scripts .= $script . "\n";
 			}
@@ -147,7 +124,7 @@ abstract class ResourceLoaderWikiModule extends ResourceLoaderModule {
 				continue;
 			}
 			$title = Title::newFromText( $titleText );
-			if ( !$title || $title->isRedirect() ) {
+			if ( !$title || $title->isRedirect()  ) {
 				continue;
 			}
 			$media = isset( $options['media'] ) ? $options['media'] : 'all';
@@ -160,12 +137,12 @@ abstract class ResourceLoaderWikiModule extends ResourceLoaderModule {
 			}
 			$style = CSSMin::remap( $style, false, $wgScriptPath, true );
 			if ( !isset( $styles[$media] ) ) {
-				$styles[$media] = array();
+				$styles[$media] = '';
 			}
 			if ( strpos( $titleText, '*/' ) === false ) {
-				$style = "/* $titleText */\n" . $style;
+				$styles[$media] .=  "/* $titleText */\n";
 			}
-			$styles[$media][] = $style;
+			$styles[$media] .= $style . "\n";
 		}
 		return $styles;
 	}
@@ -204,7 +181,7 @@ abstract class ResourceLoaderWikiModule extends ResourceLoaderModule {
 			// We're dealing with a subclass that doesn't have a DB
 			return array();
 		}
-
+		
 		$hash = $context->getHash();
 		if ( isset( $this->titleMtimes[$hash] ) ) {
 			return $this->titleMtimes[$hash];

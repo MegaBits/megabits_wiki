@@ -18,7 +18,7 @@
  * http://www.gnu.org/copyleft/gpl.html
  *
  * @file
- * @author Antoine Musso "<hashar at free dot fr>", Aaron Schulz
+ * @author Antoine Musso <hashar at free dot fr>, Aaron Schulz
  */
 
 // Some regex definition to "play" with IP address and IP address blocks
@@ -77,7 +77,7 @@ class IP {
 	 * SIIT IPv4-translated addresses are rejected.
 	 * Note: canonicalize() tries to convert translated addresses to IPv4.
 	 *
-	 * @param string $ip possible IP address
+	 * @param $ip String: possible IP address
 	 * @return Boolean
 	 */
 	public static function isIPAddress( $ip ) {
@@ -88,7 +88,7 @@ class IP {
 	 * Given a string, determine if it as valid IP in IPv6 only.
 	 * Note: Unlike isValid(), this looks for networks too.
 	 *
-	 * @param string $ip possible IP address
+	 * @param $ip String: possible IP address
 	 * @return Boolean
 	 */
 	public static function isIPv6( $ip ) {
@@ -99,7 +99,7 @@ class IP {
 	 * Given a string, determine if it as valid IP in IPv4 only.
 	 * Note: Unlike isValid(), this looks for networks too.
 	 *
-	 * @param string $ip possible IP address
+	 * @param $ip String: possible IP address
 	 * @return Boolean
 	 */
 	public static function isIPv4( $ip ) {
@@ -133,11 +133,11 @@ class IP {
 	}
 
 	/**
-	 * Convert an IP into a verbose, uppercase, normalized form.
+	 * Convert an IP into a nice standard form.
 	 * IPv6 addresses in octet notation are expanded to 8 words.
 	 * IPv4 addresses are just trimmed.
 	 *
-	 * @param string $ip IP address in quad or octet form (CIDR or not).
+	 * @param $ip String: IP address in quad or octet form (CIDR or not).
 	 * @return String
 	 */
 	public static function sanitizeIP( $ip ) {
@@ -180,51 +180,8 @@ class IP {
 				$ip
 			);
 		}
-		// Remove leading zeros from each bloc as needed
+		// Remove leading zereos from each bloc as needed
 		$ip = preg_replace( '/(^|:)0+(' . RE_IPV6_WORD . ')/', '$1$2', $ip );
-		return $ip;
-	}
-
-	/**
-	 * Prettify an IP for display to end users.
-	 * This will make it more compact and lower-case.
-	 *
-	 * @param $ip string
-	 * @return string
-	 */
-	public static function prettifyIP( $ip ) {
-		$ip = self::sanitizeIP( $ip ); // normalize (removes '::')
-		if ( self::isIPv6( $ip ) ) {
-			// Split IP into an address and a CIDR
-			if ( strpos( $ip, '/' ) !== false ) {
-				list( $ip, $cidr ) = explode( '/', $ip, 2 );
-			} else {
-				list( $ip, $cidr ) = array( $ip, '' );
-			}
-			// Get the largest slice of words with multiple zeros
-			$offset = 0;
-			$longest = $longestPos = false;
-			while ( preg_match(
-				'!(?:^|:)0(?::0)+(?:$|:)!', $ip, $m, PREG_OFFSET_CAPTURE, $offset
-			) ) {
-				list( $match, $pos ) = $m[0]; // full match
-				if ( strlen( $match ) > strlen( $longest ) ) {
-					$longest = $match;
-					$longestPos = $pos;
-				}
-				$offset += ( $pos + strlen( $match ) ); // advance
-			}
-			if ( $longest !== false ) {
-				// Replace this portion of the string with the '::' abbreviation
-				$ip = substr_replace( $ip, '::', $longestPos, strlen( $longest ) );
-			}
-			// Add any CIDR back on
-			if ( $cidr !== '' ) {
-				$ip = "{$ip}/{$cidr}";
-			}
-			// Convert to lower case to make it more readable
-			$ip = strtolower( $ip );
-		}
 		return $ip;
 	}
 
@@ -241,7 +198,7 @@ class IP {
 	 *
 	 * A bare IPv6 address is accepted despite the lack of square brackets.
 	 *
-	 * @param string $both The string with the host and port
+	 * @param $both The string with the host and port
 	 * @return array
 	 */
 	public static function splitHostAndPort( $both ) {
@@ -316,7 +273,7 @@ class IP {
 	/**
 	 * Convert an IPv4 or IPv6 hexadecimal representation back to readable format
 	 *
-	 * @param string $hex number, with "v6-" prefix if it is IPv6
+	 * @param $hex String: number, with "v6-" prefix if it is IPv6
 	 * @return String: quad-dotted (IPv4) or octet notation (IPv6)
 	 */
 	public static function formatHex( $hex ) {
@@ -444,7 +401,7 @@ class IP {
 	 * function for an IPv6 address will be prefixed with "v6-", a non-
 	 * hexadecimal string which sorts after the IPv4 addresses.
 	 *
-	 * @param string $ip quad dotted/octet IP address.
+	 * @param $ip String: quad dotted/octet IP address.
 	 * @return String
 	 */
 	public static function toHex( $ip ) {
@@ -462,7 +419,7 @@ class IP {
 	/**
 	 * Given an IPv6 address in octet notation, returns a pure hex string.
 	 *
-	 * @param string $ip octet ipv6 IP address.
+	 * @param $ip String: octet ipv6 IP address.
 	 * @return String: pure hex (uppercase)
 	 */
 	private static function IPv6ToRawHex( $ip ) {
@@ -482,7 +439,7 @@ class IP {
 	 * Like ip2long() except that it actually works and has a consistent error return value.
 	 * Comes from ProxyTools.php
 	 *
-	 * @param string $ip quad dotted IP address.
+	 * @param $ip String: quad dotted IP address.
 	 * @return Mixed: string/int/false
 	 */
 	public static function toUnsigned( $ip ) {
@@ -509,7 +466,7 @@ class IP {
 	 * Convert a network specification in CIDR notation
 	 * to an integer network and a number of bits
 	 *
-	 * @param string $range IP with CIDR prefix
+	 * @param $range String: IP with CIDR prefix
 	 * @return array(int or string, int)
 	 */
 	public static function parseCIDR( $range ) {
@@ -551,7 +508,7 @@ class IP {
 	 *     2001:0db8:85a3::7344/96          			 CIDR
 	 *     2001:0db8:85a3::7344 - 2001:0db8:85a3::7344   Explicit range
 	 *     2001:0db8:85a3::7344             			 Single IP
-	 * @param string $range IP range
+	 * @param $range String: IP range
 	 * @return array(string, string)
 	 */
 	public static function parseRange( $range ) {
@@ -692,8 +649,8 @@ class IP {
 	/**
 	 * Determine if a given IPv4/IPv6 address is in a given CIDR network
 	 *
-	 * @param string $addr the address to check against the given range.
-	 * @param string $range the range to check the given address against.
+	 * @param $addr String: the address to check against the given range.
+	 * @param $range String: the range to check the given address against.
 	 * @return Boolean: whether or not the given address is in the given range.
 	 */
 	public static function isInRange( $addr, $range ) {
@@ -710,13 +667,10 @@ class IP {
 	 * This currently only checks a few IPV4-to-IPv6 related cases.  More
 	 * unusual representations may be added later.
 	 *
-	 * @param string $addr something that might be an IP address
+	 * @param $addr String: something that might be an IP address
 	 * @return String: valid dotted quad IPv4 address or null
 	 */
 	public static function canonicalize( $addr ) {
-		// remove zone info (bug 35738)
-		$addr = preg_replace( '/\%.*/', '', $addr );
-
 		if ( self::isValid( $addr ) ) {
 			return $addr;
 		}
@@ -742,13 +696,13 @@ class IP {
 			return long2ip( ( hexdec( $m[1] ) << 16 ) + hexdec( $m[2] ) );
 		}
 
-		return null; // give up
+		return null;  // give up
 	}
 
 	/**
-	 * Gets rid of unneeded numbers in quad-dotted/octet IP strings
+	 * Gets rid of uneeded numbers in quad-dotted/octet IP strings
 	 * For example, 127.111.113.151/24 -> 127.111.113.0/24
-	 * @param string $range IP address to normalize
+	 * @param $range String: IP address to normalize
 	 * @return string
 	 */
 	public static function sanitizeRange( $range ) {

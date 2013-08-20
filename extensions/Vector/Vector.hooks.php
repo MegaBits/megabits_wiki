@@ -31,6 +31,20 @@ class VectorHooks {
 		'collapsibletabs' => array(
 			'modules' => array( 'ext.vector.collapsibleTabs' ),
 		),
+		'editwarning' => array(
+			'preferences' => array(
+				// Ideally this would be 'vector-editwarning'
+				'useeditwarning' => array(
+					'type' => 'toggle',
+					'label-message' => 'vector-editwarning-preference',
+					'section' => 'editing/advancedediting',
+				),
+			),
+			'requirements' => array(
+				'useeditwarning' => true,
+			),
+			'modules' => array( 'ext.vector.editWarning' ),
+		),
 		'expandablesearch' => array(
 			'requirements' => array( 'vector-simplesearch' => true ),
 			'modules' => array( 'ext.vector.expandableSearch' ),
@@ -48,6 +62,10 @@ class VectorHooks {
 			'requirements' => array(
 				'vector-noexperiments' => false,
 			),
+		),
+		'simplesearch' => array(
+			'requirements' => array( 'vector-simplesearch' => true, 'disablesuggest' => false ),
+			'modules' => array( 'ext.vector.simpleSearch' ),
 		),
 		'experiments' => array(
 			'preferences' => array(

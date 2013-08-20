@@ -4,7 +4,7 @@
  *
  * Created on Dec 22, 2010
  *
- * Copyright © 2010 Roan Kattouw "<Firstname>.<Lastname>@gmail.com"
+ * Copyright © 2010 Roan Kattouw <Firstname>.<Lastname>@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,12 +70,9 @@ class ApiQueryQueryPage extends ApiQueryGeneratorBase {
 	 * @param $resultPageSet ApiPageSet
 	 */
 	public function run( $resultPageSet = null ) {
-		global $wgQueryCacheLimit;
-
 		$params = $this->extractRequestParams();
 		$result = $this->getResult();
 
-		/** @var $qp QueryPage */
 		$qp = new $this->qpMap[$params['page']]();
 		if ( !$qp->userCanExecute( $this->getUser() ) ) {
 			$this->dieUsageMsg( 'specialpage-cantexecute' );
@@ -91,7 +88,6 @@ class ApiQueryQueryPage extends ApiQueryGeneratorBase {
 				if ( $ts ) {
 					$r['cachedtimestamp'] = wfTimestamp( TS_ISO_8601, $ts );
 				}
-				$r['maxresults'] = $wgQueryCacheLimit;
 			}
 		}
 		$result->addValue( array( 'query' ), $this->getModuleName(), $r );
@@ -142,7 +138,6 @@ class ApiQueryQueryPage extends ApiQueryGeneratorBase {
 	}
 
 	public function getCacheMode( $params ) {
-		/** @var $qp QueryPage */
 		$qp = new $this->qpMap[$params['page']]();
 		if ( $qp->getRestriction() != '' ) {
 			return 'private';
@@ -175,45 +170,13 @@ class ApiQueryQueryPage extends ApiQueryGeneratorBase {
 		);
 	}
 
-	public function getResultProperties() {
-		return array(
-			ApiBase::PROP_ROOT => array(
-				'name' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => false
-				),
-				'disabled' => array(
-					ApiBase::PROP_TYPE => 'boolean',
-					ApiBase::PROP_NULLABLE => false
-				),
-				'cached' => array(
-					ApiBase::PROP_TYPE => 'boolean',
-					ApiBase::PROP_NULLABLE => false
-				),
-				'cachedtimestamp' => array(
-					ApiBase::PROP_TYPE => 'timestamp',
-					ApiBase::PROP_NULLABLE => true
-				)
-			),
-			'' => array(
-				'value' => 'string',
-				'timestamp' => array(
-					ApiBase::PROP_TYPE => 'timestamp',
-					ApiBase::PROP_NULLABLE => true
-				),
-				'ns' => 'namespace',
-				'title' => 'string'
-			)
-		);
-	}
-
 	public function getDescription() {
 		return 'Get a list provided by a QueryPage-based special page';
 	}
 
 	public function getPossibleErrors() {
 		return array_merge( parent::getPossibleErrors(), array(
-			array( 'specialpage-cantexecute' )
+			 array( 'specialpage-cantexecute' )
 		) );
 	}
 
@@ -221,5 +184,9 @@ class ApiQueryQueryPage extends ApiQueryGeneratorBase {
 		return array(
 			'api.php?action=query&list=querypage&qppage=Ancientpages'
 		);
+	}
+
+	public function getVersion() {
+		return __CLASS__ . ': $Id$';
 	}
 }

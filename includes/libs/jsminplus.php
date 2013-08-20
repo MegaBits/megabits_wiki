@@ -1,4 +1,5 @@
 <?php
+
 /**
  * JSMinPlus version 1.4
  *
@@ -24,7 +25,6 @@
  *
  * Latest version of this script: http://files.tweakers.net/jsminplus/jsminplus.zip
  *
- * @file
  */
 
 /* ***** BEGIN LICENSE BLOCK *****
@@ -256,7 +256,7 @@ class JSMinPlus
 							}
 							elseif ($type == KEYWORD_VAR && $type == $lastType)
 							{
-								// multiple var-statements can go into one
+								// mutiple var-statements can go into one
 								$t = ',' . substr($t, 4);
 							}
 							else
@@ -298,7 +298,7 @@ class JSMinPlus
 
 				if ($elsePart)
 				{
-					// be careful and always make a block out of the thenPart; could be more optimized but is a lot of trouble
+					// be carefull and always make a block out of the thenPart; could be more optimized but is a lot of trouble
 					if ($thenPart != ';' && $thenPart[0] != '{')
 						$thenPart = '{' . $thenPart . '}';
 
@@ -521,7 +521,7 @@ class JSMinPlus
 					break;
 
 					case TOKEN_STRING:
-						//combine concatenated strings with same quote style
+						//combine concatted strings with same quotestyle
 						if ($n->type == OP_PLUS && substr($left, -1) == $right[0])
 						{
 							$s = substr($left, 0, -1) . substr($right, 1);

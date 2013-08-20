@@ -4,7 +4,7 @@
  *
  * Created on Oct 31, 2007
  *
- * Copyright © 2007 Roan Kattouw "<Firstname>.<Lastname>@gmail.com"
+ * Copyright © 2007 Roan Kattouw <Firstname>.<Lastname>@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,15 +30,22 @@
  */
 class ApiMove extends ApiBase {
 
+	public function __construct( $main, $action ) {
+		parent::__construct( $main, $action );
+	}
+
 	public function execute() {
 		$user = $this->getUser();
 		$params = $this->extractRequestParams();
+		if ( is_null( $params['reason'] ) ) {
+			$params['reason'] = '';
+		}
 
 		$this->requireOnlyOneParameter( $params, 'from', 'fromid' );
 
 		if ( isset( $params['from'] ) ) {
 			$fromTitle = Title::newFromText( $params['from'] );
-			if ( !$fromTitle || $fromTitle->isExternal() ) {
+			if ( !$fromTitle ) {
 				$this->dieUsageMsg( array( 'invalidtitle', $params['from'] ) );
 			}
 		} elseif ( isset( $params['fromid'] ) ) {
@@ -54,7 +61,7 @@ class ApiMove extends ApiBase {
 		$fromTalk = $fromTitle->getTalkPage();
 
 		$toTitle = Title::newFromText( $params['to'] );
-		if ( !$toTitle || $toTitle->isExternal() ) {
+		if ( !$toTitle ) {
 			$this->dieUsageMsg( array( 'invalidtitle', $params['to'] ) );
 		}
 		$toTalk = $toTitle->getTalkPage();
@@ -71,37 +78,22 @@ class ApiMove extends ApiBase {
 		}
 
 		// Move the page
-		$toTitleExists = $toTitle->exists();
 		$retval = $fromTitle->moveTo( $toTitle, true, $params['reason'], !$params['noredirect'] );
 		if ( $retval !== true ) {
 			$this->dieUsageMsg( reset( $retval ) );
 		}
 
 		$r = array( 'from' => $fromTitle->getPrefixedText(), 'to' => $toTitle->getPrefixedText(), 'reason' => $params['reason'] );
-
-		if ( $fromTitle->exists() ) {
-			//NOTE: we assume that if the old title exists, it's because it was re-created as
-			// a redirect to the new title. This is not safe, but what we did before was
-			// even worse: we just determined whether a redirect should have been created,
-			// and reported that it was created if it should have, without any checks.
-			// Also note that isRedirect() is unreliable because of bug 37209.
+		if ( !$params['noredirect'] || !$user->isAllowed( 'suppressredirect' ) ) {
 			$r['redirectcreated'] = '';
-		}
-
-		if( $toTitleExists ) {
-			$r['moveoverredirect'] = '';
 		}
 
 		// Move the talk page
 		if ( $params['movetalk'] && $fromTalk->exists() && !$fromTitle->isTalkPage() ) {
-			$toTalkExists = $toTalk->exists();
 			$retval = $fromTalk->moveTo( $toTalk, true, $params['reason'], !$params['noredirect'] );
 			if ( $retval === true ) {
 				$r['talkfrom'] = $fromTalk->getPrefixedText();
 				$r['talkto'] = $toTalk->getPrefixedText();
-				if( $toTalkExists ) {
-					$r['talkmoveoverredirect'] = '';
-				}
 			} else {
 				// We're not gonna dieUsage() on failure, since we already changed something
 				$parsed = $this->parseMsg( reset( $retval ) );
@@ -125,7 +117,7 @@ class ApiMove extends ApiBase {
 			}
 		}
 
-		$watch = 'preferences';
+		$watch = "preferences";
 		if ( isset( $params['watchlist'] ) ) {
 			$watch = $params['watchlist'];
 		} elseif ( $params['watch'] ) {
@@ -188,11 +180,8 @@ class ApiMove extends ApiBase {
 				ApiBase::PARAM_TYPE => 'string',
 				ApiBase::PARAM_REQUIRED => true
 			),
-			'token' => array(
-				ApiBase::PARAM_TYPE => 'string',
-				ApiBase::PARAM_REQUIRED => true
-			),
-			'reason' => '',
+			'token' => null,
+			'reason' => null,
 			'movetalk' => false,
 			'movesubpages' => false,
 			'noredirect' => false,
@@ -224,7 +213,7 @@ class ApiMove extends ApiBase {
 			'fromid' => "Page ID of the page you want to move. Cannot be used together with {$p}from",
 			'to' => 'Title you want to rename the page to',
 			'token' => 'A move token previously retrieved through prop=info',
-			'reason' => 'Reason for the move',
+			'reason' => 'Reason for the move (optional)',
 			'movetalk' => 'Move the talk page, if it exists',
 			'movesubpages' => 'Move subpages, if applicable',
 			'noredirect' => 'Don\'t create a redirect',
@@ -232,35 +221,6 @@ class ApiMove extends ApiBase {
 			'unwatch' => 'Remove the page and the redirect from your watchlist',
 			'watchlist' => 'Unconditionally add or remove the page from your watchlist, use preferences or do not change watch',
 			'ignorewarnings' => 'Ignore any warnings'
-		);
-	}
-
-	public function getResultProperties() {
-		return array(
-			'' => array(
-				'from' => 'string',
-				'to' => 'string',
-				'reason' => 'string',
-				'redirectcreated' => 'boolean',
-				'moveoverredirect' => 'boolean',
-				'talkfrom' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				),
-				'talkto' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				),
-				'talkmoveoverredirect' => 'boolean',
-				'talkmove-error-code' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				),
-				'talkmove-error-info' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				)
-			)
 		);
 	}
 
@@ -291,11 +251,15 @@ class ApiMove extends ApiBase {
 
 	public function getExamples() {
 		return array(
-			'api.php?action=move&from=Badtitle&to=Goodtitle&token=123ABC&reason=Misspelled%20title&movetalk=&noredirect='
+			'api.php?action=move&from=Exampel&to=Example&token=123ABC&reason=Misspelled%20title&movetalk=&noredirect='
 		);
 	}
 
 	public function getHelpUrls() {
 		return 'https://www.mediawiki.org/wiki/API:Move';
+	}
+
+	public function getVersion() {
+		return __CLASS__ . ': $Id$';
 	}
 }

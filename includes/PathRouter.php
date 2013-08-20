@@ -1,26 +1,5 @@
 <?php
 /**
- * Parser to extract query parameters out of REQUEST_URI paths.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- */
-
-/**
  * PathRouter class.
  * This class can take patterns such as /wiki/$1 and use them to
  * parse query parameters out of REQUEST_URI paths.
@@ -55,7 +34,7 @@
  *     the relevant contents
  *   - The default behavior is equivalent to `array( 'title' => '$1' )`,
  *     if you don't want the title parameter you can explicitly use `array( 'title' => false )`
- *   - You can specify a value that won't have replacements in it
+ *   - You can specify a value that won't have replacements in it 
  *     using `'foo' => array( 'value' => 'bar' );`
  *
  * Options:
@@ -73,19 +52,10 @@
 class PathRouter {
 
 	/**
-	 * @var array
-	 */
-	private $patterns = array();
-
-	/**
 	 * Protected helper to do the actual bulk work of adding a single pattern.
 	 * This is in a separate method so that add() can handle the difference between
 	 * a single string $path and an array() $path that contains multiple path
 	 * patterns each with an associated $key to pass on.
-	 * @param $path string
-	 * @param $params array
-	 * @param $options array
-	 * @param $key null|string
 	 */
 	protected function doAdd( $path, $params, $options, $key = null ) {
 		// Make sure all paths start with a /
@@ -153,9 +123,9 @@ class PathRouter {
 	/**
 	 * Add a new path pattern to the path router
 	 *
-	 * @param string|array $path The path pattern to add
-	 * @param array $params The params for this path pattern
-	 * @param array $options The options for this path pattern
+	 * @param $path The path pattern to add
+	 * @param $params The params for this path pattern
+	 * @param $options The options for this path pattern
 	 */
 	public function add( $path, $params = array(), $options = array() ) {
 		if ( is_array( $path ) ) {
@@ -170,9 +140,6 @@ class PathRouter {
 	/**
 	 * Add a new path pattern to the path router with the strict option on
 	 * @see self::add
-	 * @param $path string|array
-	 * @param $params array
-	 * @param $options array
 	 */
 	public function addStrict( $path, $params = array(), $options = array() ) {
 		$options['strict'] = true;
@@ -191,10 +158,6 @@ class PathRouter {
 		array_multisort( $weights, SORT_DESC, SORT_NUMERIC, $this->patterns );
 	}
 
-	/**
-	 * @param $pattern object
-	 * @return float|int
-	 */
 	protected static function makeWeight( $pattern ) {
 		# Start with a weight of 0
 		$weight = 0;
@@ -232,14 +195,14 @@ class PathRouter {
 	/**
 	 * Parse a path and return the query matches for the path
 	 *
-	 * @param string $path The path to parse
+	 * @param $path The path to parse
 	 * @return Array The array of matches for the path
 	 */
 	public function parse( $path ) {
 		// Make sure our patterns are sorted by weight so the most specific
 		// matches are tested first
 		$this->sortByWeight();
-
+		
 		$matches = null;
 
 		foreach ( $this->patterns as $pattern ) {
@@ -256,11 +219,6 @@ class PathRouter {
 		return is_null( $matches ) ? array() : $matches;
 	}
 
-	/**
-	 * @param $path string
-	 * @param $pattern string
-	 * @return array|null
-	 */
 	protected static function extractTitle( $path, $pattern ) {
 		// Convert the path pattern into a regexp we can match with
 		$regexp = preg_quote( $pattern->path, '#' );
@@ -293,7 +251,7 @@ class PathRouter {
 			foreach ( $m as $matchKey => $matchValue ) {
 				if ( preg_match( '/^par\d+$/u', $matchKey ) ) {
 					$n = intval( substr( $matchKey, 3 ) );
-					$data['$' . $n] = rawurldecode( $matchValue );
+					$data['$'.$n] = rawurldecode( $matchValue );
 				}
 			}
 			// If present give our $data array a $key as well
@@ -363,8 +321,6 @@ class PathRouterPatternReplacer {
 	 * We do this inside of a replacement callback because after replacement we can't tell the
 	 * difference between a $1 that was not replaced and a $1 that was part of
 	 * the content a $1 was replaced with.
-	 * @param $value string
-	 * @return string
 	 */
 	public function replace( $value ) {
 		$this->error = false;
@@ -375,10 +331,6 @@ class PathRouterPatternReplacer {
 		return $value;
 	}
 
-	/**
-	 * @param $m array
-	 * @return string
-	 */
 	protected function callback( $m ) {
 		if ( $m[1] == "key" ) {
 			if ( is_null( $this->key ) ) {

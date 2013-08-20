@@ -22,11 +22,11 @@
  */
 class SpecialNewFiles extends IncludableSpecialPage {
 
-	public function __construct() {
+	public function __construct(){
 		parent::__construct( 'Newimages' );
 	}
 
-	public function execute( $par ) {
+	public function execute( $par ){
 		$this->setHeaders();
 		$this->outputHeader();
 
@@ -42,11 +42,8 @@ class SpecialNewFiles extends IncludableSpecialPage {
 			$this->getOutput()->addHTML( $pager->getNavigationBar() );
 		}
 	}
-
-	protected function getGroupName() {
-		return 'changes';
-	}
 }
+
 
 /**
  * @ingroup SpecialPage Pager
@@ -60,10 +57,7 @@ class NewFilesPager extends ReverseChronologicalPager {
 
 	function __construct( IContextSource $context, $par = null ) {
 		$this->like = $context->getRequest()->getText( 'like' );
-		$this->showbots = $context->getRequest()->getBool( 'showbots', 0 );
-		if ( is_numeric( $par ) ) {
-			$this->setLimit( $par );
-		}
+		$this->showbots = $context->getRequest()->getBool( 'showbots' , 0 );
 
 		parent::__construct( $context );
 	}
@@ -74,24 +68,21 @@ class NewFilesPager extends ReverseChronologicalPager {
 		$tables = array( 'image' );
 
 		if( !$this->showbots ) {
-			$groupsWithBotPermission = User::getGroupsWithPermission( 'bot' );
-			if( count( $groupsWithBotPermission ) ) {
-				$tables[] = 'user_groups';
-				$conds[] = 'ug_group IS NULL';
-				$jconds['user_groups'] = array(
-					'LEFT JOIN',
-					array(
-						'ug_group' => $groupsWithBotPermission,
-						'ug_user = img_user'
-					)
-				);
-			}
+			$tables[] = 'user_groups';
+			$conds[] = 'ug_group IS NULL';
+			$jconds['user_groups'] = array(
+				'LEFT JOIN',
+				array(
+					'ug_group' => User::getGroupsWithPermission( 'bot' ),
+					'ug_user = img_user'
+				)
+			);
 		}
 
-		if( !$wgMiserMode && $this->like !== null ) {
+		if( !$wgMiserMode && $this->like !== null ){
 			$dbr = wfGetDB( DB_SLAVE );
 			$likeObj = Title::newFromURL( $this->like );
-			if( $likeObj instanceof Title ) {
+			if( $likeObj instanceof Title ){
 				$like = $dbr->buildLike( $dbr->anyString(), strtolower( $likeObj->getDBkey() ), $dbr->anyString() );
 				$conds[] = "LOWER(img_name) $like";
 			}
@@ -107,18 +98,18 @@ class NewFilesPager extends ReverseChronologicalPager {
 		return $query;
 	}
 
-	function getIndexField() {
+	function getIndexField(){
 		return 'img_timestamp';
 	}
 
-	function getStartBody() {
+	function getStartBody(){
 		if ( !$this->gallery ) {
 			$this->gallery = new ImageGallery();
 		}
 		return '';
 	}
 
-	function getEndBody() {
+	function getEndBody(){
 		return $this->gallery->toHTML();
 	}
 
@@ -132,7 +123,7 @@ class NewFilesPager extends ReverseChronologicalPager {
 		$this->gallery->add(
 			$title,
 			"$ul<br />\n<i>"
-				. htmlspecialchars( $this->getLanguage()->userTimeAndDate( $row->img_timestamp, $this->getUser() ) )
+				. htmlspecialchars( $this->getLanguage()->timeanddate( $row->img_timestamp, true ) )
 				. "</i><br />\n"
 		);
 	}
@@ -148,13 +139,13 @@ class NewFilesPager extends ReverseChronologicalPager {
 			),
 			'showbots' => array(
 				'type' => 'check',
-				'label' => $this->msg( 'showhidebots', $this->msg( 'show' )->plain() )->escaped(),
+				'label' => wfMessage( 'showhidebots', wfMsg( 'show' ) ),
 				'name' => 'showbots',
 			#	'default' => $this->getRequest()->getBool( 'showbots', 0 ),
 			),
 			'limit' => array(
 				'type' => 'hidden',
-				'default' => $this->mLimit,
+				'default' => $this->getRequest()->getText( 'limit' ),
 				'name' => 'limit',
 			),
 			'offset' => array(
@@ -164,15 +155,15 @@ class NewFilesPager extends ReverseChronologicalPager {
 			),
 		);
 
-		if( $wgMiserMode ) {
+		if( $wgMiserMode ){
 			unset( $fields['like'] );
 		}
 
 		$form = new HTMLForm( $fields, $this->getContext() );
 		$form->setTitle( $this->getTitle() );
-		$form->setSubmitTextMsg( 'ilsubmit' );
+		$form->setSubmitText( wfMsg( 'ilsubmit' ) );
 		$form->setMethod( 'get' );
-		$form->setWrapperLegendMsg( 'newimages-legend' );
+		$form->setWrapperLegend( wfMsg( 'newimages-legend' ) );
 
 		return $form;
 	}

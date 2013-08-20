@@ -1,6 +1,8 @@
 <?php
 /**
- * User-requested page cache purging.
+ * Formats credits for articles
+ *
+ * Copyright 2004, Evan Prodromou <evan@wikitravel.org>.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,16 +20,9 @@
  *
  * @file
  * @ingroup Actions
+ * @author <evan@wikitravel.org>
  */
 
-/**
- * User-requested page cache purging.
- *
- * For users with 'purge', this will directly trigger the cache purging and
- * for users without that right, it will show a confirmation form.
- *
- * @ingroup Actions
- */
 class PurgeAction extends FormAction {
 
 	private $redirectParams;
@@ -67,7 +62,7 @@ class PurgeAction extends FormAction {
 		$this->checkCanExecute( $this->getUser() );
 
 		if ( $this->getUser()->isAllowed( 'purge' ) ) {
-			$this->redirectParams = wfArrayToCgi( array_diff_key(
+			$this->redirectParams = wfArrayToCGI( array_diff_key(
 				$this->getRequest()->getQueryValues(),
 				array( 'title' => null, 'action' => null )
 			) );
@@ -84,15 +79,15 @@ class PurgeAction extends FormAction {
 	}
 
 	protected function alterForm( HTMLForm $form ) {
-		$form->setSubmitTextMsg( 'confirm_purge_button' );
+		$form->setSubmitText( wfMsg( 'confirm_purge_button' ) );
 	}
 
 	protected function preText() {
-		return $this->msg( 'confirm-purge-top' )->parse();
+		return wfMessage( 'confirm-purge-top' )->parse();
 	}
 
 	protected function postText() {
-		return $this->msg( 'confirm-purge-bottom' )->parse();
+		return wfMessage( 'confirm-purge-bottom' )->parse();
 	}
 
 	public function onSuccess() {

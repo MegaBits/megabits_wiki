@@ -34,29 +34,21 @@ class ListredirectsPage extends QueryPage {
 		parent::__construct( $name );
 	}
 
-	function isExpensive() {
-		return true;
-	}
-
-	function isSyndicated() {
-		return false;
-	}
-
-	function sortDescending() {
-		return false;
-	}
+	function isExpensive() { return true; }
+	function isSyndicated() { return false; }
+	function sortDescending() { return false; }
 
 	function getQueryInfo() {
 		return array(
 			'tables' => array( 'p1' => 'page', 'redirect', 'p2' => 'page' ),
-			'fields' => array( 'namespace' => 'p1.page_namespace',
-					'title' => 'p1.page_title',
-					'value' => 'p1.page_title',
+			'fields' => array( 'p1.page_namespace AS namespace',
+					'p1.page_title AS title',
+					'p1.page_title AS value',
 					'rd_namespace',
 					'rd_title',
 					'rd_fragment',
 					'rd_interwiki',
-					'redirid' => 'p2.page_id' ),
+					'p2.page_id AS redirid' ),
 			'conds' => array( 'p1.page_is_redirect' => 1 ),
 			'join_conds' => array( 'redirect' => array(
 					'LEFT JOIN', 'rd_from=p1.page_id' ),
@@ -85,7 +77,7 @@ class ListredirectsPage extends QueryPage {
 		$batch->execute();
 
 		// Back to start for display
-		if ( $res->numRows() > 0 ) {
+		if ( $db->numRows( $res ) > 0 ) {
 			// If there are no rows we get an error seeking.
 			$db->dataSeek( $res, 0 );
 		}
@@ -125,9 +117,5 @@ class ListredirectsPage extends QueryPage {
 		} else {
 			return "<del>$rd_link</del>";
 		}
-	}
-
-	protected function getGroupName() {
-		return 'pages';
 	}
 }

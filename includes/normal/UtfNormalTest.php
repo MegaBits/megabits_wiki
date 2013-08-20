@@ -25,10 +25,6 @@
  * @ingroup UtfNormal
  */
 
-if( PHP_SAPI != 'cli' ) {
-	die( "Run me from the command line please.\n" );
-}
-
 $verbose = true;
 #define( 'PRETTY_UTF8', true );
 
@@ -41,7 +37,6 @@ if( defined( 'PRETTY_UTF8' ) ) {
 } else {
 	/**
 	 * @ignore
-	 * @return string
 	 */
 	function pretty( $string ) {
 		return trim( preg_replace( '/(.)/use',
@@ -57,6 +52,10 @@ if( isset( $_SERVER['argv'] ) && in_array( '--icu', $_SERVER['argv'] ) ) {
 require_once 'UtfNormalDefines.php';
 require_once 'UtfNormalUtil.php';
 require_once 'UtfNormal.php';
+
+if( php_sapi_name() != 'cli' ) {
+	die( "Run me from the command line please.\n" );
+}
 
 $in = fopen("NormalizationTest.txt", "rt");
 if( !$in ) {

@@ -1,7 +1,5 @@
 <?php
 /**
- * Fix erroneous page_latest values due to slave desynchronisation.
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -17,18 +15,11 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @file
  * @ingroup Maintenance
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script that fixes erroneous page_latest values
- * due to slave desynchronisation.
- *
- * @ingroup Maintenance
- */
 class FixSlaveDesync extends Maintenance {
 	public function __construct() {
 		parent::__construct();
@@ -67,7 +58,7 @@ class FixSlaveDesync extends Maintenance {
 		$dbw = wfGetDB( DB_MASTER );
 		$masterIDs = array();
 		$res = $dbw->select( 'page', array( 'page_id', 'page_latest' ), array( 'page_id<6054123' ), __METHOD__ );
-		$this->output( "Number of pages: " . $res->numRows() . "\n" );
+		$this->output( "Number of pages: " . $dbw->numRows( $res ) . "\n" );
 		foreach ( $res as $row ) {
 			$masterIDs[$row->page_id] = $row->page_latest;
 			if ( !( ++$n % 10000 ) ) {
@@ -97,7 +88,7 @@ class FixSlaveDesync extends Maintenance {
 	private function desyncFixPage( $pageID ) {
 		# Check for a corrupted page_latest
 		$dbw = wfGetDB( DB_MASTER );
-		$dbw->begin( __METHOD__ );
+		$dbw->begin();
 		$realLatest = $dbw->selectField( 'page', 'page_latest', array( 'page_id' => $pageID ),
 			__METHOD__, 'FOR UPDATE' );
 		# list( $masterFile, $masterPos ) = $dbw->getMasterPos();
@@ -107,7 +98,7 @@ class FixSlaveDesync extends Maintenance {
 			/*
 			if ( !$db->masterPosWait( $masterFile, $masterPos, 10 ) ) {
 				   $this->output( "Slave is too lagged, aborting\n" );
-				   $dbw->commit( __METHOD__ );
+				   $dbw->commit();
 				   sleep(10);
 				   return;
 			}*/
@@ -121,7 +112,7 @@ class FixSlaveDesync extends Maintenance {
 		}
 		if ( !$found ) {
 			$this->output( "page_id $pageID seems fine\n" );
-			$dbw->commit( __METHOD__ );
+			$dbw->commit();
 			return;
 		}
 
@@ -208,7 +199,7 @@ class FixSlaveDesync extends Maintenance {
 			}
 			$this->output( "done\n" );
 		}
-		$dbw->commit( __METHOD__ );
+		$dbw->commit();
 	}
 }
 

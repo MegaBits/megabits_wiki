@@ -1,25 +1,4 @@
 <?php
-/**
- * Helper functions for feeds.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- * @ingroup Feed
- */
 
 /**
  * Helper functions for feeds
@@ -33,13 +12,13 @@ class FeedUtils {
 	 * If the feed should be purged; $timekey and $key will be removed from
 	 * $messageMemc
 	 *
-	 * @param string $timekey cache key of the timestamp of the last item
-	 * @param string $key cache key of feed's content
+	 * @param $timekey String: cache key of the timestamp of the last item
+	 * @param $key String: cache key of feed's content
 	 */
 	public static function checkPurge( $timekey, $key ) {
 		global $wgRequest, $wgUser, $messageMemc;
 		$purge = $wgRequest->getVal( 'action' ) === 'purge';
-		if ( $purge && $wgUser->isAllowed( 'purge' ) ) {
+		if ( $purge && $wgUser->isAllowed('purge') ) {
 			$messageMemc->delete( $timekey );
 			$messageMemc->delete( $key );
 		}
@@ -48,7 +27,7 @@ class FeedUtils {
 	/**
 	 * Check whether feeds can be used and that $type is a valid feed type
 	 *
-	 * @param string $type feed type, as requested by the user
+	 * @param $type String: feed type, as requested by the user
 	 * @return Boolean
 	 */
 	public static function checkFeedOutput( $type ) {
@@ -85,9 +64,9 @@ class FeedUtils {
 			$row->rc_last_oldid, $row->rc_this_oldid,
 			$timestamp,
 			($row->rc_deleted & Revision::DELETED_COMMENT)
-				? wfMessage( 'rev-deleted-comment' )->escaped()
+				? wfMsgHtml('rev-deleted-comment') 
 				: $row->rc_comment,
-			$actiontext
+			$actiontext 
 		);
 	}
 
@@ -98,15 +77,15 @@ class FeedUtils {
 	 * @param $oldid Integer: old revision's id
 	 * @param $newid Integer: new revision's id
 	 * @param $timestamp Integer: new revision's timestamp
-	 * @param string $comment new revision's comment
-	 * @param string $actiontext text of the action; in case of log event
+	 * @param $comment String: new revision's comment
+	 * @param $actiontext String: text of the action; in case of log event
 	 * @return String
 	 */
-	public static function formatDiffRow( $title, $oldid, $newid, $timestamp, $comment, $actiontext = '' ) {
+	public static function formatDiffRow( $title, $oldid, $newid, $timestamp, $comment, $actiontext='' ) {
 		global $wgFeedDiffCutoff, $wgLang;
 		wfProfileIn( __METHOD__ );
 
-		// log entries
+		# log enties
 		$completeText = '<p>' . implode( ' ',
 			array_filter(
 				array(
@@ -115,7 +94,7 @@ class FeedUtils {
 
 		// NOTE: Check permissions for anonymous users, not current user.
 		//       No "privileged" version should end up in the cache.
-		//       Most feed readers will not log in anyway.
+		//       Most feed readers will not log in anway.
 		$anon = new User();
 		$accErrors = $title->getUserPermissionsErrors( 'read', $anon, true );
 
@@ -129,32 +108,21 @@ class FeedUtils {
 		if( $oldid ) {
 			wfProfileIn( __METHOD__."-dodiff" );
 
-			#$diffText = $de->getDiff( wfMessage( 'revisionasof',
+			#$diffText = $de->getDiff( wfMsg( 'revisionasof',
 			#	$wgLang->timeanddate( $timestamp ),
 			#	$wgLang->date( $timestamp ),
-			#	$wgLang->time( $timestamp ) )->text(),
-			#	wfMessage( 'currentrev' )->text() );
+			#	$wgLang->time( $timestamp ) ),
+			#	wfMsg( 'currentrev' ) );
 
-			$diffText = '';
 			// Don't bother generating the diff if we won't be able to show it
 			if ( $wgFeedDiffCutoff > 0 ) {
-				$rev = Revision::newFromId( $oldid );
-
-				if ( !$rev ) {
-					$diffText = false;
-				} else {
-					$context = clone RequestContext::getMain();
-					$context->setTitle( $title );
-
-					$contentHandler = $rev->getContentHandler();
-					$de = $contentHandler->createDifferenceEngine( $context, $oldid, $newid );
-					$diffText = $de->getDiff(
-						wfMessage( 'previousrevision' )->text(), // hack
-						wfMessage( 'revisionasof',
-							$wgLang->timeanddate( $timestamp ),
-							$wgLang->date( $timestamp ),
-							$wgLang->time( $timestamp ) )->text() );
-				}
+				$de = new DifferenceEngine( $title, $oldid, $newid );
+				$diffText = $de->getDiff(
+					wfMsg( 'previousrevision' ), // hack
+					wfMsg( 'revisionasof',
+					$wgLang->timeanddate( $timestamp ),
+					$wgLang->date( $timestamp ),
+					$wgLang->time( $timestamp ) ) );
 			}
 
 			if ( $wgFeedDiffCutoff <= 0 || ( strlen( $diffText ) > $wgFeedDiffCutoff ) ) {
@@ -172,36 +140,16 @@ class FeedUtils {
 		} else {
 			$rev = Revision::newFromId( $newid );
 			if( $wgFeedDiffCutoff <= 0 || is_null( $rev ) ) {
-				$newContent = ContentHandler::getForTitle( $title )->makeEmptyContent();
+				$newtext = '';
 			} else {
-				$newContent = $rev->getContent();
+				$newtext = $rev->getText();
 			}
-
-			if ( $newContent instanceof TextContent ) {
-				// only textual content has a "source view".
-				$text = $newContent->getNativeData();
-
-				if ( $wgFeedDiffCutoff <= 0 || strlen( $text ) > $wgFeedDiffCutoff ) {
-					$html = null;
-				} else {
-					$html = nl2br( htmlspecialchars( $text ) );
-				}
-			} else {
-				//XXX: we could get an HTML representation of the content via getParserOutput, but that may
-				//     contain JS magic and generally may not be suitable for inclusion in a feed.
-				//     Perhaps Content should have a getDescriptiveHtml method and/or a getSourceText method.
-				//Compare also ApiFeedContributions::feedItemDesc
-				$html = null;
-			}
-
-			if ( $html === null ) {
-
+			if ( $wgFeedDiffCutoff <= 0 || strlen( $newtext ) > $wgFeedDiffCutoff ) {
 				// Omit large new page diffs, bug 29110
-				// Also use diff link for non-textual content
 				$diffText = self::getDiffLink( $title, $newid );
 			} else {
-				$diffText = '<p><b>' . wfMessage( 'newpage' )->text() . '</b></p>' .
-					'<div>' . $html . '</div>';
+				$diffText = '<p><b>' . wfMsg( 'newpage' ) . '</b></p>' .
+					'<div>' . nl2br( htmlspecialchars( $newtext ) ) . '</div>';
 			}
 		}
 		$completeText .= $diffText;
@@ -217,16 +165,15 @@ class FeedUtils {
 	 * @param $title Title object: used to generate the diff URL
 	 * @param $newid Integer newid for this diff
 	 * @param $oldid Integer|null oldid for the diff. Null means it is a new article
-	 * @return string
 	 */
 	protected static function getDiffLink( Title $title, $newid, $oldid = null ) {
 		$queryParameters = ($oldid == null)
 			? "diff={$newid}"
-			: "diff={$newid}&oldid={$oldid}";
+			: "diff={$newid}&oldid={$oldid}" ;
 		$diffUrl = $title->getFullUrl( $queryParameters );
 
 		$diffLink = Html::element( 'a', array( 'href' => $diffUrl ),
-			wfMessage( 'showdiff' )->inContentLanguage()->text() );
+			wfMsgForContent( 'showdiff' ) );
 
 		return $diffLink;
 	}
@@ -236,18 +183,18 @@ class FeedUtils {
 	 * Might be 'cleaner' to use DOM or XSLT or something,
 	 * but *gack* it's a pain in the ass.
 	 *
-	 * @param string $text diff's HTML output
+	 * @param $text String: diff's HTML output
 	 * @return String: modified HTML
 	 */
 	public static function applyDiffStyle( $text ) {
 		$styles = array(
 			'diff'             => 'background-color: white; color:black;',
-			'diff-otitle'      => 'background-color: white; color:black; text-align: center;',
-			'diff-ntitle'      => 'background-color: white; color:black; text-align: center;',
-			'diff-addedline'   => 'color:black; font-size: 88%; border-style: solid; border-width: 1px 1px 1px 4px; border-radius: 0.33em; border-color: #a3d3ff; vertical-align: top; white-space: pre-wrap;',
-			'diff-deletedline' => 'color:black; font-size: 88%; border-style: solid; border-width: 1px 1px 1px 4px; border-radius: 0.33em; border-color: #ffe49c; vertical-align: top; white-space: pre-wrap;',
-			'diff-context'     => 'background-color: #f9f9f9; color: #333333; font-size: 88%; border-style: solid; border-width: 1px 1px 1px 4px; border-radius: 0.33em; border-color: #e6e6e6; vertical-align: top; white-space: pre-wrap;',
-			'diffchange'       => 'font-weight: bold; text-decoration: none;',
+			'diff-otitle'      => 'background-color: white; color:black;',
+			'diff-ntitle'      => 'background-color: white; color:black;',
+			'diff-addedline'   => 'background: #cfc; color:black; font-size: smaller;',
+			'diff-deletedline' => 'background: #ffa; color:black; font-size: smaller;',
+			'diff-context'     => 'background: #eee; color:black; font-size: smaller;',
+			'diffchange'       => 'color: red; font-weight: bold; text-decoration: none;',
 		);
 
 		foreach( $styles as $class => $style ) {

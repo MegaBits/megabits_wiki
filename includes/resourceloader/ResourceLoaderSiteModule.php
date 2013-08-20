@@ -1,7 +1,5 @@
 <?php
 /**
- * Resource loader module for site customizations.
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -47,8 +45,8 @@ class ResourceLoaderSiteModule extends ResourceLoaderWikiModule {
 			'MediaWiki:Print.css' => array( 'type' => 'style', 'media' => 'print' ),
 		);
 		if ( $wgHandheldStyle ) {
-			$pages['MediaWiki:Handheld.css'] = array(
-				'type' => 'style',
+			$pages['MediaWiki:Handheld.css'] = array( 
+				'type' => 'style', 
 				'media' => 'handheld' );
 		}
 		return $pages;
@@ -58,7 +56,7 @@ class ResourceLoaderSiteModule extends ResourceLoaderWikiModule {
 
 	/**
 	 * Gets group name
-	 *
+	 * 
 	 * @return String: Name of group
 	 */
 	public function getGroup() {

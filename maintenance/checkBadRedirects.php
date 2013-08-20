@@ -1,6 +1,7 @@
 <?php
 /**
- * Check that pages marked as being redirects really are.
+ * CheckBadRedirects - See if pages marked as being redirects
+ * really are.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,13 +22,8 @@
  * @ingroup Maintenance
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script to check that pages marked as being redirects really are.
- *
- * @ingroup Maintenance
- */
 class CheckBadRedirects extends Maintenance {
 	public function __construct() {
 		parent::__construct();
@@ -50,7 +46,7 @@ class CheckBadRedirects extends Maintenance {
 			$title = Title::makeTitle( $row->page_namespace, $row->page_title );
 			$rev = Revision::newFromId( $row->page_latest );
 			if ( $rev ) {
-				$target = $rev->getContent()->getRedirectTarget();
+				$target = Title::newFromRedirect( $rev->getText() );
 				if ( !$target ) {
 					$this->output( $title->getPrefixedText() . "\n" );
 				}

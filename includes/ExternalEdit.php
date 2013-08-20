@@ -40,7 +40,7 @@ class ExternalEdit extends ContextSource {
 	 * Check whether external edit or diff should be used.
 	 *
 	 * @param $context IContextSource context to use
-	 * @param string $type can be either 'edit' or 'diff'
+	 * @param $type String can be either 'edit' or 'diff'
 	 * @return Bool
 	 */
 	public static function useExternalEngine( IContextSource $context, $type ) {
@@ -80,16 +80,10 @@ class ExternalEdit extends ContextSource {
 		} elseif ( $this->getRequest()->getVal( 'mode' ) == 'file' ) {
 			$type = "Edit file";
 			$image = wfLocalFile( $this->getTitle() );
-			if ( $image ) {
-				$urls = array(
-					'File' => array(
-						'Extension' => $image->getExtension(),
-						'URL' => $image->getCanonicalURL()
-					)
-				);
-			} else {
-				$urls = array();
-			}
+			$urls = array( 'File' => array(
+				'Extension' => $image->getExtension(),
+				'URL' => $image->getCanonicalURL()
+			) );
 		} else {
 			$type = "Edit text";
 			# *.wiki file extension is used by some editors for syntax

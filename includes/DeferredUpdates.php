@@ -1,26 +1,5 @@
 <?php
 /**
- * Interface and manager for deferred updates.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- */
-
-/**
  * Interface that deferrable updates should implement. Basically required so we
  * can validate input on DeferredUpdates::addUpdate()
  *
@@ -34,7 +13,7 @@ interface DeferrableUpdate {
 }
 
 /**
- * Class for managing the deferred updates.
+ * Class for mananging the deferred updates.
  *
  * @since 1.19
  */
@@ -66,7 +45,7 @@ class DeferredUpdates {
 	/**
 	 * Do any deferred updates and clear the list
 	 *
-	 * @param string $commit set to 'commit' to commit after every update to
+	 * @param $commit String: set to 'commit' to commit after every update to
 	 *                prevent lock contention
 	 */
 	public static function doUpdates( $commit = '' ) {
@@ -88,19 +67,10 @@ class DeferredUpdates {
 		}
 
 		foreach ( $updates as $update ) {
-			try {
-				$update->doUpdate();
+			$update->doUpdate();
 
-				if ( $doCommit && $dbw->trxLevel() ) {
-					$dbw->commit( __METHOD__, 'flush' );
-				}
-			} catch ( MWException $e ) {
-				// We don't want exceptions thrown during deferred updates to
-				// be reported to the user since the output is already sent.
-				// Instead we just log them.
-				if ( !$e instanceof ErrorPageError ) {
-					wfDebugLog( 'exception', $e->getLogMessage() );
-				}
+			if ( $doCommit && $dbw->trxLevel() ) {
+				$dbw->commit( __METHOD__ );
 			}
 		}
 

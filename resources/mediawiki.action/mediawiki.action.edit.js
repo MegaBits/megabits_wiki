@@ -1,77 +1,45 @@
-( function ( mw, $ ) {
-	var isReady, toolbar, currentFocused, queue, $toolbar, slice;
+( function ( $, mw ) {
+	var isReady, toolbar, currentFocused;
 
 	isReady = false;
-	queue = [];
-	$toolbar = false;
-	slice = Array.prototype.slice;
-
-	/**
-	 * Internal helper that does the actual insertion
-	 * of the button into the toolbar.
-	 * See mw.toolbar.addButton for parameter documentation.
-	 */
-	function insertButton( b /* imageFile */, speedTip, tagOpen, tagClose, sampleText, imageId, selectText ) {
-		// Backwards compatibility
-		if ( typeof b !== 'object' ) {
-			b = {
-				imageFile: b,
-				speedTip: speedTip,
-				tagOpen: tagOpen,
-				tagClose: tagClose,
-				sampleText: sampleText,
-				imageId: imageId,
-				selectText: selectText
-			};
-		}
-		var $image = $( '<img>', {
-			width : 23,
-			height: 22,
-			src   : b.imageFile,
-			alt   : b.speedTip,
-			title : b.speedTip,
-			id    : b.imageId || undefined,
-			'class': 'mw-toolbar-editbutton'
-		} ).click( function () {
-			toolbar.insertTags( b.tagOpen, b.tagClose, b.sampleText, b.selectText );
-			return false;
-		} );
-
-		$toolbar.append( $image );
-		return true;
-	}
 
 	toolbar = {
+		$toolbar: false,
+		buttons: [],
 		/**
-		 * Add buttons to the toolbar.
-		 * Takes care of race conditions and time-based dependencies
-		 * by placing buttons in a queue if this method is called before
-		 * the toolbar is created.
-		 * @param {Object} button: Object with the following properties:
-		 * - imageFile
-		 * - speedTip
-		 * - tagOpen
-		 * - tagClose
-		 * - sampleText
-		 * - imageId
-		 * - selectText
-		 * For compatiblity, passing the above as separate arguments
-		 * (in the listed order) is also supported.
+		 * If you want to add buttons, use
+		 * mw.toolbar.addButton( imageFile, speedTip, tagOpen, tagClose, sampleText, imageId, selectText );
 		 */
 		addButton: function () {
 			if ( isReady ) {
-				insertButton.apply( toolbar, arguments );
+				toolbar.insertButton.apply( toolbar, arguments );
 			} else {
-				// Convert arguments list to array
-				queue.push( slice.call( arguments ) );
-			}
+				toolbar.buttons.push( [].slice.call( arguments ) );
+			}	
+		},
+		insertButton: function ( imageFile, speedTip, tagOpen, tagClose, sampleText, imageId, selectText ) {
+			var image = $('<img>', {
+				width : 23,
+				height: 22,
+				src   : imageFile,
+				alt   : speedTip,
+				title : speedTip,
+				id    : imageId || '',
+				'class': 'mw-toolbar-editbutton'
+			} ).click( function () {
+				mw.toolbar.insertTags( tagOpen, tagClose, sampleText, selectText );
+				return false;
+			} );
+
+			toolbar.$toolbar.append( image );
+			return true;
 		},
 
 		/**
-		 * Apply tagOpen/tagClose to selection in textarea,
+		 * apply tagOpen/tagClose to selection in textarea,
 		 * use sampleText instead of selection if there is none.
 		 */
-		insertTags: function ( tagOpen, tagClose, sampleText ) {
+		insertTags: function ( tagOpen, tagClose, sampleText, selectText ) {
 			if ( currentFocused && currentFocused.length ) {
 				currentFocused.textSelection(
 					'encapsulateSelection', {
@@ -83,8 +51,7 @@
 			}
 		},
 
-		// For backwards compatibility,
-		// Called from EditPage.php, maybe in other places as well.
+		// For backwards compatibility
 		init: function () {}
 	};
 
@@ -92,30 +59,29 @@
 	window.addButton = toolbar.addButton;
 	window.insertTags = toolbar.insertTags;
 
-	// Explose API publicly
+	// Explose publicly
 	mw.toolbar = toolbar;
 
 	$( document ).ready( function () {
-		var buttons, i, b, $iframe;
+		var buttons, i, c, iframe;
 
 		// currentFocus is used to determine where to insert tags
 		currentFocused = $( '#wpTextbox1' );
 
-		// Populate the selector cache for $toolbar
-		$toolbar = $( '#toolbar' );
+		// Populate the selector cache for $toolbar 
+		toolbar.$toolbar = $( '#toolbar' );
 
 		// Legacy: Merge buttons from mwCustomEditButtons
-		buttons = [].concat( queue, window.mwCustomEditButtons );
-		// Clear queue
-		queue.length = 0;
+		buttons = [].concat( toolbar.buttons, window.mwCustomEditButtons );
 		for ( i = 0; i < buttons.length; i++ ) {
-			b = buttons[i];
-			if ( $.isArray( b ) ) {
-				// Forwarded arguments array from mw.toolbar.addButton
-				insertButton.apply( toolbar, b );
+			if ( $.isArray( buttons[i] ) ) {
+				// Passes our button array as arguments
+				toolbar.insertButton.apply( toolbar, buttons[i] );
 			} else {
-				// Raw object from legacy mwCustomEditButtons
-				insertButton( b );
+				// Legacy mwCustomEditButtons is an object
+				c = buttons[i];
+				toolbar.insertButton( c.imageFile, c.speedTip, c.tagOpen, 
+					c.tagClose, c.sampleText, c.imageId, c.selectText );
 			}
 		}
 
@@ -126,7 +92,7 @@
 		isReady = true;
 
 		// Make sure edit summary does not exceed byte limit
-		$( '#wpSummary' ).byteLimit( 255 );
+		$( '#wpSummary' ).byteLimit( 250 );
 
 		/**
 		 * Restore the edit box scroll state following a preview operation,
@@ -154,16 +120,15 @@
 
 		// HACK: make currentFocused work with the usability iframe
 		// With proper focus detection support (HTML 5!) this'll be much cleaner
-		// TODO: Get rid of this WikiEditor code from MediaWiki core!
-		$iframe = $( '.wikiEditor-ui-text iframe' );
-		if ( $iframe.length > 0 ) {
-			$( $iframe.get( 0 ).contentWindow.document )
+		iframe = $( '.wikiEditor-ui-text iframe' );
+		if ( iframe.length > 0 ) {
+			$( iframe.get( 0 ).contentWindow.document )
 				// for IE
-				.add( $iframe.get( 0 ).contentWindow.document.body )
+				.add( iframe.get( 0 ).contentWindow.document.body )
 				.focus( function () {
-					currentFocused = $iframe;
+					currentFocused = iframe;
 				} );
 		}
 	});
 
-}( mediaWiki, jQuery ) );
+}( jQuery, mediaWiki ) );

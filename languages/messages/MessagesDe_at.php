@@ -7,7 +7,6 @@
  * @ingroup Language
  * @file
  *
- * @author Geitost
  * @author Laximilian scoken
  * @author Mucalexx
  * @author Revolus
@@ -19,11 +18,11 @@ $fallback = 'de';
 
 $messages = array(
 # Dates
-'january' => 'Jänner',
-'february' => 'Februar',
-'december' => 'Dezember',
-'january-gen' => 'Jänners',
+'january'      => 'Jänner',
+'february'     => 'Februar',
+'december'     => 'Dezember',
+'january-gen'  => 'Jänners',
 'february-gen' => 'Febers',
-'jan' => 'Jän',
+'jan'          => 'Jän',
 
 );

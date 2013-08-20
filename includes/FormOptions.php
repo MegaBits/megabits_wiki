@@ -1,35 +1,16 @@
 <?php
 /**
  * Helper class to keep track of options when mixing links and form elements.
+ * @todo This badly need some examples and tests :-)
  *
- * Copyright © 2008, Niklas Laxström
+ * Copyright © 2008, Niklas Laxstiröm
+ *
  * Copyright © 2011, Antoine Musso
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
  * @author Niklas Laxström
- * @author Antoine Musso
+ * @author Antoine Musso 
  */
 
-/**
- * Helper class to keep track of options when mixing links and form elements.
- *
- * @todo This badly need some examples and tests :-)
- */
 class FormOptions implements ArrayAccess {
 	/** @name Type constants
 	 * Used internally to map an option value to a WebRequest accessor
@@ -83,9 +64,8 @@ class FormOptions implements ArrayAccess {
 	 * which will be assumed as INT if the data is an integer.
 	 *
 	 * @param $data Mixed: value to guess type for
-	 * @throws MWException
 	 * @exception MWException Unsupported datatype
-	 * @return int Type constant
+	 * @return Type constant 
 	 */
 	public static function guessType( $data ) {
 		if ( is_bool( $data ) ) {
@@ -104,9 +84,8 @@ class FormOptions implements ArrayAccess {
 	/**
 	 * Verify the given option name exist.
 	 *
-	 * @param string $name option name
+	 * @param $name String: option name
 	 * @param $strict Boolean: throw an exception when the option does not exist (default false)
-	 * @throws MWException
 	 * @return Boolean: true if option exist, false otherwise
 	 */
 	public function validateName( $name, $strict = false ) {
@@ -123,7 +102,7 @@ class FormOptions implements ArrayAccess {
 	/**
 	 * Use to set the value of an option.
 	 *
-	 * @param string $name option name
+	 * @param $name String: option name
 	 * @param $value Mixed: value for the option
 	 * @param $force Boolean: whether to set the value when it is equivalent to the default value for this option (default false).
 	 * @return null
@@ -143,7 +122,7 @@ class FormOptions implements ArrayAccess {
 	 * Get the value for the given option name.
 	 * Internally use getValueReal()
 	 *
-	 * @param string $name option name
+	 * @param $name String: option name
 	 * @return Mixed
 	 */
 	public function getValue( $name ) {
@@ -154,7 +133,7 @@ class FormOptions implements ArrayAccess {
 
 	/**
 	 * @todo Document
-	 * @param array $option array structure describing the option
+	 * @param $option Array: array structure describing the option
 	 * @return Mixed. Value or the default value if it is null
 	 */
 	protected function getValueReal( $option ) {
@@ -168,7 +147,7 @@ class FormOptions implements ArrayAccess {
 	/**
 	 * Delete the option value.
 	 * This will make future calls to getValue()  return the default value.
-	 * @param string $name option name
+	 * @param $name String: option name
 	 * @return null
 	 */
 	public function reset( $name ) {
@@ -178,9 +157,8 @@ class FormOptions implements ArrayAccess {
 
 	/**
 	 * @todo Document
-	 * @param string $name Option name
-	 * @throws MWException If option does not exist.
-	 * @return mixed Value or the default value if it is null.
+	 * @param $name String: option name
+	 * @return null
 	 */
 	public function consumeValue( $name ) {
 		$this->validateName( $name, true );
@@ -191,7 +169,7 @@ class FormOptions implements ArrayAccess {
 
 	/**
 	 * @todo Document
-	 * @param array $names array of option names
+	 * @param $names Array: array of option names
 	 * @return null
 	 */
 	public function consumeValues( /*Array*/ $names ) {
@@ -208,12 +186,11 @@ class FormOptions implements ArrayAccess {
 
 	/**
 	 * Validate and set an option integer value
-	 * The value will be altered to fit in the range.
+	 * The value will be altered to fit in the range. 
 	 *
-	 * @param string $name option name
-	 * @param int $min minimum value
-	 * @param int $max maximum value
-	 * @throws MWException
+	 * @param $name String: option name
+	 * @param $min Int: minimum value
+	 * @param $max Int: maximum value
 	 * @exception MWException Option is not of type int
 	 * @return null
 	 */
@@ -314,17 +291,11 @@ class FormOptions implements ArrayAccess {
 	 * @see http://php.net/manual/en/class.arrayaccess.php
 	 */
 	/* @{ */
-	/**
-	 * Whether option exist
-	 * @return bool
-	 */
+	/** Whether option exist*/
 	public function offsetExists( $name ) {
 		return isset( $this->options[$name] );
 	}
-	/**
-	 * Retrieve an option value
-	 * @return Mixed
-	 */
+	/** Retrieve an option value */
 	public function offsetGet( $name ) {
 		return $this->getValue( $name );
 	}

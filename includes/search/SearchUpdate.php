@@ -4,21 +4,6 @@
  *
  * See deferred.txt
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
  * @file
  * @ingroup Search
  */
@@ -34,12 +19,7 @@ class SearchUpdate implements DeferrableUpdate {
 	private $mTitleWords;
 
 	function __construct( $id, $title, $text = false ) {
-		if ( is_string( $title ) ) {
-			$nt = Title::newFromText( $title );
-		} else {
-			$nt = $title;
-		}
-
+		$nt = Title::newFromText( $title );
 		if( $nt ) {
 			$this->mId = $id;
 			$this->mText = $text;
@@ -79,7 +59,7 @@ class SearchUpdate implements DeferrableUpdate {
 		$text = preg_replace( "/<\\/?\\s*[A-Za-z][^>]*?>/",
 			' ', $wgContLang->lc( " " . $text . " " ) ); # Strip HTML markup
 		$text = preg_replace( "/(^|\\n)==\\s*([^\\n]+)\\s*==(\\s)/sD",
-			"\\1\\2 \\2 \\2\\3", $text ); # Emphasize headings
+		  "\\1\\2 \\2 \\2\\3", $text ); # Emphasize headings
 
 		# Strip external URLs
 		$uc = "A-Za-z0-9_\\/:.,~%\\-+&;#?!=()@\\x80-\\xFF";
@@ -97,7 +77,7 @@ class SearchUpdate implements DeferrableUpdate {
 		$text = preg_replace( $pat2, " \\1 \\3", $text );
 
 		$text = preg_replace( "/([^{$lc}])([{$lc}]+)]]([a-z]+)/",
-			"\\1\\2 \\2\\3", $text ); # Handle [[game]]s
+		  "\\1\\2 \\2\\3", $text ); # Handle [[game]]s
 
 		# Strip all remaining non-search characters
 		$text = preg_replace( "/[^{$lc}]+/", " ", $text );
@@ -127,7 +107,7 @@ class SearchUpdate implements DeferrableUpdate {
 		wfRunHooks( 'SearchUpdate', array( $this->mId, $this->mNamespace, $this->mTitle, &$text ) );
 
 		# Perform the actual update
-		$search->update( $this->mId, $search->normalizeText( Title::indexTitle( $this->mNamespace, $this->mTitle ) ),
+		$search->update($this->mId, $search->normalizeText( Title::indexTitle( $this->mNamespace, $this->mTitle ) ),
 				$search->normalizeText( $text ) );
 
 		wfProfileOut( __METHOD__ );

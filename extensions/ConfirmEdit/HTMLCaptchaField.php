@@ -20,6 +20,7 @@
  * @class
  */
 class HTMLCaptchaField extends HTMLFormField {
+
 	/**
 	 * @var Captcha
 	 */
@@ -58,6 +59,8 @@ class HTMLCaptchaField extends HTMLFormField {
 		if ( $data === false ) {
 			return true;
 		}
+
+
 	}
 
 	/**

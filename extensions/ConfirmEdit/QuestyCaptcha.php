@@ -28,8 +28,7 @@ if ( !defined( 'MEDIAWIKI' ) ) {
 	exit;
 }
 
-$dir = __DIR__;
-require_once $dir . '/ConfirmEdit.php';
+require_once dirname( __FILE__ ) . '/ConfirmEdit.php';
 $wgCaptchaClass = 'QuestyCaptcha';
 
 global $wgCaptchaQuestions;
@@ -42,5 +41,5 @@ $wgCaptchaQuestions = array();
 // You can also provide several acceptable answers to a given question (the answers shall be in lowercase):
 // $wgCaptchaQuestions[] = array( 'question' => "2 + 2 ?", 'answer' => array( '4', 'four' ) );
 
-$wgExtensionMessagesFiles['QuestyCaptcha'] = $dir . '/QuestyCaptcha.i18n.php';
-$wgAutoloadClasses['QuestyCaptcha'] = $dir . '/QuestyCaptcha.class.php';
+$wgExtensionMessagesFiles['QuestyCaptcha'] = dirname( __FILE__ ) . '/QuestyCaptcha.i18n.php';
+$wgAutoloadClasses['QuestyCaptcha'] = dirname( __FILE__ ) . '/QuestyCaptcha.class.php';

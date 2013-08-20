@@ -1,36 +1,13 @@
 <?php
 /**
- * Extraction of metadata from different bitmap image types.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- * @ingroup Media
- */
+Class to deal with reconciling and extracting metadata from bitmap images.
+This is meant to comply with http://www.metadataworkinggroup.org/pdf/mwg_guidance.pdf
 
-/**
- * Class to deal with reconciling and extracting metadata from bitmap images.
- * This is meant to comply with http://www.metadataworkinggroup.org/pdf/mwg_guidance.pdf
- *
- * This sort of acts as an intermediary between MediaHandler::getMetadata
- * and the various metadata extractors.
- *
- * @todo other image formats.
- * @ingroup Media
- */
+This sort of acts as an intermediary between MediaHandler::getMetadata
+and the various metadata extractors.
+
+@todo other image formats.
+*/
 class BitmapMetadataHandler {
 
 	private $metadata = array();
@@ -47,13 +24,13 @@ class BitmapMetadataHandler {
 	private $iptcType = 'iptc-no-hash';
 
 	/**
-	 * This does the photoshop image resource app13 block
-	 * of interest, IPTC-IIM metadata is stored here.
-	 *
-	 * Mostly just calls doPSIR and doIPTC
-	 *
-	 * @param string $app13 String containing app13 block from jpeg file
-	 */
+	* This does the photoshop image resource app13 block
+	* of interest, IPTC-IIM metadata is stored here.
+	*
+	* Mostly just calls doPSIR and doIPTC
+	*
+	* @param String $app13 String containing app13 block from jpeg file
+	*/
 	private function doApp13 ( $app13 ) {
 		try {
 			$this->iptcType = JpegMetadataExtractor::doPSIR( $app13 );
@@ -68,6 +45,7 @@ class BitmapMetadataHandler {
 		$iptc = IPTC::parse( $app13 );
 		$this->addMetadata( $iptc, $this->iptcType );
 	}
+
 
 	/**
 	 * Get exif info using exif class.
@@ -90,11 +68,11 @@ class BitmapMetadataHandler {
 		}
 	}
 	/** Add misc metadata. Warning: atm if the metadata category
-	 * doesn't have a priority, it will be silently discarded.
-	 *
-	 * @param array $metaArray array of metadata values
-	 * @param string $type type. defaults to other. if two things have the same type they're merged
-	 */
+	* doesn't have a priority, it will be silently discarded.
+	*
+	* @param Array $metaArray array of metadata values
+	* @param string $type type. defaults to other. if two things have the same type they're merged
+	*/
 	function addMetadata ( $metaArray, $type = 'other' ) {
 		if ( isset( $this->metadata[$type] ) ) {
 			/* merge with old data */
@@ -105,14 +83,14 @@ class BitmapMetadataHandler {
 	}
 
 	/**
-	 * Merge together the various types of metadata
-	 * the different types have different priorites,
-	 * and are merged in order.
-	 *
-	 * This function is generally called by the media handlers' getMetadata()
-	 *
-	 * @return Array metadata array
-	 */
+	* Merge together the various types of metadata
+	* the different types have different priorites,
+	* and are merged in order.
+	*
+	* This function is generally called by the media handlers' getMetadata()
+	*
+	* @return Array metadata array
+	*/
 	function getMetadataArray () {
 		// this seems a bit ugly... This is all so its merged in right order
 		// based on the MWG recomendation.
@@ -143,8 +121,8 @@ class BitmapMetadataHandler {
 
 	/** Main entry point for jpeg's.
 	 *
-	 * @param string $filename filename (with full path)
-	 * @return array metadata result array.
+	 * @param $filename string filename (with full path)
+	 * @return metadata result array.
 	 * @throws MWException on invalid file.
 	 */
 	static function Jpeg ( $filename ) {
@@ -186,10 +164,10 @@ class BitmapMetadataHandler {
 	 * merge the png various tEXt chunks to that
 	 * are interesting, but for now it only does XMP
 	 *
-	 * @param string $filename full path to file
+	 * @param $filename String full path to file
 	 * @return Array Array for storage in img_metadata.
 	 */
-	public static function PNG ( $filename ) {
+	static public function PNG ( $filename ) {
 		$showXMP = function_exists( 'xml_parser_create_ns' );
 
 		$meta = new self();
@@ -215,10 +193,10 @@ class BitmapMetadataHandler {
 	 * They don't really have native metadata, so just merges together
 	 * XMP and image comment.
 	 *
-	 * @param string $filename full path to file
+	 * @param $filename full path to file
 	 * @return Array metadata array
 	 */
-	public static function GIF ( $filename ) {
+	static public function GIF ( $filename ) {
 
 		$meta = new self();
 		$baseArray = GIFMetadataExtractor::getMetadata( $filename );
@@ -239,7 +217,7 @@ class BitmapMetadataHandler {
 
 		unset( $baseArray['comment'] );
 		unset( $baseArray['xmp'] );
-
+	
 		$baseArray['metadata'] = $meta->getMetadataArray();
 		$baseArray['metadata']['_MW_GIF_VERSION'] = GIFMetadataExtractor::VERSION;
 		return $baseArray;
@@ -256,10 +234,9 @@ class BitmapMetadataHandler {
 	 *
 	 * The various exceptions this throws are caught later.
 	 * @param $filename String
-	 * @throws MWException
 	 * @return Array The metadata.
 	 */
-	public static function Tiff ( $filename ) {
+	static public function Tiff ( $filename ) {
 		if ( file_exists( $filename ) ) {
 			$byteOrder = self::getTiffByteOrder( $filename );
 			if ( !$byteOrder ) {
@@ -281,7 +258,7 @@ class BitmapMetadataHandler {
 	 * Read the first 2 bytes of a tiff file to figure out
 	 * Little Endian or Big Endian. Needed for exif stuff.
 	 *
-	 * @param string $filename The filename
+	 * @param $filename String The filename
 	 * @return String 'BE' or 'LE' or false
 	 */
 	static function getTiffByteOrder( $filename ) {
@@ -300,4 +277,6 @@ class BitmapMetadataHandler {
 
 		}
 	}
+
+
 }

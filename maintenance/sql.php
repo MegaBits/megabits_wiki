@@ -18,34 +18,22 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @file
  * @ingroup Maintenance
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script that sends SQL queries from the specified file to the database.
- *
- * @ingroup Maintenance
- */
 class MwSql extends Maintenance {
 	public function __construct() {
 		parent::__construct();
 		$this->mDescription = "Send SQL queries to a MediaWiki database";
-		$this->addOption( 'cluster', 'Use an external cluster by name', false, true );
 	}
 
 	public function execute() {
-		// Get a DB handle (with this wiki's DB select) from the appropriate load balancer
-		if ( $this->hasOption( 'cluster' ) ) {
-			$lb = wfGetLBFactory()->getExternalLB( $this->getOption( 'cluster' ) );
-			$dbw = $lb->getConnection( DB_MASTER ); // master for external LB
-		} else {
-			$dbw = wfGetDB( DB_MASTER ); // master for primary LB for this wiki
-		}
-		if ( $this->hasArg( 0 ) ) {
-			$file = fopen( $this->getArg( 0 ), 'r' );
+		$dbw = wfGetDB( DB_MASTER );
+		if ( $this->hasArg() ) {
+			$fileName = $this->getArg();
+			$file = fopen( $fileName, 'r' );
 			if ( !$file ) {
 				$this->error( "Unable to open input file", true );
 			}
@@ -69,39 +57,26 @@ class MwSql extends Maintenance {
 		}
 
 		$wholeLine = '';
-		$newPrompt = '> ';
-		$prompt    = $newPrompt;
-		while ( ( $line = Maintenance::readconsole( $prompt ) ) !== false ) {
-			if( !$line ) {
-				# User simply pressed return key
-				continue;
-			}
+		while ( ( $line = Maintenance::readconsole() ) !== false ) {
 			$done = $dbw->streamStatementEnd( $wholeLine, $line );
 
 			$wholeLine .= $line;
 
 			if ( !$done ) {
-				$wholeLine .= ' ';
-				$prompt = '    -> ';
 				continue;
 			}
 			if ( $useReadline ) {
-				# Delimiter is eated by streamStatementEnd, we add it
-				# up in the history (bug 37020)
-				readline_add_history( $wholeLine . $dbw->getDelimiter() );
+				readline_add_history( $wholeLine );
 				readline_write_history( $historyFile );
 			}
 			try{
 				$res = $dbw->query( $wholeLine );
 				$this->sqlPrintResult( $res, $dbw );
-				$prompt    = $newPrompt;
 				$wholeLine = '';
 			} catch (DBQueryError $e) {
-				$doDie = ! Maintenance::posix_isatty( 0 );
-				$this->error( $e, $doDie );
+				$this->error( $e, true );
 			}
 		}
-		wfWaitForSlaves();
 	}
 
 	/**
@@ -112,7 +87,6 @@ class MwSql extends Maintenance {
 	public function sqlPrintResult( $res, $db ) {
 		if ( !$res ) {
 			// Do nothing
-			return;
 		} elseif ( is_object( $res ) && $res->numRows() ) {
 			foreach ( $res as $row ) {
 				$this->output( print_r( $row, true ) );

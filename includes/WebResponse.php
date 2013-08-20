@@ -30,8 +30,8 @@ class WebResponse {
 	/**
 	 * Output a HTTP header, wrapper for PHP's
 	 * header()
-	 * @param string $string header to output
-	 * @param bool $replace replace current similar header
+	 * @param $string String: header to output
+	 * @param $replace Bool: replace current similar header
 	 * @param $http_response_code null|int Forces the HTTP response code to the specified value.
 	 */
 	public function header( $string, $replace = true, $http_response_code = null ) {
@@ -40,20 +40,15 @@ class WebResponse {
 
 	/**
 	 * Set the browser cookie
-	 * @param string $name name of cookie
-	 * @param string $value value to give cookie
-	 * @param int $expire Unix timestamp (in seconds) when the cookie should expire.
-	 *        0 (the default) causes it to expire $wgCookieExpiration seconds from now.
-	 * @param string $prefix Prefix to use, if not $wgCookiePrefix (use '' for no prefix)
-	 * @param string $domain Cookie domain to use, if not $wgCookieDomain
-	 * @param $forceSecure Bool:
-	 *   true: force the cookie to be set with the secure attribute
-	 *   false: force the cookie to be set without the secure attribute
-	 *   null: use the value from $wgCookieSecure
+	 * @param $name String: name of cookie
+	 * @param $value String: value to give cookie
+	 * @param $expire Int: number of seconds til cookie expires
+	 * @param $prefix String: Prefix to use, if not $wgCookiePrefix (use '' for no prefix)
+	 * @param @domain String: Cookie domain to use, if not $wgCookieDomain
 	 */
-	public function setcookie( $name, $value, $expire = 0, $prefix = null, $domain = null, $forceSecure = null ) {
+	public function setcookie( $name, $value, $expire = 0, $prefix = null, $domain = null ) {
 		global $wgCookiePath, $wgCookiePrefix, $wgCookieDomain;
-		global $wgCookieSecure, $wgCookieExpiration, $wgCookieHttpOnly;
+		global $wgCookieSecure,$wgCookieExpiration, $wgCookieHttpOnly;
 		if ( $expire == 0 ) {
 			$expire = time() + $wgCookieExpiration;
 		}
@@ -63,18 +58,7 @@ class WebResponse {
 		if( $domain === null ) {
 			$domain = $wgCookieDomain;
 		}
-
-		if ( is_null( $forceSecure ) ) {
-			$secureCookie = $wgCookieSecure;
-		} else {
-			$secureCookie = $forceSecure;
-		}
-
-		// Mark the cookie as httpOnly if $wgCookieHttpOnly is true,
-		// unless the requesting user-agent is known to have trouble with
-		// httpOnly cookies.
-		$httpOnlySafe = $wgCookieHttpOnly && wfHttpOnlySafe();
-
+		$httpOnlySafe = wfHttpOnlySafe() && $wgCookieHttpOnly;
 		wfDebugLog( 'cookie',
 			'setcookie: "' . implode( '", "',
 				array(
@@ -83,14 +67,14 @@ class WebResponse {
 					$expire,
 					$wgCookiePath,
 					$domain,
-					$secureCookie,
+					$wgCookieSecure,
 					$httpOnlySafe ) ) . '"' );
 		setcookie( $prefix . $name,
 			$value,
 			$expire,
 			$wgCookiePath,
 			$domain,
-			$secureCookie,
+			$wgCookieSecure,
 			$httpOnlySafe );
 	}
 }
@@ -105,8 +89,8 @@ class FauxResponse extends WebResponse {
 
 	/**
 	 * Stores a HTTP header
-	 * @param string $string header to output
-	 * @param bool $replace replace current similar header
+	 * @param $string String: header to output
+	 * @param $replace Bool: replace current similar header
 	 * @param $http_response_code null|int Forces the HTTP response code to the specified value.
 	 */
 	public function header( $string, $replace = true, $http_response_code = null ) {
@@ -149,14 +133,14 @@ class FauxResponse extends WebResponse {
 	/**
 	 * @todo document. It just ignore optional parameters.
 	 *
-	 * @param string $name name of cookie
-	 * @param string $value value to give cookie
-	 * @param int $expire number of seconds til cookie expires (Default: 0)
+	 * @param $name String: name of cookie
+	 * @param $value String: value to give cookie
+	 * @param $expire Int: number of seconds til cookie expires (Default: 0)
 	 * @param $prefix TODO DOCUMENT (Default: null)
 	 * @param $domain TODO DOCUMENT (Default: null)
-	 * @param $forceSecure TODO DOCUMENT (Default: null)
+	 *
 	 */
-	public function setcookie( $name, $value, $expire = 0, $prefix = null, $domain = null, $forceSecure = null ) {
+	public function setcookie( $name, $value, $expire = 0, $prefix = null, $domain = null ) {
 		$this->cookies[$name] = $value;
 	}
 
@@ -164,7 +148,7 @@ class FauxResponse extends WebResponse {
 	 * @param $name string
 	 * @return string
 	 */
-	public function getcookie( $name ) {
+	public function getcookie( $name )  {
 		if ( isset( $this->cookies[$name] ) ) {
 			return $this->cookies[$name];
 		}

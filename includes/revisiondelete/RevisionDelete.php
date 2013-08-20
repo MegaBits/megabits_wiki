@@ -1,27 +1,5 @@
 <?php
 /**
- * Base implementations for deletable items.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- * @ingroup RevisionDelete
- */
-
-/**
  * List for revision table items
  *
  * This will check both the 'revision' table for live revisions and the
@@ -213,16 +191,13 @@ class RevDel_RevisionItem extends RevDel_Item {
 	/**
 	 * Get the HTML link to the revision text.
 	 * Overridden by RevDel_ArchiveItem.
-	 * @return string
 	 */
 	protected function getRevisionLink() {
-		$date = htmlspecialchars( $this->list->getLanguage()->userTimeAndDate(
-			$this->revision->getTimestamp(), $this->list->getUser() ) );
-
+		$date = $this->list->getLanguage()->timeanddate( $this->revision->getTimestamp(), true );
 		if ( $this->isDeleted() && !$this->canViewContent() ) {
 			return $date;
 		}
-		return Linker::linkKnown(
+		return Linker::link(
 			$this->list->title,
 			$date,
 			array(),
@@ -236,36 +211,38 @@ class RevDel_RevisionItem extends RevDel_Item {
 	/**
 	 * Get the HTML link to the diff.
 	 * Overridden by RevDel_ArchiveItem
-	 * @return string
 	 */
 	protected function getDiffLink() {
 		if ( $this->isDeleted() && !$this->canViewContent() ) {
-			return $this->list->msg( 'diff' )->escaped();
+			return wfMsgHtml('diff');
 		} else {
 			return
-				Linker::linkKnown(
+				Linker::link(
 					$this->list->title,
-					$this->list->msg( 'diff' )->escaped(),
+					wfMsgHtml('diff'),
 					array(),
 					array(
 						'diff' => $this->revision->getId(),
 						'oldid' => 'prev',
 						'unhide' => 1
+					),
+					array(
+						'known',
+						'noclasses'
 					)
 				);
 		}
 	}
 
 	public function getHTML() {
-		$difflink = $this->list->msg( 'parentheses' )
-			->rawParams( $this->getDiffLink() )->escaped();
+		$difflink = $this->getDiffLink();
 		$revlink = $this->getRevisionLink();
 		$userlink = Linker::revUserLink( $this->revision );
 		$comment = Linker::revComment( $this->revision );
 		if ( $this->isDeleted() ) {
 			$revlink = "<span class=\"history-deleted\">$revlink</span>";
 		}
-		return "<li>$difflink $revlink $userlink $comment</li>";
+		return "<li>($difflink) $revlink $userlink $comment</li>";
 	}
 }
 
@@ -321,7 +298,7 @@ class RevDel_ArchiveItem extends RevDel_RevisionItem {
 	public function __construct( $list, $row ) {
 		RevDel_Item::__construct( $list, $row );
 		$this->revision = Revision::newFromArchiveRow( $row,
-			array( 'page' => $this->list->title->getArticleID() ) );
+			array( 'page' => $this->list->title->getArticleId() ) );
 	}
 
 	public function getIdField() {
@@ -362,41 +339,32 @@ class RevDel_ArchiveItem extends RevDel_RevisionItem {
 	}
 
 	protected function getRevisionLink() {
-		$date = htmlspecialchars( $this->list->getLanguage()->userTimeAndDate(
-			$this->revision->getTimestamp(), $this->list->getUser() ) );
-
+		$undelete = SpecialPage::getTitleFor( 'Undelete' );
+		$date = $this->list->getLanguage()->timeanddate( $this->revision->getTimestamp(), true );
 		if ( $this->isDeleted() && !$this->canViewContent() ) {
 			return $date;
 		}
-
-		return Linker::link(
-			SpecialPage::getTitleFor( 'Undelete' ),
-			$date,
-			array(),
+		return Linker::link( $undelete, $date, array(),
 			array(
 				'target' => $this->list->title->getPrefixedText(),
 				'timestamp' => $this->revision->getTimestamp()
-			)
-		);
+			) );
 	}
 
 	protected function getDiffLink() {
 		if ( $this->isDeleted() && !$this->canViewContent() ) {
-			return $this->list->msg( 'diff' )->escaped();
+			return wfMsgHtml( 'diff' );
 		}
-
-		return Linker::link(
-			SpecialPage::getTitleFor( 'Undelete' ),
-			$this->list->msg( 'diff' )->escaped(),
-			array(),
+		$undelete = SpecialPage::getTitleFor( 'Undelete' );
+		return Linker::link( $undelete, wfMsgHtml('diff'), array(),
 			array(
 				'target' => $this->list->title->getPrefixedText(),
 				'diff' => 'prev',
 				'timestamp' => $this->revision->getTimestamp()
-			)
-		);
+			) );
 	}
 }
+
 
 /**
  * Item class for a archive table row by ar_rev_id -- actually
@@ -407,7 +375,7 @@ class RevDel_ArchivedRevisionItem extends RevDel_ArchiveItem {
 		RevDel_Item::__construct( $list, $row );
 
 		$this->revision = Revision::newFromArchiveRow( $row,
-			array( 'page' => $this->list->title->getArticleID() ) );
+			array( 'page' => $this->list->title->getArticleId() ) );
 	}
 
 	public function getIdField() {
@@ -423,7 +391,7 @@ class RevDel_ArchivedRevisionItem extends RevDel_ArchiveItem {
 		$dbw->update( 'archive',
 			array( 'ar_deleted' => $bits ),
 			array( 'ar_rev_id' => $this->row->ar_rev_id,
-				'ar_deleted' => $this->getBits()
+				   'ar_deleted' => $this->getBits()
 			),
 			__METHOD__ );
 		return (bool)$dbw->affectedRows();
@@ -453,9 +421,7 @@ class RevDel_FileList extends RevDel_List {
 		foreach( $this->ids as $timestamp ) {
 			$archiveNames[] = $timestamp . '!' . $this->title->getDBkey();
 		}
-		return $db->select(
-			'oldimage',
-			OldLocalFile::selectFields(),
+		return $db->select( 'oldimage', '*',
 			array(
 				'oi_name'         => $this->title->getDBkey(),
 				'oi_archive_name' => $archiveNames
@@ -603,34 +569,31 @@ class RevDel_FileItem extends RevDel_Item {
 	/**
 	 * Get the link to the file.
 	 * Overridden by RevDel_ArchivedFileItem.
-	 * @return string
 	 */
 	protected function getLink() {
-		$date = htmlspecialchars( $this->list->getLanguage()->userTimeAndDate(
-			$this->file->getTimestamp(), $this->list->getUser() ) );
-
-		if ( !$this->isDeleted() ) {
-			# Regular files...
-			return Html::rawElement( 'a', array( 'href' => $this->file->getUrl() ), $date );
-		}
-
-		# Hidden files...
-		if ( !$this->canViewContent() ) {
-			$link = $date;
+		$date = $this->list->getLanguage()->timeanddate( $this->file->getTimestamp(), true  );
+		if ( $this->isDeleted() ) {
+			# Hidden files...
+			if ( !$this->canViewContent() ) {
+				$link = $date;
+			} else {
+				$revdelete = SpecialPage::getTitleFor( 'Revisiondelete' );
+				$link = Linker::link(
+					$revdelete,
+					$date, array(),
+					array(
+						'target' => $this->list->title->getPrefixedText(),
+						'file'   => $this->file->getArchiveName(),
+						'token'  => $this->list->getUser()->getEditToken(
+							$this->file->getArchiveName() )
+					)
+				);
+			}
+			return '<span class="history-deleted">' . $link . '</span>';
 		} else {
-			$link = Linker::link(
-				SpecialPage::getTitleFor( 'Revisiondelete' ),
-				$date,
-				array(),
-				array(
-					'target' => $this->list->title->getPrefixedText(),
-					'file'   => $this->file->getArchiveName(),
-					'token'  => $this->list->getUser()->getEditToken(
-						$this->file->getArchiveName() )
-				)
-			);
+			# Regular files...
+			return Xml::element( 'a', array( 'href' => $this->file->getUrl() ), $date );
 		}
-		return '<span class="history-deleted">' . $link . '</span>';
 	}
 	/**
 	 * Generate a user tool link cluster if the current user is allowed to view it
@@ -641,7 +604,7 @@ class RevDel_FileItem extends RevDel_Item {
 			$link = Linker::userLink( $this->file->user, $this->file->user_text ) .
 				Linker::userToolLinks( $this->file->user, $this->file->user_text );
 		} else {
-			$link = $this->list->msg( 'rev-deleted-user' )->escaped();
+			$link = wfMsgHtml( 'rev-deleted-user' );
 		}
 		if( $this->file->isDeleted( Revision::DELETED_USER ) ) {
 			return '<span class="history-deleted">' . $link . '</span>';
@@ -659,7 +622,7 @@ class RevDel_FileItem extends RevDel_Item {
 		if( $this->file->userCan( File::DELETED_COMMENT, $this->list->getUser() ) ) {
 			$block = Linker::commentBlock( $this->file->description );
 		} else {
-			$block = ' ' . $this->list->msg( 'rev-deleted-comment' )->escaped();
+			$block = ' ' . wfMsgHtml( 'rev-deleted-comment' );
 		}
 		if( $this->file->isDeleted( File::DELETED_COMMENT ) ) {
 			return "<span class=\"history-deleted\">$block</span>";
@@ -669,9 +632,14 @@ class RevDel_FileItem extends RevDel_Item {
 
 	public function getHTML() {
 		$data =
-			$this->list->msg( 'widthheight' )->numParams(
-				$this->file->getWidth(), $this->file->getHeight() )->text() .
-			' (' . $this->list->msg( 'nbytes' )->numParams( $this->file->getSize() )->text() . ')';
+			wfMsg(
+				'widthheight',
+				$this->list->getLanguage()->formatNum( $this->file->getWidth() ),
+				$this->list->getLanguage()->formatNum( $this->file->getHeight() )
+			) .
+			' (' .
+			wfMsgExt( 'nbytes', 'parsemag', $this->list->getLanguage()->formatNum( $this->file->getSize() ) ) .
+			')';
 
 		return '<li>' . $this->getLink() . ' ' . $this->getUserTools() . ' ' .
 			$data . ' ' . $this->getComment(). '</li>';
@@ -696,9 +664,7 @@ class RevDel_ArchivedFileList extends RevDel_FileList {
 	 */
 	public function doQuery( $db ) {
 		$ids = array_map( 'intval', $this->ids );
-		return $db->select(
-			'filearchive',
-			ArchivedFile::selectFields(),
+		return $db->select( 'filearchive', '*',
 			array(
 				'fa_name' => $this->title->getDBkey(),
 				'fa_id'   => $ids
@@ -756,15 +722,13 @@ class RevDel_ArchivedFileItem extends RevDel_FileItem {
 	}
 
 	protected function getLink() {
-		$date = htmlspecialchars( $this->list->getLanguage()->userTimeAndDate(
-			$this->file->getTimestamp(), $this->list->getUser() ) );
-
+		$date = $this->list->getLanguage()->timeanddate( $this->file->getTimestamp(), true  );
+		$undelete = SpecialPage::getTitleFor( 'Undelete' );
+		$key = $this->file->getKey();
 		# Hidden files...
 		if( !$this->canViewContent() ) {
 			$link = $date;
 		} else {
-			$undelete = SpecialPage::getTitleFor( 'Undelete' );
-			$key = $this->file->getKey();
 			$link = Linker::link( $undelete, $date, array(),
 				array(
 					'target' => $this->list->title->getPrefixedText(),
@@ -883,29 +847,26 @@ class RevDel_LogItem extends RevDel_Item {
 	}
 
 	public function getHTML() {
-		$date = htmlspecialchars( $this->list->getLanguage()->userTimeAndDate(
-			$this->row->log_timestamp, $this->list->getUser() ) );
+		$date = htmlspecialchars( $this->list->getLanguage()->timeanddate( $this->row->log_timestamp ) );
 		$title = Title::makeTitle( $this->row->log_namespace, $this->row->log_title );
 		$formatter = LogFormatter::newFromRow( $this->row );
-		$formatter->setContext( $this->list->getContext() );
 		$formatter->setAudience( LogFormatter::FOR_THIS_USER );
 
 		// Log link for this page
 		$loglink = Linker::link(
 			SpecialPage::getTitleFor( 'Log' ),
-			$this->list->msg( 'log' )->escaped(),
+			wfMsgHtml( 'log' ),
 			array(),
 			array( 'page' => $title->getPrefixedText() )
 		);
-		$loglink = $this->list->msg( 'parentheses' )->rawParams( $loglink )->escaped();
 		// User links and action text
 		$action = $formatter->getActionText();
 		// Comment
 		$comment = $this->list->getLanguage()->getDirMark() . Linker::commentBlock( $this->row->log_comment );
-		if( LogEventsList::isDeleted( $this->row, LogPage::DELETED_COMMENT ) ) {
+		if( LogEventsList::isDeleted($this->row,LogPage::DELETED_COMMENT) ) {
 			$comment = '<span class="history-deleted">' . $comment . '</span>';
 		}
 
-		return "<li>$loglink $date $action $comment</li>";
+		return "<li>($loglink) $date $action $comment</li>";
 	}
 }

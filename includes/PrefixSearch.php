@@ -1,38 +1,18 @@
 <?php
 /**
- * Prefix search of page names.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- */
-
-/**
- * Handles searching prefixes of titles and finding any page
+ * PrefixSearch - Handles searching prefixes of titles and finding any page
  * names that match. Used largely by the OpenSearch implementation.
  *
  * @ingroup Search
  */
+
 class PrefixSearch {
 	/**
 	 * Do a prefix search of titles and return a list of matching page names.
 	 *
 	 * @param $search String
 	 * @param $limit Integer
-	 * @param array $namespaces used if query is not explicitly prefixed
+	 * @param $namespaces Array: used if query is not explicitely prefixed
 	 * @return Array of strings
 	 */
 	public static function titleSearch( $search, $limit, $namespaces = array() ) {
@@ -45,7 +25,7 @@ class PrefixSearch {
 		// Find a Title which is not an interwiki and is in NS_MAIN
 		$title = Title::newFromText( $search );
 		if( $title && $title->getInterwiki() == '' ) {
-			$ns = array( $title->getNamespace() );
+			$ns = array($title->getNamespace());
 			if( $ns[0] == NS_MAIN ) {
 				$ns = $namespaces; // no explicit prefix, use default namespaces
 			}
@@ -91,7 +71,7 @@ class PrefixSearch {
 	/**
 	 * Prefix search special-case for Special: namespace.
 	 *
-	 * @param string $search term
+	 * @param $search String: term
 	 * @param $limit Integer: max number of items to return
 	 * @return Array
 	 */
@@ -147,8 +127,8 @@ class PrefixSearch {
 	 * be automatically capitalized by Title::secureAndSpit()
 	 * later on depending on $wgCapitalLinks)
 	 *
-	 * @param array $namespaces namespaces to search in
-	 * @param string $search term
+	 * @param $namespaces Array: namespaces to search in
+	 * @param $search String: term
 	 * @param $limit Integer: max number of items to return
 	 * @return Array of title strings
 	 */

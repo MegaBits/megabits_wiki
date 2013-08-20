@@ -36,24 +36,19 @@ class MostlinkedPage extends QueryPage {
 		parent::__construct( $name );
 	}
 
-	function isExpensive() {
-		return true;
-	}
-
-	function isSyndicated() {
-		return false;
-	}
+	function isExpensive() { return true; }
+	function isSyndicated() { return false; }
 
 	function getQueryInfo() {
 		return array (
 			'tables' => array ( 'pagelinks', 'page' ),
-			'fields' => array ( 'namespace' => 'pl_namespace',
-					'title' => 'pl_title',
-					'value' => 'COUNT(*)',
+			'fields' => array ( 'pl_namespace AS namespace',
+					'pl_title AS title',
+					'COUNT(*) AS value',
 					'page_namespace' ),
 			'options' => array ( 'HAVING' => 'COUNT(*) > 1',
-				'GROUP BY' => array( 'pl_namespace', 'pl_title',
-						'page_namespace' ) ),
+				'GROUP BY' => 'pl_namespace, pl_title, '.
+						'page_namespace' ),
 			'join_conds' => array ( 'page' => array ( 'LEFT JOIN',
 					array ( 'page_namespace = pl_namespace',
 						'page_title = pl_title' ) ) )
@@ -67,12 +62,12 @@ class MostlinkedPage extends QueryPage {
 	 * @param $res
 	 */
 	function preprocessResults( $db, $res ) {
-		if ( $res->numRows() > 0 ) {
+		if( $db->numRows( $res ) > 0 ) {
 			$linkBatch = new LinkBatch();
 			foreach ( $res as $row ) {
 				$linkBatch->add( $row->namespace, $row->title );
 			}
-			$res->seek( 0 );
+			$db->dataSeek( $res, 0 );
 			$linkBatch->execute();
 		}
 	}
@@ -81,7 +76,7 @@ class MostlinkedPage extends QueryPage {
 	 * Make a link to "what links here" for the specified title
 	 *
 	 * @param $title Title being queried
-	 * @param string $caption text to display on the link
+	 * @param $caption String: text to display on the link
 	 * @return String
 	 */
 	function makeWlhLink( $title, $caption ) {
@@ -99,16 +94,11 @@ class MostlinkedPage extends QueryPage {
 	function formatResult( $skin, $result ) {
 		$title = Title::makeTitleSafe( $result->namespace, $result->title );
 		if ( !$title ) {
-			return Html::element( 'span', array( 'class' => 'mw-invalidtitle' ),
-				Linker::getInvalidTitleDescription( $this->getContext(), $result->namespace, $result->title ) );
+			return '<!-- ' . htmlspecialchars( "Invalid title: [[$title]]" ) . ' -->';
 		}
 		$link = Linker::link( $title );
 		$wlh = $this->makeWlhLink( $title,
 			$this->msg( 'nlinks' )->numParams( $result->value )->escaped() );
 		return $this->getLanguage()->specialList( $link, $wlh );
-	}
-
-	protected function getGroupName() {
-		return 'highuse';
 	}
 }

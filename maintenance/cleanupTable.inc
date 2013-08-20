@@ -1,6 +1,6 @@
 <?php
 /**
- * Generic class to cleanup a database table.
+ * Generic table cleanup class. Already subclasses maintenance
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,13 +21,8 @@
  * @ingroup Maintenance
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Generic class to cleanup a database table. Already subclasses Maintenance.
- *
- * @ingroup Maintenance
- */
 class TableCleanup extends Maintenance {
 	protected $defaultParams = array(
 		'table' => 'page',
@@ -62,7 +57,7 @@ class TableCleanup extends Maintenance {
 		$this->processed = 0;
 		$this->updated = 0;
 		$this->count = $count;
-		$this->startTime = microtime( true );
+		$this->startTime = wfTime();
 		$this->table = $table;
 	}
 
@@ -75,7 +70,7 @@ class TableCleanup extends Maintenance {
 		$portion = $this->processed / $this->count;
 		$updateRate = $this->updated / $this->processed;
 
-		$now = microtime( true );
+		$now = wfTime();
 		$delta = $now - $this->startTime;
 		$estimatedTotalTime = $delta / $portion;
 		$eta = $this->startTime + $estimatedTotalTime;

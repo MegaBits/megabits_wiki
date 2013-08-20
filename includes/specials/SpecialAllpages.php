@@ -30,45 +30,32 @@ class SpecialAllpages extends IncludableSpecialPage {
 
 	/**
 	 * Maximum number of pages to show on single subpage.
-	 *
-	 * @var int $maxPerPage
 	 */
 	protected $maxPerPage = 345;
 
 	/**
 	 * Maximum number of pages to show on single index subpage.
-	 *
-	 * @var int $maxLineCount
 	 */
 	protected $maxLineCount = 100;
 
 	/**
 	 * Maximum number of chars to show for an entry.
-	 *
-	 * @var int $maxPageLength
 	 */
 	protected $maxPageLength = 70;
 
 	/**
 	 * Determines, which message describes the input field 'nsfrom'.
-	 *
-	 * @var string $nsfromMsg
 	 */
 	protected $nsfromMsg = 'allpagesfrom';
 
-	/**
-	 * Constructor
-	 *
-	 * @param string $name name of the special page, as seen in links and URLs (default: 'Allpages')
-	 */
-	function __construct( $name = 'Allpages' ) {
+	function __construct( $name = 'Allpages' ){
 		parent::__construct( $name );
 	}
 
 	/**
 	 * Entry point : initialise variables and call subfunctions.
 	 *
-	 * @param string $par becomes "FOO" when called like Special:Allpages/FOO (default NULL)
+	 * @param $par String: becomes "FOO" when called like Special:Allpages/FOO (default NULL)
 	 */
 	function execute( $par ) {
 		global $wgContLang;
@@ -83,7 +70,6 @@ class SpecialAllpages extends IncludableSpecialPage {
 		$from = $request->getVal( 'from', null );
 		$to = $request->getVal( 'to', null );
 		$namespace = $request->getInt( 'namespace' );
-		$hideredirects = $request->getBool( 'hideredirects', false );
 
 		$namespaces = $wgContLang->getNamespaces();
 
@@ -95,11 +81,11 @@ class SpecialAllpages extends IncludableSpecialPage {
 		$out->addModuleStyles( 'mediawiki.special' );
 
 		if( $par !== null ) {
-			$this->showChunk( $namespace, $par, $to, $hideredirects );
+			$this->showChunk( $namespace, $par, $to );
 		} elseif( $from !== null && $to === null ) {
-			$this->showChunk( $namespace, $from, $to, $hideredirects );
+			$this->showChunk( $namespace, $from, $to );
 		} else {
-			$this->showToplevel( $namespace, $from, $to, $hideredirects );
+			$this->showToplevel( $namespace, $from, $to );
 		}
 	}
 
@@ -107,16 +93,14 @@ class SpecialAllpages extends IncludableSpecialPage {
 	 * HTML for the top form
 	 *
 	 * @param $namespace Integer: a namespace constant (default NS_MAIN).
-	 * @param string $from dbKey we are starting listing at.
-	 * @param string $to dbKey we are ending listing at.
-	 * @param bool $hideredirects dont show redirects  (default FALSE)
-	 * @return string
+	 * @param $from String: dbKey we are starting listing at.
+	 * @param $to String: dbKey we are ending listing at.
 	 */
-	function namespaceForm( $namespace = NS_MAIN, $from = '', $to = '', $hideredirects = false ) {
+	function namespaceForm( $namespace = NS_MAIN, $from = '', $to = '' ) {
 		global $wgScript;
 		$t = $this->getTitle();
 
-		$out = Xml::openElement( 'div', array( 'class' => 'namespaceoptions' ) );
+		$out  = Xml::openElement( 'div', array( 'class' => 'namespaceoptions' ) );
 		$out .= Xml::openElement( 'form', array( 'method' => 'get', 'action' => $wgScript ) );
 		$out .= Html::hidden( 'title', $t->getPrefixedText() );
 		$out .= Xml::openElement( 'fieldset' );
@@ -127,7 +111,7 @@ class SpecialAllpages extends IncludableSpecialPage {
 			Xml::label( $this->msg( 'allpagesfrom' )->text(), 'nsfrom' ) .
 			"	</td>
 	<td class='mw-input'>" .
-			Xml::input( 'from', 30, str_replace( '_', ' ', $from ), array( 'id' => 'nsfrom' ) ) .
+			Xml::input( 'from', 30, str_replace('_',' ',$from), array( 'id' => 'nsfrom' ) ) .
 			"	</td>
 </tr>
 <tr>
@@ -135,7 +119,7 @@ class SpecialAllpages extends IncludableSpecialPage {
 			Xml::label( $this->msg( 'allpagesto' )->text(), 'nsto' ) .
 			"	</td>
 			<td class='mw-input'>" .
-			Xml::input( 'to', 30, str_replace( '_', ' ', $to ), array( 'id' => 'nsto' ) ) .
+			Xml::input( 'to', 30, str_replace('_',' ',$to), array( 'id' => 'nsto' ) ) .
 			"		</td>
 </tr>
 <tr>
@@ -146,12 +130,6 @@ class SpecialAllpages extends IncludableSpecialPage {
 			Html::namespaceSelector(
 				array( 'selected' => $namespace ),
 				array( 'name' => 'namespace', 'id' => 'namespace' )
-			) . ' ' .
-			Xml::checkLabel(
-				$this->msg( 'allpages-hide-redirects' )->text(),
-				'hideredirects',
-				'hideredirects',
-				$hideredirects
 			) . ' ' .
 			Xml::submitButton( $this->msg( 'allpagessubmit' )->text() ) .
 			"	</td>
@@ -165,11 +143,10 @@ class SpecialAllpages extends IncludableSpecialPage {
 
 	/**
 	 * @param $namespace Integer (default NS_MAIN)
-	 * @param string $from list all pages from this name
-	 * @param string $to list all pages to this name
-	 * @param bool $hideredirects dont show redirects (default FALSE)
+	 * @param $from String: list all pages from this name
+	 * @param $to String: list all pages to this name
 	 */
-	function showToplevel( $namespace = NS_MAIN, $from = '', $to = '', $hideredirects = false ) {
+	function showToplevel( $namespace = NS_MAIN, $from = '', $to = '' ) {
 		$output = $this->getOutput();
 
 		# TODO: Either make this *much* faster or cache the title index points
@@ -179,27 +156,23 @@ class SpecialAllpages extends IncludableSpecialPage {
 		$out = "";
 		$where = array( 'page_namespace' => $namespace );
 
-		if ( $hideredirects ) {
-			$where['page_is_redirect'] = 0;
-		}
-
 		$from = Title::makeTitleSafe( $namespace, $from );
 		$to = Title::makeTitleSafe( $namespace, $to );
 		$from = ( $from && $from->isLocal() ) ? $from->getDBkey() : null;
 		$to = ( $to && $to->isLocal() ) ? $to->getDBkey() : null;
 
-		if( isset( $from ) )
-			$where[] = 'page_title >= ' . $dbr->addQuotes( $from );
-		if( isset( $to ) )
-			$where[] = 'page_title <= ' . $dbr->addQuotes( $to );
+		if( isset($from) )
+			$where[] = 'page_title >= '.$dbr->addQuotes( $from );
+		if( isset($to) )
+			$where[] = 'page_title <= '.$dbr->addQuotes( $to );
 
 		global $wgMemc;
-		$key = wfMemcKey( 'allpages', 'ns', $namespace, sha1( $from ), sha1( $to ) );
+		$key = wfMemcKey( 'allpages', 'ns', $namespace, $from, $to );
 		$lines = $wgMemc->get( $key );
 
 		$count = $dbr->estimateRowCount( 'page', '*', $where, __METHOD__ );
-		$maxPerSubpage = intval( $count / $this->maxLineCount );
-		$maxPerSubpage = max( $maxPerSubpage, $this->maxPerPage );
+		$maxPerSubpage = intval($count/$this->maxLineCount);
+		$maxPerSubpage = max($maxPerSubpage,$this->maxPerPage);
 
 		if( !is_array( $lines ) ) {
 			$options = array( 'LIMIT' => 1 );
@@ -217,9 +190,9 @@ class SpecialAllpages extends IncludableSpecialPage {
 					: array( 'page_title >= ' . $dbr->addQuotes( $lastTitle ) );
 				$res = $dbr->select( 'page', /* FROM */
 					'page_title', /* WHAT */
-					array_merge( $where, $chunk ),
+					array_merge($where,$chunk),
 					__METHOD__,
-					array( 'LIMIT' => 2, 'OFFSET' => $maxPerSubpage - 1, 'ORDER BY' => 'page_title ASC' )
+					array ('LIMIT' => 2, 'OFFSET' => $maxPerSubpage - 1, 'ORDER BY' => 'page_title ASC')
 				);
 
 				$s = $dbr->fetchObject( $res );
@@ -228,7 +201,7 @@ class SpecialAllpages extends IncludableSpecialPage {
 				} else {
 					// Final chunk, but ended prematurely. Go back and find the end.
 					$endTitle = $dbr->selectField( 'page', 'MAX(page_title)',
-						array_merge( $where, $chunk ),
+						array_merge($where,$chunk),
 						__METHOD__ );
 					array_push( $lines, $endTitle );
 					$done = true;
@@ -250,10 +223,10 @@ class SpecialAllpages extends IncludableSpecialPage {
 		// If there are only two or less sections, don't even display them.
 		// Instead, display the first section directly.
 		if( count( $lines ) <= 2 ) {
-			if( !empty( $lines ) ) {
-				$this->showChunk( $namespace, $from, $to, $hideredirects );
+			if( !empty($lines) ) {
+				$this->showChunk( $namespace, $from, $to );
 			} else {
-				$output->addHTML( $this->namespaceForm( $namespace, $from, $to, $hideredirects ) );
+				$output->addHTML( $this->namespaceForm( $namespace, $from, $to ) );
 			}
 			return;
 		}
@@ -263,16 +236,16 @@ class SpecialAllpages extends IncludableSpecialPage {
 		while( count ( $lines ) > 0 ) {
 			$inpoint = array_shift( $lines );
 			$outpoint = array_shift( $lines );
-			$out .= $this->showline( $inpoint, $outpoint, $namespace, $hideredirects );
+			$out .= $this->showline( $inpoint, $outpoint, $namespace );
 		}
 		$out .= Xml::closeElement( 'table' );
-		$nsForm = $this->namespaceForm( $namespace, $from, $to, $hideredirects );
+		$nsForm = $this->namespaceForm( $namespace, $from, $to );
 
 		# Is there more?
 		if( $this->including() ) {
 			$out2 = '';
 		} else {
-			if( isset( $from ) || isset( $to ) ) {
+			if( isset($from) || isset($to) ) {
 				$out2 = Xml::openElement( 'table', array( 'class' => 'mw-allpages-table-form' ) ).
 						'<tr>
 							<td>' .
@@ -294,13 +267,11 @@ class SpecialAllpages extends IncludableSpecialPage {
 	/**
 	 * Show a line of "ABC to DEF" ranges of articles
 	 *
-	 * @param string $inpoint lower limit of pagenames
-	 * @param string $outpoint upper limit of pagenames
+	 * @param $inpoint String: lower limit of pagenames
+	 * @param $outpoint String: upper limit of pagenames
 	 * @param $namespace Integer (Default NS_MAIN)
-	 * @param bool $hideredirects dont show redirects (default FALSE)
-	 * @return string
 	 */
-	function showline( $inpoint, $outpoint, $namespace = NS_MAIN, $hideredirects ) {
+	function showline( $inpoint, $outpoint, $namespace = NS_MAIN ) {
 		global $wgContLang;
 		$inpointf = htmlspecialchars( str_replace( '_', ' ', $inpoint ) );
 		$outpointf = htmlspecialchars( str_replace( '_', ' ', $outpoint ) );
@@ -309,14 +280,8 @@ class SpecialAllpages extends IncludableSpecialPage {
 		$outpointf = $wgContLang->truncate( $outpointf, $this->maxPageLength );
 
 		$queryparams = $namespace ? "namespace=$namespace&" : '';
-
-		$queryhideredirects = array();
-		if ( $hideredirects ) {
-			$queryhideredirects['hideredirects'] = 1;
-		}
-
 		$special = $this->getTitle();
-		$link = htmlspecialchars( $special->getLocalUrl( $queryparams . 'from=' . urlencode( $inpoint ) . '&to=' . urlencode( $outpoint ), $queryhideredirects ) );
+		$link = htmlspecialchars( $special->getLocalUrl( $queryparams . 'from=' . urlencode($inpoint) . '&to=' . urlencode($outpoint) ) );
 
 		$out = $this->msg( 'alphaindexline' )->rawParams(
 			"<a href=\"$link\">$inpointf</a></td><td>",
@@ -327,15 +292,14 @@ class SpecialAllpages extends IncludableSpecialPage {
 
 	/**
 	 * @param $namespace Integer (Default NS_MAIN)
-	 * @param string $from list all pages from this name (default FALSE)
-	 * @param string $to list all pages to this name (default FALSE)
-	 * @param bool $hideredirects dont show redirects (default FALSE)
+	 * @param $from String: list all pages from this name (default FALSE)
+	 * @param $to String: list all pages to this name (default FALSE)
 	 */
-	function showChunk( $namespace = NS_MAIN, $from = false, $to = false, $hideredirects = false ) {
+	function showChunk( $namespace = NS_MAIN, $from = false, $to = false ) {
 		global $wgContLang;
 		$output = $this->getOutput();
 
-		$fromList = $this->getNamespaceKeyAndText( $namespace, $from );
+		$fromList = $this->getNamespaceKeyAndText($namespace, $from);
 		$toList = $this->getNamespaceKeyAndText( $namespace, $to );
 		$namespaces = $wgContLang->getNamespaces();
 		$n = 0;
@@ -355,11 +319,6 @@ class SpecialAllpages extends IncludableSpecialPage {
 				'page_namespace' => $namespace,
 				'page_title >= ' . $dbr->addQuotes( $fromKey )
 			);
-
-			if ( $hideredirects ) {
-				$conds['page_is_redirect'] = 0;
-			}
-
 			if( $toKey !== "" ) {
 				$conds[] = 'page_title <= ' . $dbr->addQuotes( $toKey );
 			}
@@ -416,10 +375,10 @@ class SpecialAllpages extends IncludableSpecialPage {
 				$res_prev = $dbr->select(
 					'page',
 					'page_title',
-					array( 'page_namespace' => $namespace, 'page_title < ' . $dbr->addQuotes( $from ) ),
+					array( 'page_namespace' => $namespace, 'page_title < '.$dbr->addQuotes($from) ),
 					__METHOD__,
 					array( 'ORDER BY' => 'page_title DESC',
-						'LIMIT' => $this->maxPerPage, 'OFFSET' => ( $this->maxPerPage - 1 )
+						'LIMIT' => $this->maxPerPage, 'OFFSET' => ($this->maxPerPage - 1 )
 					)
 				);
 
@@ -438,7 +397,7 @@ class SpecialAllpages extends IncludableSpecialPage {
 						array( 'page_namespace' => $namespace ), __METHOD__, $options );
 					# Show the previous link if it s not the current requested chunk
 					if( $from != $reallyFirstPage_title ) {
-						$prevTitle = Title::makeTitle( $namespace, $reallyFirstPage_title );
+						$prevTitle =  Title::makeTitle( $namespace, $reallyFirstPage_title );
 					} else {
 						$prevTitle = null;
 					}
@@ -447,7 +406,7 @@ class SpecialAllpages extends IncludableSpecialPage {
 
 			$self = $this->getTitle();
 
-			$nsForm = $this->namespaceForm( $namespace, $from, $to, $hideredirects );
+			$nsForm = $this->namespaceForm( $namespace, $from, $to );
 			$out2 = Xml::openElement( 'table', array( 'class' => 'mw-allpages-table-form' ) ).
 						'<tr>
 							<td>' .
@@ -457,14 +416,11 @@ class SpecialAllpages extends IncludableSpecialPage {
 								Linker::link( $self, $this->msg( 'allpages' )->escaped() );
 
 			# Do we put a previous link ?
-			if( isset( $prevTitle ) && $pt = $prevTitle->getText() ) {
+			if( isset( $prevTitle ) &&  $pt = $prevTitle->getText() ) {
 				$query = array( 'from' => $prevTitle->getText() );
 
 				if( $namespace )
 					$query['namespace'] = $namespace;
-
-				if( $hideredirects )
-					$query['hideredirects'] = $hideredirects;
 
 				$prevLink = Linker::linkKnown(
 					$self,
@@ -477,14 +433,11 @@ class SpecialAllpages extends IncludableSpecialPage {
 
 			if( $n == $this->maxPerPage && $s = $res->fetchObject() ) {
 				# $s is the first link of the next chunk
-				$t = Title::makeTitle( $namespace, $s->page_title );
+				$t = Title::MakeTitle($namespace, $s->page_title);
 				$query = array( 'from' => $t->getText() );
 
 				if( $namespace )
 					$query['namespace'] = $namespace;
-
-				if( $hideredirects )
-					$query['hideredirects'] = $hideredirects;
 
 				$nextLink = Linker::linkKnown(
 					$self,
@@ -515,14 +468,14 @@ class SpecialAllpages extends IncludableSpecialPage {
 
 	/**
 	 * @param $ns Integer: the namespace of the article
-	 * @param string $text the name of the article
+	 * @param $text String: the name of the article
 	 * @return array( int namespace, string dbkey, string pagename ) or NULL on error
 	 */
-	protected function getNamespaceKeyAndText( $ns, $text ) {
+	protected function getNamespaceKeyAndText($ns, $text) {
 		if ( $text == '' )
 			return array( $ns, '', '' ); # shortcut for common case
 
-		$t = Title::makeTitleSafe( $ns, $text );
+		$t = Title::makeTitleSafe($ns, $text);
 		if ( $t && $t->isLocal() ) {
 			return array( $t->getNamespace(), $t->getDBkey(), $t->getText() );
 		} elseif ( $t ) {
@@ -530,16 +483,12 @@ class SpecialAllpages extends IncludableSpecialPage {
 		}
 
 		# try again, in case the problem was an empty pagename
-		$text = preg_replace( '/(#|$)/', 'X$1', $text );
-		$t = Title::makeTitleSafe( $ns, $text );
+		$text = preg_replace('/(#|$)/', 'X$1', $text);
+		$t = Title::makeTitleSafe($ns, $text);
 		if ( $t && $t->isLocal() ) {
 			return array( $t->getNamespace(), '', '' );
 		} else {
 			return null;
 		}
-	}
-
-	protected function getGroupName() {
-		return 'pages';
 	}
 }

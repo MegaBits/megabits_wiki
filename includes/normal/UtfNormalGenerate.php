@@ -25,7 +25,7 @@
  * @ingroup UtfNormal
  */
 
-if( PHP_SAPI != 'cli' ) {
+if( php_sapi_name() != 'cli' ) {
 	die( "Run me from the command line please.\n" );
 }
 
@@ -177,7 +177,7 @@ if( $out ) {
  *
  * @file
  */
-
+ 
 UtfNormal::\$utfCombiningClass = unserialize( '$serCombining' );
 UtfNormal::\$utfCanonicalComp = unserialize( '$serComp' );
 UtfNormal::\$utfCanonicalDecomp = unserialize( '$serCanon' );

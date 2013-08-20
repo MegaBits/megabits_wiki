@@ -36,16 +36,14 @@ class AncientPagesPage extends QueryPage {
 		return true;
 	}
 
-	function isSyndicated() {
-		return false;
-	}
+	function isSyndicated() { return false; }
 
 	function getQueryInfo() {
 		return array(
 			'tables' => array( 'page', 'revision' ),
-			'fields' => array( 'namespace' => 'page_namespace',
-					'title' => 'page_title',
-					'value' => 'rev_timestamp' ),
+			'fields' => array( 'page_namespace AS namespace',
+					'page_title AS title',
+					'rev_timestamp AS value' ),
 			'conds' => array( 'page_namespace' => MWNamespace::getContentNamespaces(),
 					'page_is_redirect' => 0,
 					'page_latest=rev_id' )
@@ -70,9 +68,5 @@ class AncientPagesPage extends QueryPage {
 			htmlspecialchars( $wgContLang->convert( $title->getPrefixedText() ) )
 		);
 		return $this->getLanguage()->specialList( $link, htmlspecialchars( $d ) );
-	}
-
-	protected function getGroupName() {
-		return 'maintenance';
 	}
 }

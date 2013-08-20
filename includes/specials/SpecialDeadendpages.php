@@ -39,7 +39,7 @@ class DeadendPagesPage extends PageQueryPage {
 	/**
 	 * LEFT JOIN is expensive
 	 *
-	 * @return bool
+	 * @return true
 	 */
 	function isExpensive() {
 		return true;
@@ -50,7 +50,7 @@ class DeadendPagesPage extends PageQueryPage {
 	}
 
 	/**
-	 * @return bool
+	 * @return false
 	 */
 	function sortDescending() {
 		return false;
@@ -59,9 +59,9 @@ class DeadendPagesPage extends PageQueryPage {
 	function getQueryInfo() {
 		return array(
 			'tables' => array( 'page', 'pagelinks' ),
-			'fields' => array( 'namespace' => 'page_namespace',
-					'title' => 'page_title',
-					'value' => 'page_title'
+			'fields' => array( 'page_namespace AS namespace',
+					'page_title AS title',
+					'page_title AS value'
 			),
 			'conds' => array( 'pl_from IS NULL',
 					'page_namespace' => MWNamespace::getContentNamespaces(),
@@ -81,9 +81,5 @@ class DeadendPagesPage extends PageQueryPage {
 		} else {
 			return array( 'page_title' );
 		}
-	}
-
-	protected function getGroupName() {
-		return 'maintenance';
 	}
 }

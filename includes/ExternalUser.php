@@ -18,8 +18,6 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
  */
 
 /**
@@ -100,7 +98,7 @@ abstract class ExternalUser {
 	 * This is a wrapper around newFromId().
 	 *
 	 * @param $user User
-	 * @return ExternalUser|bool False on failure
+	 * @return ExternalUser|false
 	 */
 	public static function newFromUser( $user ) {
 		global $wgExternalAuthType;
@@ -128,7 +126,7 @@ abstract class ExternalUser {
 	 * @param $name string
 	 * @return bool Success?
 	 */
-	abstract protected function initFromName( $name );
+	protected abstract function initFromName( $name );
 
 	/**
 	 * Given an id, which was at some previous point in history returned by
@@ -138,7 +136,7 @@ abstract class ExternalUser {
 	 * @param $id string
 	 * @return bool Success?
 	 */
-	abstract protected function initFromId( $id );
+	protected abstract function initFromId( $id );
 
 	/**
 	 * Try to magically initialize the user from cookies or similar information
@@ -278,23 +276,23 @@ abstract class ExternalUser {
 	 * This is part of the core code and is not overridable by specific
 	 * plugins.  It's in this class only for convenience.
 	 *
-	 * @param int $id user_id
+	 * @param $id int user_id
 	 */
-	final public function linkToLocal( $id ) {
+	public final function linkToLocal( $id ) {
 		$dbw = wfGetDB( DB_MASTER );
 		$dbw->replace( 'external_user',
 			array( 'eu_local_id', 'eu_external_id' ),
 			array( 'eu_local_id' => $id,
-				'eu_external_id' => $this->getId() ),
+				   'eu_external_id' => $this->getId() ),
 			__METHOD__ );
 	}
-
+	
 	/**
 	 * Check whether this external user id is already linked with
 	 * a local user.
 	 * @return Mixed User if the account is linked, Null otherwise.
 	 */
-	final public function getLocalUser() {
+	public final function getLocalUser(){
 		$dbr = wfGetDB( DB_SLAVE );
 		$row = $dbr->selectRow(
 			'external_user',
@@ -305,5 +303,5 @@ abstract class ExternalUser {
 			? User::newFromId( $row->eu_local_id )
 			: null;
 	}
-
+	
 }

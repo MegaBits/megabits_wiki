@@ -37,6 +37,10 @@ class ApiFileRevert extends ApiBase {
 
 	protected $params;
 
+	public function __construct( $main, $action ) {
+		parent::__construct( $main, $action );
+	}
+
 	public function execute() {
 		$this->params = $this->extractRequestParams();
 		// Extract the file and archiveName from the request parameters
@@ -46,7 +50,7 @@ class ApiFileRevert extends ApiBase {
 		$this->checkPermissions( $this->getUser() );
 
 		$sourceUrl = $this->file->getArchiveVirtualUrl( $this->archiveName );
-		$status = $this->file->upload( $sourceUrl, $this->params['comment'], $this->params['comment'], 0, false, false, $this->getUser() );
+		$status = $this->file->upload( $sourceUrl, $this->params['comment'], $this->params['comment'] );
 
 		if ( $status->isGood() ) {
 			$result = array( 'result' => 'Success' );
@@ -67,10 +71,9 @@ class ApiFileRevert extends ApiBase {
 	 * @param $user User The user to check.
 	 */
 	protected function checkPermissions( $user ) {
-		$title = $this->file->getTitle();
 		$permissionErrors = array_merge(
-			$title->getUserPermissionsErrors( 'edit', $user ),
-			$title->getUserPermissionsErrors( 'upload', $user )
+			$this->file->getTitle()->getUserPermissionsErrors( 'edit' , $user ),
+			$this->file->getTitle()->getUserPermissionsErrors( 'upload' , $user )
 		);
 
 		if ( $permissionErrors ) {
@@ -88,17 +91,15 @@ class ApiFileRevert extends ApiBase {
 		if ( is_null( $title ) ) {
 			$this->dieUsageMsg( array( 'invalidtitle', $this->params['filename'] ) );
 		}
-		$localRepo = RepoGroup::singleton()->getLocalRepo();
-
 		// Check if the file really exists
-		$this->file = $localRepo->newFile( $title );
+		$this->file = wfLocalFile( $title );
 		if ( !$this->file->exists() ) {
 			$this->dieUsageMsg( 'notanarticle' );
 		}
 
 		// Check if the archivename is valid for this file
 		$this->archiveName = $this->params['archivename'];
-		$oldFile = $localRepo->newFromArchiveName( $title, $this->archiveName );
+		$oldFile = RepoGroup::singleton()->getLocalRepo()->newFromArchiveName( $title, $this->archiveName );
 		if ( !$oldFile->exists() ) {
 			$this->dieUsageMsg( 'filerevert-badversion' );
 		}
@@ -125,38 +126,21 @@ class ApiFileRevert extends ApiBase {
 				ApiBase::PARAM_TYPE => 'string',
 				ApiBase::PARAM_REQUIRED => true,
 			),
-			'token' => array(
-				ApiBase::PARAM_TYPE => 'string',
-				ApiBase::PARAM_REQUIRED => true
-			),
+			'token' => null,
 		);
 
 	}
 
 	public function getParamDescription() {
-		return array(
-			'filename' => 'Target filename without the File: prefix',
+		$params = array(
+			'filename' => 'Target filename',
 			'token' => 'Edit token. You can get one of these through prop=info',
 			'comment' => 'Upload comment',
 			'archivename' => 'Archive name of the revision to revert to',
 		);
-	}
 
-	public function getResultProperties() {
-		return array(
-			'' => array(
-				'result' => array(
-					ApiBase::PROP_TYPE => array(
-						'Success',
-						'Failure'
-					)
-				),
-				'errors' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				)
-			)
-		);
+		return $params;
+
 	}
 
 	public function getDescription() {
@@ -187,8 +171,12 @@ class ApiFileRevert extends ApiBase {
 
 	public function getExamples() {
 		return array(
-			'api.php?action=filerevert&filename=Wiki.png&comment=Revert&archivename=20110305152740!Wiki.png&token=123ABC'
+			'api.php?action=filerevert&filename=Wiki.png&comment=Revert&archivename=20110305152740!Wiki.png&token=+\\'
 				=> 'Revert Wiki.png to the version of 20110305152740',
 		);
+	}
+
+	public function getVersion() {
+		return __CLASS__ . ': $Id$';
 	}
 }

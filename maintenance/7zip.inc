@@ -32,7 +32,7 @@
  * @ingroup Maintenance
  */
 class SevenZipStream {
-	protected $stream;
+	var $stream;
 
 	private function stripPath( $path ) {
 		$prefix = 'mediawiki.compress.7z://';

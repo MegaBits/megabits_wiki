@@ -1,6 +1,6 @@
 <?php
 /**
- * Benchmark for Squid purge.
+ * Squid purge benchmark script
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,13 +21,8 @@
  * @ingroup Benchmark
  */
 
-require_once( __DIR__ . '/Benchmarker.php' );
+require_once( dirname( __FILE__ ) . '/Benchmarker.php' );
 
-/**
- * Maintenance script that benchmarks Squid purge.
- *
- * @ingroup Benchmark
- */
 class BenchmarkPurge extends Benchmarker {
 
 	public function __construct() {
@@ -62,11 +57,11 @@ class BenchmarkPurge extends Benchmarker {
 	 * @return string
 	 */
 	private function benchSquid( $urls, $trials = 1 ) {
-		$start = microtime( true );
+		$start = wfTime();
 		for ( $i = 0; $i < $trials; $i++ ) {
 			SquidUpdate::purge( $urls );
 		}
-		$delta = microtime( true ) - $start;
+		$delta = wfTime() - $start;
 		$pertrial = $delta / $trials;
 		$pertitle = $pertrial / count( $urls );
 		return sprintf( "%4d titles in %6.2fms (%6.2fms each)",

@@ -1,6 +1,8 @@
 <?php
+
 /**
- * Create or edit pages using the contents of a text file.
+ * Maintenance script allows creating or editing pages using
+ * the contents of a text file
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +26,7 @@
 
 $options = array( 'help', 'nooverwrite', 'norc' );
 $optionsWithArgs = array( 'title', 'user', 'comment' );
-require_once( __DIR__ . '/commandLine.inc' );
+require_once( dirname( __FILE__ ) . '/commandLine.inc' );
 echo( "Import Text File\n\n" );
 
 if ( count( $args ) < 1 || isset( $options['help'] ) ) {
@@ -56,8 +58,7 @@ if ( count( $args ) < 1 || isset( $options['help'] ) ) {
 
 					echo( "\nPerforming edit..." );
 					$page = WikiPage::factory( $title );
-					$content = ContentHandler::makeContent( $text, $title );
-					$page->doEditContent( $content, $comment, $flags, false, $user );
+					$page->doEdit( $text, $comment, $flags, false, $user );
 					echo( "done.\n" );
 
 				} else {

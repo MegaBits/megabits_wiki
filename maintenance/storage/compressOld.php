@@ -17,9 +17,8 @@
  *  -c <chunk-size>     maximum number of revisions in a concat chunk
  *  -b <begin-date>     earliest date to check for uncompressed revisions
  *  -e <end-date>       latest revision date to compress
- *  -s <startid>        the id to start from (referring to the text table for
- *                      type gzip, and to the page table for type concat)
- *  -n <endid>          the page_id to stop at (only when using concat compression type)
+ *  -s <startid>        the old_id to start from
+ *  -n <endid>          the old_id to stop at
  *  --extdb <cluster>   store specified revisions in an external cluster (untested)
  *
  * This program is free software; you can redistribute it and/or modify
@@ -41,13 +40,8 @@
  * @ingroup Maintenance ExternalStorage
  */
 
-require_once( __DIR__ . '/../Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/../Maintenance.php' );
 
-/**
- * Maintenance script that compress the text of a wiki.
- *
- * @ingroup Maintenance ExternalStorage
- */
 class CompressOld extends Maintenance {
 	/**
 	 * @todo document
@@ -62,9 +56,9 @@ class CompressOld extends Maintenance {
 		$this->addOption( 'chunksize', 'Maximum number of revisions in a concat chunk', false, true, 'c' );
 		$this->addOption( 'begin-date', 'Earliest date to check for uncompressed revisions', false, true, 'b' );
 		$this->addOption( 'end-date', 'Latest revision date to compress', false, true, 'e' );
-		$this->addOption( 'startid', 'The id to start from (gzip -> text table, concat -> page table)', false, true, 's' );
+		$this->addOption( 'startid', 'The old_id to start from', false, true, 's' );
 		$this->addOption( 'extdb', 'Store specified revisions in an external cluster (untested)', false, true );
-		$this->addOption( 'endid', 'The page_id to stop at (only when using concat compression type)', false, true, 'n' );
+		$this->addOption( 'endid', 'Stop at this old_id', false, true, 'n' );
 	}
 
 	public function execute() {
@@ -115,7 +109,7 @@ class CompressOld extends Maintenance {
 		do {
 			$res = $dbw->select( 'text', array( 'old_id','old_flags','old_text' ),
 				"old_id>=$start", __METHOD__, array( 'ORDER BY' => 'old_id', 'LIMIT' => $chunksize, 'FOR UPDATE' ) );
-			if( $res->numRows() == 0 ) {
+			if( $dbw->numRows( $res ) == 0 ) {
 				break;
 			}
 			$last = $start;
@@ -256,7 +250,7 @@ class CompressOld extends Maintenance {
 			$pageRes = $dbr->select( 'page',
 				array('page_id', 'page_namespace', 'page_title','page_latest'),
 				$pageConds + array('page_id' => $pageId), __METHOD__ );
-			if ( $pageRes->numRows() == 0 ) {
+			if ( $dbr->numRows( $pageRes ) == 0 ) {
 				continue;
 			}
 			$pageRow = $dbr->fetchObject( $pageRes );
@@ -299,7 +293,7 @@ class CompressOld extends Maintenance {
 
 				$chunk = new ConcatenatedGzipHistoryBlob();
 				$stubs = array();
-				$dbw->begin( __METHOD__ );
+				$dbw->begin();
 				$usedChunk = false;
 				$primaryOldid = $revs[$i]->rev_text_id;
 
@@ -399,7 +393,7 @@ class CompressOld extends Maintenance {
 				}
 				# Done, next
 				$this->output( "/" );
-				$dbw->commit( __METHOD__ );
+				$dbw->commit();
 				$i += $thisChunkSize;
 				wfWaitForSlaves();
 			}

@@ -1,16 +1,9 @@
 <?php
+
 /**
- * This file is the entry point for all API queries.
+ * API for MediaWiki 1.8+
  *
- * It begins by checking whether the API is enabled on this wiki; if not,
- * it informs the user that s/he should set $wgEnableAPI to true and exits.
- * Otherwise, it constructs a new ApiMain using the parameter passed to it
- * as an argument in the URL ('?action=') and with write-enabled set to the
- * value of $wgEnableWriteAPI as specified in LocalSettings.php.
- * It then invokes "execute()" on the ApiMain object instance, which
- * produces output in the format specified in the URL.
- *
- * Copyright © 2006 Yuri Astrakhan <Firstname><Lastname>@gmail.com
+ * Copyright (C) 2006 Yuri Astrakhan <Firstname><Lastname>@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,21 +23,31 @@
  * @file
  */
 
+/**
+ * This file is the entry point for all API queries. It begins by checking
+ * whether the API is enabled on this wiki; if not, it informs the user that
+ * s/he should set $wgEnableAPI to true and exits. Otherwise, it constructs
+ * a new ApiMain using the parameter passed to it as an argument in the URL
+ * ('?action=') and with write-enabled set to the value of $wgEnableWriteAPI
+ * as specified in LocalSettings.php. It then invokes "execute()" on the
+ * ApiMain object instance, which produces output in the format sepecified
+ * in the URL.
+ */
+
 // So extensions (and other code) can check whether they're running in API mode
 define( 'MW_API', true );
 
 // Bail if PHP is too low
-if ( !function_exists( 'version_compare' ) || version_compare( phpversion(), '5.3.2' ) < 0 ) {
-	// We need to use dirname( __FILE__ ) here cause __DIR__ is PHP5.3+
+if ( !function_exists( 'version_compare' ) || version_compare( phpversion(), '5.2.3' ) < 0 ) {
 	require( dirname( __FILE__ ) . '/includes/PHPVersionError.php' );
 	wfPHPVersionError( 'api.php' );
 }
 
 // Initialise common code.
 if ( isset( $_SERVER['MW_COMPILED'] ) ) {
-	require ( 'core/includes/WebStart.php' );
+	require ( 'phase3/includes/WebStart.php' );
 } else {
-	require ( __DIR__ . '/includes/WebStart.php' );
+	require ( dirname( __FILE__ ) . '/includes/WebStart.php' );
 }
 
 wfProfileIn( 'api.php' );
@@ -60,7 +63,44 @@ if ( !$wgEnableAPI ) {
 	header( $_SERVER['SERVER_PROTOCOL'] . ' 500 MediaWiki configuration Error', true, 500 );
 	echo( 'MediaWiki API is not enabled for this site. Add the following line to your LocalSettings.php'
 		. '<pre><b>$wgEnableAPI=true;</b></pre>' );
-	die( 1 );
+	die(1);
+}
+
+// Selectively allow cross-site AJAX
+
+/**
+ * Helper function to convert wildcard string into a regex
+ * '*' => '.*?'
+ * '?' => '.'
+ *
+ * @param $search string
+ * @return string
+ */
+function convertWildcard( $search ) {
+	$search = preg_quote( $search, '/' );
+	$search = str_replace(
+		array( '\*', '\?' ),
+		array( '.*?', '.' ),
+		$search
+	);
+	return "/$search/";
+}
+
+if ( $wgCrossSiteAJAXdomains && isset( $_SERVER['HTTP_ORIGIN'] ) ) {
+	$exceptions = array_map( 'convertWildcard', $wgCrossSiteAJAXdomainExceptions );
+	$regexes = array_map( 'convertWildcard', $wgCrossSiteAJAXdomains );
+	foreach ( $regexes as $regex ) {
+		if ( preg_match( $regex, $_SERVER['HTTP_ORIGIN'] ) ) {
+			foreach ( $exceptions as $exc ) { // Check against exceptions
+				if ( preg_match( $exc, $_SERVER['HTTP_ORIGIN'] ) ) {
+					break 2;
+				}
+			}
+			header( "Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}" );
+			header( 'Access-Control-Allow-Credentials: true' );
+			break;
+		}
+	}
 }
 
 // Set a dummy $wgTitle, because $wgTitle == null breaks various things
@@ -71,7 +111,7 @@ $wgTitle = Title::makeTitle( NS_MAIN, 'API' );
  * is some form of an ApiMain, possibly even one that produces an error message,
  * but we don't care here, as that is handled by the ctor.
  */
-$processor = new ApiMain( RequestContext::getMain(), $wgEnableWriteAPI );
+$processor = new ApiMain( $wgRequest, $wgEnableWriteAPI );
 
 // Process data & print results
 $processor->execute();
@@ -87,17 +127,17 @@ wfLogProfilingData();
 // Log the request
 if ( $wgAPIRequestLog ) {
 	$items = array(
-		wfTimestamp( TS_MW ),
-		$endtime - $starttime,
-		$wgRequest->getIP(),
-		$_SERVER['HTTP_USER_AGENT']
+			wfTimestamp( TS_MW ),
+			$endtime - $starttime,
+			$wgRequest->getIP(),
+			$_SERVER['HTTP_USER_AGENT']
 	);
 	$items[] = $wgRequest->wasPosted() ? 'POST' : 'GET';
 	$module = $processor->getModule();
 	if ( $module->mustBePosted() ) {
 		$items[] = "action=" . $wgRequest->getVal( 'action' );
 	} else {
-		$items[] = wfArrayToCgi( $wgRequest->getValues() );
+		$items[] = wfArrayToCGI( $wgRequest->getValues() );
 	}
 	wfErrorLog( implode( ',', $items ) . "\n", $wgAPIRequestLog );
 	wfDebug( "Logged API request to $wgAPIRequestLog\n" );
@@ -107,3 +147,4 @@ if ( $wgAPIRequestLog ) {
 // get here to worry about whether this should be = or =&, but the file has to parse properly.
 $lb = wfGetLBFactory();
 $lb->shutdown();
+

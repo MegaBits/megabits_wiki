@@ -1,27 +1,5 @@
 <?php
 /**
- * Page existence cache.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @file
- * @ingroup Cache
- */
-
-/**
  * Cache for article titles (prefixed DB keys) and ids linked from one source
  *
  * @ingroup Cache
@@ -74,11 +52,11 @@ class LinkCache {
 	 * Get a field of a title object from cache.
 	 * If this link is not good, it will return NULL.
 	 * @param $title Title
-	 * @param string $field ('length','redirect','revision','model')
+	 * @param $field String: ('length','redirect','revision')
 	 * @return mixed
 	 */
 	public function getGoodLinkFieldObj( $title, $field ) {
-		$dbkey = $title->getPrefixedDBkey();
+		$dbkey = $title->getPrefixedDbKey();
 		if ( array_key_exists( $dbkey, $this->mGoodLinkFields ) ) {
 			return $this->mGoodLinkFields[$dbkey][$field];
 		} else {
@@ -102,16 +80,14 @@ class LinkCache {
 	 * @param $len Integer: text's length
 	 * @param $redir Integer: whether the page is a redirect
 	 * @param $revision Integer: latest revision's ID
-	 * @param $model Integer: latest revision's content model ID
 	 */
-	public function addGoodLinkObj( $id, $title, $len = -1, $redir = null, $revision = false, $model = false ) {
-		$dbkey = $title->getPrefixedDBkey();
+	public function addGoodLinkObj( $id, $title, $len = -1, $redir = null, $revision = false ) {
+		$dbkey = $title->getPrefixedDbKey();
 		$this->mGoodLinks[$dbkey] = intval( $id );
 		$this->mGoodLinkFields[$dbkey] = array(
 			'length' => intval( $len ),
 			'redirect' => intval( $redir ),
-			'revision' => intval( $revision ),
-			'model' => intval( $model ) );
+			'revision' => intval( $revision ) );
 	}
 
 	/**
@@ -119,16 +95,15 @@ class LinkCache {
 	 * @since 1.19
 	 * @param $title Title
 	 * @param $row object which has the fields page_id, page_is_redirect,
-	 *  page_latest and page_content_model
+	 *  page_latest
 	 */
 	public function addGoodLinkObjFromRow( $title, $row ) {
-		$dbkey = $title->getPrefixedDBkey();
+		$dbkey = $title->getPrefixedDbKey();
 		$this->mGoodLinks[$dbkey] = intval( $row->page_id );
 		$this->mGoodLinkFields[$dbkey] = array(
 			'length' => intval( $row->page_len ),
 			'redirect' => intval( $row->page_is_redirect ),
 			'revision' => intval( $row->page_latest ),
-			'model' => !empty( $row->page_content_model ) ? strval( $row->page_content_model ) : null,
 		);
 	}
 
@@ -136,7 +111,7 @@ class LinkCache {
 	 * @param $title Title
 	 */
 	public function addBadLinkObj( $title ) {
-		$dbkey = $title->getPrefixedDBkey();
+		$dbkey = $title->getPrefixedDbKey();
 		if ( !$this->isBadLink( $dbkey ) ) {
 			$this->mBadLinks[$dbkey] = 1;
 		}
@@ -150,7 +125,7 @@ class LinkCache {
 	 * @param $title Title
 	 */
 	public function clearLink( $title ) {
-		$dbkey = $title->getPrefixedDBkey();
+		$dbkey = $title->getPrefixedDbKey();
 		unset( $this->mBadLinks[$dbkey] );
 		unset( $this->mGoodLinks[$dbkey] );
 		unset( $this->mGoodLinkFields[$dbkey] );
@@ -162,7 +137,7 @@ class LinkCache {
 	/**
 	 * Add a title to the link cache, return the page_id or zero if non-existent
 	 *
-	 * @param string $title title to add
+	 * @param $title String: title to add
 	 * @return Integer
 	 */
 	public function addLink( $title ) {
@@ -181,8 +156,7 @@ class LinkCache {
 	 * @return Integer
 	 */
 	public function addLinkObj( $nt ) {
-		global $wgAntiLockFlags, $wgContentHandlerUseDB;
-
+		global $wgAntiLockFlags;
 		wfProfileIn( __METHOD__ );
 
 		$key = $nt->getPrefixedDBkey();
@@ -214,10 +188,8 @@ class LinkCache {
 			$options = array();
 		}
 
-		$f = array( 'page_id', 'page_len', 'page_is_redirect', 'page_latest' );
-		if ( $wgContentHandlerUseDB ) $f[] = 'page_content_model';
-
-		$s = $db->selectRow( 'page', $f,
+		$s = $db->selectRow( 'page',
+			array( 'page_id', 'page_len', 'page_is_redirect', 'page_latest' ),
 			array( 'page_namespace' => $nt->getNamespace(), 'page_title' => $nt->getDBkey() ),
 			__METHOD__, $options );
 		# Set fields...

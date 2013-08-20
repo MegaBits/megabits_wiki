@@ -1,6 +1,6 @@
 <?php
 /**
- * Print out duplicates in message array
+ * Script to print out duplicates in message array
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,8 +21,8 @@
  * @ingroup MaintenanceLanguage
  */
 
-require_once( __DIR__ . '/../commandLine.inc' );
-$messagesDir = __DIR__ . '/../../languages/messages/';
+require_once( dirname( __FILE__ ) . '/../commandLine.inc' );
+$messagesDir = dirname( __FILE__ ) . '/../../languages/messages/';
 $runTest = false;
 $run = false;
 $runMode = 'text';

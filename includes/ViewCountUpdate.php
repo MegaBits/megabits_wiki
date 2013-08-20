@@ -48,18 +48,22 @@ class ViewCountUpdate implements DeferrableUpdate {
 		$dbw = wfGetDB( DB_MASTER );
 
 		if ( $wgHitcounterUpdateFreq <= 1 || $dbw->getType() == 'sqlite' ) {
-			$dbw->update( 'page', array( 'page_counter = page_counter + 1' ), array( 'page_id' => $this->id ), __METHOD__ );
+			$pageTable = $dbw->tableName( 'page' );
+			$dbw->query( "UPDATE $pageTable SET page_counter = page_counter + 1 WHERE page_id = {$this->id}" );
 			return;
 		}
 
 		# Not important enough to warrant an error page in case of failure
-		try {
-			$dbw->insert( 'hitcounter', array( 'hc_id' => $this->id ), __METHOD__ );
-			$checkfreq = intval( $wgHitcounterUpdateFreq / 25 + 1 );
-			if ( rand() % $checkfreq == 0 && $dbw->lastErrno() == 0 ) {
-				$this->collect();
-			}
-		} catch ( DBError $e ) {}
+		$oldignore = $dbw->ignoreErrors( true );
+
+		$dbw->insert( 'hitcounter', array( 'hc_id' => $this->id ), __METHOD__ );
+
+		$checkfreq = intval( $wgHitcounterUpdateFreq / 25 + 1 );
+		if ( rand() % $checkfreq == 0 && $dbw->lastErrno() == 0 ) {
+			$this->collect();
+		}
+
+		$dbw->ignoreErrors( $oldignore );
 	}
 
 	protected function collect() {
@@ -67,7 +71,10 @@ class ViewCountUpdate implements DeferrableUpdate {
 
 		$dbw = wfGetDB( DB_MASTER );
 
-		$rown = $dbw->selectField( 'hitcounter', 'COUNT(*)', array(), __METHOD__ );
+		$hitcounterTable = $dbw->tableName( 'hitcounter' );
+		$res = $dbw->query( "SELECT COUNT(*) as n FROM $hitcounterTable" );
+		$row = $dbw->fetchObject( $res );
+		$rown = intval( $row->n );
 
 		if ( $rown < $wgHitcounterUpdateFreq ) {
 			return;
@@ -80,7 +87,6 @@ class ViewCountUpdate implements DeferrableUpdate {
 
 		$dbType = $dbw->getType();
 		$tabletype = $dbType == 'mysql' ? "ENGINE=HEAP " : '';
-		$hitcounterTable = $dbw->tableName( 'hitcounter' );
 		$acchitsTable = $dbw->tableName( 'acchits' );
 		$pageTable = $dbw->tableName( 'page' );
 

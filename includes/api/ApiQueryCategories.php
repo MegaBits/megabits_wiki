@@ -4,7 +4,7 @@
  *
  * Created on May 13, 2007
  *
- * Copyright © 2006 Yuri Astrakhan "<Firstname><Lastname>@gmail.com"
+ * Copyright © 2006 Yuri Astrakhan <Firstname><Lastname>@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ class ApiQueryCategories extends ApiQueryGeneratorBase {
 	 */
 	private function run( $resultPageSet = null ) {
 		if ( $this->getPageSet()->getGoodTitleCount() == 0 ) {
-			return; // nothing to do
+			return;	// nothing to do
 		}
 
 		$params = $this->extractRequestParams();
@@ -85,14 +85,16 @@ class ApiQueryCategories extends ApiQueryGeneratorBase {
 
 		if ( !is_null( $params['continue'] ) ) {
 			$cont = explode( '|', $params['continue'] );
-			$this->dieContinueUsageIf( count( $cont ) != 2 );
-			$op = $params['dir'] == 'descending' ? '<' : '>';
+			if ( count( $cont ) != 2 ) {
+				$this->dieUsage( "Invalid continue param. You should pass the " .
+					"original value returned by the previous query", "_badcontinue" );
+			}
 			$clfrom = intval( $cont[0] );
-			$clto = $this->getDB()->addQuotes( $cont[1] );
+			$clto = $this->getDB()->strencode( $this->titleToKey( $cont[1] ) );
 			$this->addWhere(
-				"cl_from $op $clfrom OR " .
+				"cl_from > $clfrom OR " .
 				"(cl_from = $clfrom AND " .
-				"cl_to $op= $clto)"
+				"cl_to >= '$clto')"
 			);
 		}
 
@@ -121,14 +123,14 @@ class ApiQueryCategories extends ApiQueryGeneratorBase {
 
 		$this->addOption( 'USE INDEX', array( 'categorylinks' => 'cl_from' ) );
 
-		$sort = ( $params['dir'] == 'descending' ? ' DESC' : '' );
+		$dir = ( $params['dir'] == 'descending' ? ' DESC' : '' );
 		// Don't order by cl_from if it's constant in the WHERE clause
 		if ( count( $this->getPageSet()->getGoodTitles() ) == 1 ) {
-			$this->addOption( 'ORDER BY', 'cl_to' . $sort );
+			$this->addOption( 'ORDER BY', 'cl_to' . $dir );
 		} else {
 			$this->addOption( 'ORDER BY', array(
-						'cl_from' . $sort,
-						'cl_to' . $sort
+						'cl_from' . $dir,
+						'cl_to' . $dir
 			));
 		}
 
@@ -140,7 +142,8 @@ class ApiQueryCategories extends ApiQueryGeneratorBase {
 				if ( ++$count > $params['limit'] ) {
 					// We've reached the one extra which shows that
 					// there are additional pages to be had. Stop here...
-					$this->setContinueEnumParameter( 'continue', $row->cl_from . '|' . $row->cl_to );
+					$this->setContinueEnumParameter( 'continue', $row->cl_from .
+							'|' . $this->keyToTitle( $row->cl_to ) );
 					break;
 				}
 
@@ -160,7 +163,8 @@ class ApiQueryCategories extends ApiQueryGeneratorBase {
 
 				$fit = $this->addPageSubItem( $row->cl_from, $vals );
 				if ( !$fit ) {
-					$this->setContinueEnumParameter( 'continue', $row->cl_from . '|' . $row->cl_to );
+					$this->setContinueEnumParameter( 'continue', $row->cl_from .
+							'|' . $this->keyToTitle( $row->cl_to ) );
 					break;
 				}
 			}
@@ -170,7 +174,8 @@ class ApiQueryCategories extends ApiQueryGeneratorBase {
 				if ( ++$count > $params['limit'] ) {
 					// We've reached the one extra which shows that
 					// there are additional pages to be had. Stop here...
-					$this->setContinueEnumParameter( 'continue', $row->cl_from . '|' . $row->cl_to );
+					$this->setContinueEnumParameter( 'continue', $row->cl_from .
+							'|' . $this->keyToTitle( $row->cl_to ) );
 					break;
 				}
 
@@ -234,25 +239,6 @@ class ApiQueryCategories extends ApiQueryGeneratorBase {
 		);
 	}
 
-	public function getResultProperties() {
-		return array(
-			'' => array(
-				'ns' => 'namespace',
-				'title' => 'string'
-			),
-			'sortkey' => array(
-				'sortkey' => 'string',
-				'sortkeyprefix' => 'string'
-			),
-			'timestamp' => array(
-				'timestamp' => 'timestamp'
-			),
-			'hidden' => array(
-				'hidden' => 'boolean'
-			)
-		);
-	}
-
 	public function getDescription() {
 		return 'List all categories the page(s) belong to';
 	}
@@ -272,5 +258,9 @@ class ApiQueryCategories extends ApiQueryGeneratorBase {
 
 	public function getHelpUrls() {
 		return 'https://www.mediawiki.org/wiki/API:Properties#categories_.2F_cl';
+	}
+
+	public function getVersion() {
+		return __CLASS__ . ': $Id$';
 	}
 }

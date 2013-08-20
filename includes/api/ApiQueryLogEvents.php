@@ -4,7 +4,7 @@
  *
  * Created on Oct 16, 2006
  *
- * Copyright © 2006 Yuri Astrakhan "<Firstname><Lastname>@gmail.com"
+ * Copyright © 2006 Yuri Astrakhan <Firstname><Lastname>@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,7 +58,7 @@ class ApiQueryLogEvents extends ApiQueryBase {
 		$this->fld_details = isset( $prop['details'] );
 		$this->fld_tags = isset( $prop['tags'] );
 
-		$hideLogs = LogEventsList::getExcludeClause( $db, 'user', $this->getUser() );
+		$hideLogs = LogEventsList::getExcludeClause( $db );
 		if ( $hideLogs !== false ) {
 			$this->addWhere( $hideLogs );
 		}
@@ -70,7 +70,7 @@ class ApiQueryLogEvents extends ApiQueryBase {
 			'user' => array( 'JOIN',
 				'user_id=log_user' ),
 			'page' => array( 'LEFT JOIN',
-				array( 'log_namespace=page_namespace',
+				array(	'log_namespace=page_namespace',
 					'log_title=page_title' ) ) ) );
 		$index = array( 'logging' => 'times' ); // default, may change
 
@@ -151,7 +151,7 @@ class ApiQueryLogEvents extends ApiQueryBase {
 			if ( is_null( $title ) ) {
 				$this->dieUsage( "Bad title value '$prefix'", 'param_prefix' );
 			}
-			$this->addWhereFld( 'log_namespace', $title->getNamespace() );
+			$this->addWhereFld( 'log_namespace',  $title->getNamespace() );
 			$this->addWhere( 'log_title ' . $db->buildLike( $title->getDBkey(), $db->anyString() ) );
 		}
 
@@ -195,13 +195,12 @@ class ApiQueryLogEvents extends ApiQueryBase {
 	 * @param $type string
 	 * @param $action string
 	 * @param $ts
-	 * @param $legacy bool
 	 * @return array
 	 */
 	public static function addLogParams( $result, &$vals, $params, $type, $action, $ts, $legacy = false ) {
 		switch ( $type ) {
 			case 'move':
-				if ( $legacy ) {
+				if ( $legacy ){
 					$targetKey = 0;
 					$noredirKey = 1;
 				} else {
@@ -209,21 +208,21 @@ class ApiQueryLogEvents extends ApiQueryBase {
 					$noredirKey = '5::noredir';
 				}
 
-				if ( isset( $params[$targetKey] ) ) {
-					$title = Title::newFromText( $params[$targetKey] );
+				if ( isset( $params[ $targetKey ] ) ) {
+					$title = Title::newFromText( $params[ $targetKey ] );
 					if ( $title ) {
 						$vals2 = array();
 						ApiQueryBase::addTitleInfo( $vals2, $title, 'new_' );
 						$vals[$type] = $vals2;
 					}
 				}
-				if ( isset( $params[$noredirKey] ) && $params[$noredirKey] ) {
+				if ( isset( $params[ $noredirKey ] ) && $params[ $noredirKey ] ) {
 					$vals[$type]['suppressedredirect'] = '';
 				}
 				$params = null;
 				break;
 			case 'patrol':
-				if ( $legacy ) {
+				if ( $legacy ){
 					$cur = 0;
 					$prev = 1;
 					$auto = 2;
@@ -241,12 +240,7 @@ class ApiQueryLogEvents extends ApiQueryBase {
 				break;
 			case 'rights':
 				$vals2 = array();
-				if( $legacy ) {
-					list( $vals2['old'], $vals2['new'] ) = $params;
-				} else {
-					$vals2['new'] = implode( ', ', $params['5::newgroups'] );
-					$vals2['old'] = implode( ', ', $params['4::oldgroups'] );
-				}
+				list( $vals2['old'], $vals2['new'] ) = $params;
 				$vals[$type] = $vals2;
 				$params = null;
 				break;
@@ -267,19 +261,8 @@ class ApiQueryLogEvents extends ApiQueryBase {
 				break;
 		}
 		if ( !is_null( $params ) ) {
-			$logParams = array();
-			// Keys like "4::paramname" can't be used for output so we change them to "paramname"
-			foreach ( $params as $key => $value ) {
-				if ( strpos( $key, ':' ) === false ) {
-					$logParams[$key] = $value;
-					continue;
-				}
-				$logParam = explode( ':', $key, 3 );
-				$logParams[$logParam[2]] = $value;
-			}
-			$result->setIndexedTagName( $logParams, 'param' );
-			$result->setIndexedTagName_recursive( $logParams, 'param' );
-			$vals = array_merge( $vals, $logParams );
+			$result->setIndexedTagName( $params, 'param' );
+			$vals = array_merge( $vals, $params );
 		}
 		return $vals;
 	}
@@ -375,19 +358,15 @@ class ApiQueryLogEvents extends ApiQueryBase {
 
 	public function getCacheMode( $params ) {
 		if ( !is_null( $params['prop'] ) && in_array( 'parsedcomment', $params['prop'] ) ) {
-			// formatComment() calls wfMessage() among other things
+			// formatComment() calls wfMsg() among other things
 			return 'anon-public-user-private';
-		} elseif ( LogEventsList::getExcludeClause( $this->getDB(), 'user', $this->getUser() )
-			=== LogEventsList::getExcludeClause( $this->getDB(), 'public' )
-		) { // Output can only contain public data.
-			return 'public';
 		} else {
-			return 'anon-public-user-private';
+			return 'public';
 		}
 	}
 
 	public function getAllowedParams() {
-		global $wgLogTypes, $wgLogActions, $wgLogActionsHandlers;
+		global $wgLogTypes, $wgLogActions;
 		return array(
 			'prop' => array(
 				ApiBase::PARAM_ISMULTI => true,
@@ -409,7 +388,7 @@ class ApiQueryLogEvents extends ApiQueryBase {
 				ApiBase::PARAM_TYPE => $wgLogTypes
 			),
 			'action' => array(
-				ApiBase::PARAM_TYPE => array_keys( array_merge( $wgLogActions, $wgLogActionsHandlers ) )
+				ApiBase::PARAM_TYPE => array_keys( $wgLogActions )
 			),
 			'start' => array(
 				ApiBase::PARAM_TYPE => 'timestamp'
@@ -451,7 +430,7 @@ class ApiQueryLogEvents extends ApiQueryBase {
 				' timestamp      - Adds the timestamp for the event',
 				' comment        - Adds the comment of the event',
 				' parsedcomment  - Adds the parsed comment of the event',
-				' details        - Lists additional details about the event',
+				' details        - Lists addtional details about the event',
 				' tags           - Lists tags for the event',
 			),
 			'type' => 'Filter log entries to only this type',
@@ -464,62 +443,6 @@ class ApiQueryLogEvents extends ApiQueryBase {
 			'prefix' => 'Filter entries that start with this prefix. Disabled in Miser Mode',
 			'limit' => 'How many total event entries to return',
 			'tag' => 'Only list event entries tagged with this tag',
-		);
-	}
-
-	public function getResultProperties() {
-		global $wgLogTypes;
-		return array(
-			'ids' => array(
-				'logid' => 'integer',
-				'pageid' => 'integer'
-			),
-			'title' => array(
-				'ns' => 'namespace',
-				'title' => 'string'
-			),
-			'type' => array(
-				'type' => array(
-					ApiBase::PROP_TYPE => $wgLogTypes
-				),
-				'action' => 'string'
-			),
-			'details' => array(
-				'actionhidden' => 'boolean'
-			),
-			'user' => array(
-				'userhidden' => 'boolean',
-				'user' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				),
-				'anon' => 'boolean'
-			),
-			'userid' => array(
-				'userhidden' => 'boolean',
-				'userid' => array(
-					ApiBase::PROP_TYPE => 'integer',
-					ApiBase::PROP_NULLABLE => true
-				),
-				'anon' => 'boolean'
-			),
-			'timestamp' => array(
-				'timestamp' => 'timestamp'
-			),
-			'comment' => array(
-				'commenthidden' => 'boolean',
-				'comment' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				)
-			),
-			'parsedcomment' => array(
-				'commenthidden' => 'boolean',
-				'parsedcomment' => array(
-					ApiBase::PROP_TYPE => 'string',
-					ApiBase::PROP_NULLABLE => true
-				)
-			)
 		);
 	}
 
@@ -544,5 +467,9 @@ class ApiQueryLogEvents extends ApiQueryBase {
 
 	public function getHelpUrls() {
 		return 'https://www.mediawiki.org/wiki/API:Logevents';
+	}
+
+	public function getVersion() {
+		return __CLASS__ . ': $Id$';
 	}
 }

@@ -17,18 +17,11 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @file
  * @ingroup Maintenance
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script that populates the rev_len field for old revisions
- * created before MW 1.10.
- *
- * @ingroup Maintenance
- */
 class PopulateRevisionLength extends LoggedUpdateMaintenance {
 	public function __construct() {
 		parent::__construct();
@@ -48,11 +41,7 @@ class PopulateRevisionLength extends LoggedUpdateMaintenance {
 		$db = $this->getDB( DB_MASTER );
 		if ( !$db->tableExists( 'revision' ) ) {
 			$this->error( "revision table does not exist", true );
-		} else if ( !$db->fieldExists( 'revision', 'rev_sha1', __METHOD__ ) ) {
-			$this->output( "rev_sha1 column does not exist\n\n", true );
-			return false;
 		}
-
 		$this->output( "Populating rev_len column\n" );
 
 		$start = $db->selectField( 'revision', 'MIN(rev_id)', false, __METHOD__ );
@@ -67,11 +56,10 @@ class PopulateRevisionLength extends LoggedUpdateMaintenance {
 		$blockEnd = intval( $start ) + $this->mBatchSize - 1;
 		$count = 0;
 		$missing = 0;
-		$fields = Revision::selectFields();
 		while ( $blockStart <= $end ) {
 			$this->output( "...doing rev_id from $blockStart to $blockEnd\n" );
 			$res = $db->select( 'revision',
-						$fields,
+						Revision::selectFields(),
 						array( "rev_id >= $blockStart",
 						   "rev_id <= $blockEnd",
 						   "rev_len IS NULL" ),
@@ -79,16 +67,16 @@ class PopulateRevisionLength extends LoggedUpdateMaintenance {
 			# Go through and update rev_len from these rows.
 			foreach ( $res as $row ) {
 				$rev = new Revision( $row );
-				$content = $rev->getContent();
-				if ( !$content ) {
+				$text = $rev->getRawText();
+				if ( !is_string( $text ) ) {
 					# This should not happen, but sometimes does (bug 20757)
-					$this->output( "Content of revision {$row->rev_id} unavailable!\n" );
+					$this->output( "Text of revision {$row->rev_id} unavailable!\n" );
 					$missing++;
 				}
 				else {
 					# Update the row...
 					$db->update( 'revision',
-							 array( 'rev_len' => $content->getSize() ),
+							 array( 'rev_len' => strlen( $text ) ),
 							 array( 'rev_id' => $row->rev_id ),
 							 __METHOD__ );
 					$count++;

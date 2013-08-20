@@ -17,42 +17,31 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @file
  * @ingroup Maintenance
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script that sends purge requests for listed pages to squid.
- *
- * @ingroup Maintenance
- */
 class PurgeList extends Maintenance {
 	public function __construct() {
 		parent::__construct();
 		$this->mDescription = "Send purge requests for listed pages to squid";
-		$this->addOption( 'purge', 'Whether to update page_touched.', false, false );
+		$this->addOption( 'purge', 'Whether to update page_touched.' , false, false );
 		$this->addOption( 'namespace', 'Namespace number', false, true );
-		$this->addOption( 'all', 'Purge all pages', false, false );
-		$this->addOption( 'delay', 'Number of seconds to delay between each purge', false, true );
-		$this->addOption( 'verbose', 'Show more output', false, false, 'v' );
 		$this->setBatchSize( 100 );
 	}
 
 	public function execute() {
-		if ( $this->hasOption( 'all' ) ) {
-			$this->purgeNamespace( false );
-		} elseif ( $this->hasOption( 'namespace' ) ) {
-			$this->purgeNamespace( intval( $this->getOption( 'namespace') ) );
+		if( $this->hasOption( 'namespace' ) ) {
+			$this->purgeNamespace();
 		} else {
-			$this->doPurge();
+			$this->purgeList();
 		}
 		$this->output( "Done!\n" );
 	}
 
 	/** Purge URL coming from stdin */
-	private function doPurge() {
+	private function purgeList() {
 		$stdin = $this->getStdin();
 		$urls = array();
 
@@ -74,41 +63,56 @@ class PurgeList extends Maintenance {
 				}
 			}
 		}
-		$this->output( "Purging " . count( $urls ). " urls\n" );
 		$this->sendPurgeRequest( $urls );
 	}
 
-	/** Purge a namespace or all pages */
-	private function purgeNamespace( $namespace = false ) {
+	/** Purge a namespace given by --namespace */
+	private function purgeNamespace() {
 		$dbr = wfGetDB( DB_SLAVE );
-		$startId = 0;
-		if ( $namespace === false ) {
-			$conds = array();
-		} else {
-			$conds = array( 'page_namespace' => $namespace );
-		}
-		while ( true ) {
-			$res = $dbr->select( 'page', 
-				array( 'page_id', 'page_namespace', 'page_title' ),
-				$conds + array( 'page_id > ' . $dbr->addQuotes( $startId ) ),
-				__METHOD__,
-				array(
-					'LIMIT' => $this->mBatchSize,
-					'ORDER BY' => 'page_id'
+		$ns = $dbr->addQuotes( $this->getOption( 'namespace') );
 
+		$result = $dbr->select(
+			array( 'page' ),
+			array( 'page_namespace', 'page_title' ),
+			array( "page_namespace = $ns" ),
+			__METHOD__,
+			array( 'ORDER BY' => 'page_id' )
+		);
+
+		$start   = 0;
+		$end = $dbr->numRows( $result );
+		$this->output( "Will purge $end pages from namespace $ns\n" );
+
+		# Do remaining chunk
+		$end += $this->mBatchSize - 1;
+		$blockStart = $start;
+		$blockEnd = $start + $this->mBatchSize - 1;
+
+		while( $blockEnd <= $end ) {
+			# Select pages we will purge:
+			$result = $dbr->select(
+				array( 'page' ),
+				array( 'page_namespace', 'page_title' ),
+				array( "page_namespace = $ns" ),
+				__METHOD__,
+				array( # conditions
+					'ORDER BY' => 'page_id',
+					'LIMIT'    => $this->mBatchSize,
+					'OFFSET'   => $blockStart,
 				)
 			);
-			if ( !$res->numRows() ) {
-				break;
-			}
+			# Initialize/reset URLs to be purged
 			$urls = array();
-			foreach ( $res as $row ) {
+			foreach( $result as $row ) {
 				$title = Title::makeTitle( $row->page_namespace, $row->page_title );
 				$url = $title->getInternalUrl();
 				$urls[] = $url;
-				$startId = $row->page_id;
 			}
+
 			$this->sendPurgeRequest( $urls );
+
+			$blockStart += $this->mBatchSize;
+			$blockEnd   += $this->mBatchSize;
 		}
 	}
 
@@ -117,23 +121,9 @@ class PurgeList extends Maintenance {
 	 * @param $urls array List of URLS to purge from squids
 	 */
 	private function sendPurgeRequest( $urls ) {
-		if ( $this->hasOption( 'delay' ) ) {
-			$delay = floatval( $this->getOption( 'delay' ) );
-			foreach ( $urls as $url ) {
-				if ( $this->hasOption( 'verbose' ) ) {
-					$this->output( $url . "\n" );
-				}
-				$u = new SquidUpdate( array( $url ) );
-				$u->doUpdate();
-				usleep( $delay * 1e6 );
-			}
-		} else {
-			if ( $this->hasOption( 'verbose' ) ) {
-				$this->output( implode( "\n", $urls ) . "\n"  );
-			}
-			$u = new SquidUpdate( $urls );
-			$u->doUpdate();
-		}
+		$this->output( "Purging " . count( $urls ). " urls\n" );
+		$u = new SquidUpdate( $urls );
+		$u->doUpdate();
 	}
 
 }

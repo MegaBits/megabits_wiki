@@ -1,6 +1,6 @@
 <?php
 /**
- * Wait until slave lag goes under a certain value.
+ * Script to wait until slave lag goes under a certain value.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,16 +22,10 @@
  * @see wfWaitForSlaves()
  */
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-/**
- * Maintenance script to wait until slave lag goes under a certain value.
- *
- * @ingroup Maintenance
- */
 class WaitForSlave extends Maintenance {
 	public function __construct() {
-		parent::__construct();
 		$this->addArg( 'maxlag', 'How long to wait for the slaves, default 10 seconds', false );
 	}
 	public function execute() {

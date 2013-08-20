@@ -22,11 +22,6 @@
  * @ingroup Actions
  */
 
-/**
- * Mark a revision as patrolled on a page
- *
- * @ingroup Actions
- */
 class MarkpatrolledAction extends FormlessAction {
 
 	public function getName() {

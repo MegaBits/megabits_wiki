@@ -38,7 +38,7 @@ class SearchMssql extends SearchEngine {
 	/**
 	 * Perform a full text search query and return a result set.
 	 *
-	 * @param string $term raw search term
+	 * @param $term String: raw search term
 	 * @return MssqlSearchResultSet
 	 * @access public
 	 */
@@ -50,7 +50,7 @@ class SearchMssql extends SearchEngine {
 	/**
 	 * Perform a title-only search query and return a result set.
 	 *
-	 * @param string $term raw search term
+	 * @param $term String: raw search term
 	 * @return MssqlSearchResultSet
 	 * @access public
 	 */
@@ -58,6 +58,7 @@ class SearchMssql extends SearchEngine {
 		$resultSet = $this->db->resultObject( $this->db->query( $this->getQuery( $this->filter( $term ), false ) ) );
 		return new MssqlSearchResultSet( $resultSet, $this->searchTerms );
 	}
+
 
 	/**
 	 * Return a partial WHERE clause to exclude redirects, if so set
@@ -77,7 +78,7 @@ class SearchMssql extends SearchEngine {
 	 * Return a partial WHERE clause to limit the search to the given namespaces
 	 *
 	 * @return String
-	 * @private
+	 * @private                           
 	 */
 	function queryNamespaces() {
 		$namespaces = implode( ',', $this->namespaces );
@@ -114,7 +115,6 @@ class SearchMssql extends SearchEngine {
 	 *
 	 * @param $filteredTerm String
 	 * @param $fulltext Boolean
-	 * @return String
 	 */
 	function getQuery( $filteredTerm, $fulltext ) {
 		return $this->queryLimit( $this->queryMain( $filteredTerm, $fulltext ) . ' ' .
@@ -143,17 +143,15 @@ class SearchMssql extends SearchEngine {
 	 */
 	function queryMain( $filteredTerm, $fulltext ) {
 		$match = $this->parseQuery( $filteredTerm, $fulltext );
-		$page = $this->db->tableName( 'page' );
+		$page        = $this->db->tableName( 'page' );
 		$searchindex = $this->db->tableName( 'searchindex' );
-
+		
 		return 'SELECT page_id, page_namespace, page_title, ftindex.[RANK]' .
 			"FROM $page,FREETEXTTABLE($searchindex , $match, LANGUAGE 'English') as ftindex " .
 			'WHERE page_id=ftindex.[KEY] ';
 	}
 
-	/** @todo document
-	 * @return string
-	 */
+	/** @todo document */
 	function parseQuery( $filteredText, $fulltext ) {
 		global $wgContLang;
 		$lc = SearchEngine::legalSearchChars();
@@ -191,11 +189,10 @@ class SearchMssql extends SearchEngine {
 	 * @param $id Integer
 	 * @param $title String
 	 * @param $text String
-	 * @return bool|ResultWrapper
 	 */
 	function update( $id, $title, $text ) {
 		// We store the column data as UTF-8 byte order marked binary stream
-		// because we are invoking the plain text IFilter on it so that, and we want it
+		// because we are invoking the plain text IFilter on it so that, and we want it 
 		// to properly decode the stream as UTF-8.  SQL doesn't support UTF8 as a data type
 		// but the indexer will correctly handle it by this method.  Since all we are doing
 		// is passing this data to the indexer and never retrieving it via PHP, this will save space
@@ -214,7 +211,6 @@ class SearchMssql extends SearchEngine {
 	 *
 	 * @param $id Integer
 	 * @param $title String
-	 * @return bool|ResultWrapper
 	 */
 	function updateTitle( $id, $title ) {
 		$table = $this->db->tableName( 'searchindex' );
@@ -252,3 +248,5 @@ class MssqlSearchResultSet extends SearchResultSet {
 		return new SearchResult( $row );
 	}
 }
+
+

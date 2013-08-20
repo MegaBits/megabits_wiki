@@ -15,7 +15,4 @@ require_once( "$IP/extensions/WikiEditor/WikiEditor.php" );
 
 $wgDefaultUserOptions['usebetatoolbar'] = 1;
 $wgDefaultUserOptions['usebetatoolbar-cgd'] = 1;
-
-# Release 1.21 removes the $wgWikiEditorToolbarClickTracking config variable
-# and with it support for tracking clicks on WikiEditor features via the
-# ClickTracking extension.
+$wgDefaultUserOptions['wikieditor-preview'] = 1;

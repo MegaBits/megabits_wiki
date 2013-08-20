@@ -34,17 +34,9 @@ class MIMEsearchPage extends QueryPage {
 		parent::__construct( $name );
 	}
 
-	function isExpensive() {
-		return true;
-	}
-
-	function isSyndicated() {
-		return false;
-	}
-
-	function isCacheable() {
-		return false;
-	}
+	function isExpensive() { return true; }
+	function isSyndicated() { return false; }
+	function isCacheable() { return false; }
 
 	function linkParameters() {
 		return array( 'mime' => "{$this->major}/{$this->minor}" );
@@ -53,9 +45,9 @@ class MIMEsearchPage extends QueryPage {
 	public function getQueryInfo() {
 		return array(
 			'tables' => array( 'image' ),
-			'fields' => array( 'namespace' => NS_FILE,
-					'title' => 'img_name',
-					'value' => 'img_major_mime',
+			'fields' => array( "'" . NS_FILE . "' AS namespace",
+					'img_name AS title',
+					'img_major_mime AS value',
 					'img_size',
 					'img_width',
 					'img_height',
@@ -67,19 +59,17 @@ class MIMEsearchPage extends QueryPage {
 	}
 
 	function execute( $par ) {
-		global $wgScript;
-
 		$mime = $par ? $par : $this->getRequest()->getText( 'mime' );
 
 		$this->setHeaders();
 		$this->outputHeader();
 		$this->getOutput()->addHTML(
-			Xml::openElement( 'form', array( 'id' => 'specialmimesearch', 'method' => 'get', 'action' => $wgScript ) ) .
+			Xml::openElement( 'form', array( 'id' => 'specialmimesearch', 'method' => 'get', 'action' => SpecialPage::getTitleFor( 'MIMEsearch' )->getLocalUrl() ) ) .
 			Xml::openElement( 'fieldset' ) .
-			Html::hidden( 'title', $this->getTitle()->getPrefixedText() ) .
-			Xml::element( 'legend', null, $this->msg( 'mimesearch' )->text() ) .
-			Xml::inputLabel( $this->msg( 'mimetype' )->text(), 'mime', 'mime', 20, $mime ) . ' ' .
-			Xml::submitButton( $this->msg( 'ilsubmit' )->text() ) .
+			Html::hidden( 'title', SpecialPage::getTitleFor( 'MIMEsearch' )->getPrefixedText() ) .
+			Xml::element( 'legend', null, wfMsg( 'mimesearch' ) ) .
+			Xml::inputLabel( wfMsg( 'mimetype' ), 'mime', 'mime', 20, $mime ) . ' ' .
+			Xml::submitButton( wfMsg( 'ilsubmit' ) ) .
 			Xml::closeElement( 'fieldset' ) .
 			Xml::closeElement( 'form' )
 		);
@@ -92,6 +82,7 @@ class MIMEsearchPage extends QueryPage {
 		parent::execute( $par );
 	}
 
+
 	function formatResult( $skin, $result ) {
 		global $wgContLang;
 
@@ -102,16 +93,17 @@ class MIMEsearchPage extends QueryPage {
 			htmlspecialchars( $text )
 		);
 
-		$download = Linker::makeMediaLinkObj( $nt, $this->msg( 'download' )->escaped() );
-		$download = $this->msg( 'parentheses' )->rawParams( $download )->escaped();
+		$download = Linker::makeMediaLinkObj( $nt, wfMsgHtml( 'download' ) );
 		$lang = $this->getLanguage();
 		$bytes = htmlspecialchars( $lang->formatSize( $result->img_size ) );
-		$dimensions = $this->msg( 'widthheight' )->numParams( $result->img_width,
-			$result->img_height )->escaped();
+		$dimensions = htmlspecialchars( wfMsg( 'widthheight',
+			$lang->formatNum( $result->img_width ),
+			$lang->formatNum( $result->img_height )
+		) );
 		$user = Linker::link( Title::makeTitle( NS_USER, $result->img_user_text ), htmlspecialchars( $result->img_user_text ) );
-		$time = htmlspecialchars( $lang->userTimeAndDate( $result->img_timestamp, $this->getUser() ) );
+		$time = htmlspecialchars( $lang->timeanddate( $result->img_timestamp ) );
 
-		return "$download $plink . . $dimensions . . $bytes . . $user . . $time";
+		return "($download) $plink . . $dimensions . . $bytes . . $user . . $time";
 	}
 
 	/**
@@ -132,9 +124,5 @@ class MIMEsearchPage extends QueryPage {
 			'multipart'
 		);
 		return in_array( $type, $types );
-	}
-
-	protected function getGroupName() {
-		return 'media';
 	}
 }

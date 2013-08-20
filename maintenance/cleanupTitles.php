@@ -1,6 +1,6 @@
 <?php
 /**
- * Clean up broken, unparseable titles.
+ * Script to clean up broken, unparseable titles.
  *
  * Usage: php cleanupTitles.php [--fix]
  * Options:
@@ -29,13 +29,8 @@
  * @ingroup Maintenance
  */
 
-require_once( __DIR__ . '/cleanupTable.inc' );
+require_once( dirname( __FILE__ ) . '/cleanupTable.inc' );
 
-/**
- * Maintenance script to clean up broken, unparseable titles.
- *
- * @ingroup Maintenance
- */
 class TitleCleanup extends TableCleanup {
 	public function __construct() {
 		parent::__construct();
@@ -114,7 +109,7 @@ class TitleCleanup extends TableCleanup {
 	protected function moveInconsistentPage( $row, $title ) {
 		if ( $title->exists() || $title->getInterwiki() || !$title->canExist() ) {
 			if ( $title->getInterwiki() || !$title->canExist() ) {
-				$prior = $title->getPrefixedDBkey();
+				$prior = $title->getPrefixedDbKey();
 			} else {
 				$prior = $title->getDBkey();
 			}

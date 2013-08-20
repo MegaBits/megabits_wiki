@@ -98,7 +98,7 @@ class EmailConfirmation extends UnlistedSpecialPage {
 				$out->wrapWikiMsg( "<div class=\"error mw-confirmemail-pending\">\n$1\n</div>", 'confirmemail_pending' );
 			}
 			$out->addWikiMsg( 'confirmemail_text' );
-			$form = Xml::openElement( 'form', array( 'method' => 'post', 'action' => $this->getTitle()->getLocalUrl() ) );
+			$form  = Xml::openElement( 'form', array( 'method' => 'post', 'action' => $this->getTitle()->getLocalUrl() ) );
 			$form .= Html::hidden( 'token', $user->getEditToken() );
 			$form .= Xml::submitButton( $this->msg( 'confirmemail_send' )->text() );
 			$form .= Xml::closeElement( 'form' );
@@ -110,7 +110,7 @@ class EmailConfirmation extends UnlistedSpecialPage {
 	 * Attempt to confirm the user's email address and show success or failure
 	 * as needed; if successful, take the user to log in
 	 *
-	 * @param string $code Confirmation code
+	 * @param $code Confirmation code
 	 */
 	function attemptConfirm( $code ) {
 		$user = User::newFromConfirmationCode( $code );
@@ -145,7 +145,9 @@ class EmailInvalidation extends UnlistedSpecialPage {
 	function execute( $code ) {
 		$this->setHeaders();
 
-		$this->checkReadOnly();
+		if ( wfReadOnly() ) {
+			throw new ReadOnlyError;
+		}
 
 		$this->attemptInvalidate( $code );
 	}
@@ -154,7 +156,7 @@ class EmailInvalidation extends UnlistedSpecialPage {
 	 * Attempt to invalidate the user's email address and show success or failure
 	 * as needed; if successful, link to main page
 	 *
-	 * @param string $code Confirmation code
+	 * @param $code Confirmation code
 	 */
 	function attemptInvalidate( $code ) {
 		$user = User::newFromConfirmationCode( $code );

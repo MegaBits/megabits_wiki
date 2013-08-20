@@ -1,12 +1,12 @@
 <?php
 /**
- * Clean up broken, unparseable upload filenames.
+ * Script to clean up broken, unparseable upload filenames.
  *
  * Usage: php cleanupImages.php [--fix]
  * Options:
  *   --fix  Actually clean up titles; otherwise just checks for them
  *
- * Copyright © 2005-2006 Brion Vibber <brion@pobox.com>
+ * Copyright (C) 2005-2006 Brion Vibber <brion@pobox.com>
  * http://www.mediawiki.org/
  *
  * This program is free software; you can redistribute it and/or modify
@@ -29,13 +29,8 @@
  * @ingroup Maintenance
  */
 
-require_once( __DIR__ . '/cleanupTable.inc' );
+require_once( dirname( __FILE__ ) . '/cleanupTable.inc' );
 
-/**
- * Maintenance script to clean up broken, unparseable upload filenames.
- *
- * @ingroup Maintenance
- */
 class ImageCleanup extends TableCleanup {
 	protected $defaultParams = array(
 		'table' => 'image',
@@ -161,7 +156,7 @@ class ImageCleanup extends TableCleanup {
 		} else {
 			$this->output( "renaming $path to $finalPath\n" );
 			// @todo FIXME: Should this use File::move()?
-			$db->begin( __METHOD__ );
+			$db->begin();
 			$db->update( 'image',
 				array( 'img_name' => $final ),
 				array( 'img_name' => $orig ),
@@ -178,15 +173,15 @@ class ImageCleanup extends TableCleanup {
 			if ( !file_exists( $dir ) ) {
 				if ( !wfMkdirParents( $dir, null, __METHOD__ ) ) {
 					$this->output( "RENAME FAILED, COULD NOT CREATE $dir" );
-					$db->rollback( __METHOD__ );
+					$db->rollback();
 					return;
 				}
 			}
 			if ( rename( $path, $finalPath ) ) {
-				$db->commit( __METHOD__ );
+				$db->commit();
 			} else {
 				$this->error( "RENAME FAILED" );
-				$db->rollback( __METHOD__ );
+				$db->rollback();
 			}
 		}
 	}
@@ -197,8 +192,9 @@ class ImageCleanup extends TableCleanup {
 	}
 
 	private function buildSafeTitle( $name ) {
+		global $wgLegalTitleChars;
 		$x = preg_replace_callback(
-			'/([^' . Title::legalChars() . ']|~)/',
+			"/([^$wgLegalTitleChars]|~)/",
 			array( $this, 'hexChar' ),
 			$name );
 

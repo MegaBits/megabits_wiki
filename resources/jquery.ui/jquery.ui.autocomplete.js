@@ -1,7 +1,7 @@
-/*!
- * jQuery UI Autocomplete 1.8.24
+/*
+ * jQuery UI Autocomplete 1.8.17
  *
- * Copyright 2012, AUTHORS.txt (http://jqueryui.com/about)
+ * Copyright 2011, AUTHORS.txt (http://jqueryui.com/about)
  * Dual licensed under the MIT or GPL Version 2 licenses.
  * http://jquery.org/license
  *
@@ -37,7 +37,6 @@ $.widget( "ui.autocomplete", {
 		var self = this,
 			doc = this.element[ 0 ].ownerDocument,
 			suppressKeyPress;
-		this.isMultiLine = this.element.is( "textarea" );
 
 		this.element
 			.addClass( "ui-autocomplete-input" )
@@ -63,10 +62,14 @@ $.widget( "ui.autocomplete", {
 					self._move( "nextPage", event );
 					break;
 				case keyCode.UP:
-					self._keyEvent( "previous", event );
+					self._move( "previous", event );
+					// prevent moving cursor to beginning of text field in some browsers
+					event.preventDefault();
 					break;
 				case keyCode.DOWN:
-					self._keyEvent( "next", event );
+					self._move( "next", event );
+					// prevent moving cursor to end of text field in some browsers
+					event.preventDefault();
 					break;
 				case keyCode.ENTER:
 				case keyCode.NUMPAD_ENTER:
@@ -128,6 +131,9 @@ $.widget( "ui.autocomplete", {
 				}, 150 );
 			});
 		this._initSource();
+		this.response = function() {
+			return self._response.apply( self, arguments );
+		};
 		this.menu = $( "<ul></ul>" )
 			.addClass( "ui-autocomplete" )
 			.appendTo( $( this.options.appendTo || "body", doc )[0] )
@@ -262,11 +268,16 @@ $.widget( "ui.autocomplete", {
 					url: url,
 					data: request,
 					dataType: "json",
+					autocompleteRequest: ++requestIndex,
 					success: function( data, status ) {
-						response( data );
+						if ( this.autocompleteRequest === requestIndex ) {
+							response( data );
+						}
 					},
 					error: function() {
-						response( [] );
+						if ( this.autocompleteRequest === requestIndex ) {
+							response( [] );
+						}
 					}
 				});
 			};
@@ -297,32 +308,20 @@ $.widget( "ui.autocomplete", {
 		this.pending++;
 		this.element.addClass( "ui-autocomplete-loading" );
 
-		this.source( { term: value }, this._response() );
+		this.source( { term: value }, this.response );
 	},
 
-	_response: function() {
-		var that = this,
-			index = ++requestIndex;
-
-		return function( content ) {
-			if ( index === requestIndex ) {
-				that.__response( content );
-			}
-
-			that.pending--;
-			if ( !that.pending ) {
-				that.element.removeClass( "ui-autocomplete-loading" );
-			}
-		};
-	},
-
-	__response: function( content ) {
+	_response: function( content ) {
 		if ( !this.options.disabled && content && content.length ) {
 			content = this._normalize( content );
 			this._suggest( content );
 			this._trigger( "open" );
 		} else {
 			this.close();
+		}
+		this.pending--;
+		if ( !this.pending ) {
+			this.element.removeClass( "ui-autocomplete-loading" );
 		}
 	},
 
@@ -421,14 +420,6 @@ $.widget( "ui.autocomplete", {
 
 	widget: function() {
 		return this.menu.element;
-	},
-	_keyEvent: function( keyEvent, event ) {
-		if ( !this.isMultiLine || this.menu.element.is( ":visible" ) ) {
-			this._move( keyEvent, event );
-
-			// prevents moving cursor to beginning/end of the text field in some browsers
-			event.preventDefault();
-		}
 	}
 });
 
@@ -601,7 +592,7 @@ $.widget("ui.menu", {
 			}
 
 			var base = this.active.offset().top,
-				height = this.element.height(),
+				height = this.element.height();
 				result = this.element.children(".ui-menu-item").filter(function() {
 					var close = $(this).offset().top - base + height - $(this).height();
 					// TODO improve approximation

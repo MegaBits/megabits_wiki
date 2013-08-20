@@ -1,7 +1,5 @@
 <?php
 /**
- * Resource message blobs storage used by the resource loader.
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -17,7 +15,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @file
  * @author Roan Kattouw
  * @author Trevor Parscal
  */
@@ -29,7 +26,7 @@
  * A message blob is a JSON object containing the interface messages for a
  * certain resource in a certain language. These message blobs are cached
  * in the msg_resource table and automatically invalidated when one of their
- * constituent messages or the resource itself is changed.
+ * consistuent messages or the resource itself is changed.
  */
 class MessageBlobStore {
 
@@ -37,8 +34,8 @@ class MessageBlobStore {
 	 * Get the message blobs for a set of modules
 	 *
 	 * @param $resourceLoader ResourceLoader object
-	 * @param array $modules Array of module objects keyed by module name
-	 * @param string $lang Language code
+	 * @param $modules array Array of module objects keyed by module name
+	 * @param $lang string Language code
 	 * @return array An array mapping module names to message blobs
 	 */
 	public static function get( ResourceLoader $resourceLoader, $modules, $lang ) {
@@ -68,9 +65,9 @@ class MessageBlobStore {
 	 * present, it is not regenerated; instead, the preexisting blob
 	 * is fetched and returned.
 	 *
-	 * @param string $name module name
+	 * @param $name String: module name
 	 * @param $module ResourceLoaderModule object
-	 * @param string $lang language code
+	 * @param $lang String: language code
 	 * @return mixed Message blob or false if the module has no messages
 	 */
 	public static function insertMessageBlob( $name, ResourceLoaderModule $module, $lang ) {
@@ -80,54 +77,51 @@ class MessageBlobStore {
 			return false;
 		}
 
-		try {
-			$dbw = wfGetDB( DB_MASTER );
-			$success = $dbw->insert( 'msg_resource', array(
-					'mr_lang' => $lang,
-					'mr_resource' => $name,
-					'mr_blob' => $blob,
-					'mr_timestamp' => $dbw->timestamp()
-				),
-				__METHOD__,
-				array( 'IGNORE' )
-			);
+		$dbw = wfGetDB( DB_MASTER );
+		$success = $dbw->insert( 'msg_resource', array(
+				'mr_lang' => $lang,
+				'mr_resource' => $name,
+				'mr_blob' => $blob,
+				'mr_timestamp' => $dbw->timestamp()
+			),
+			__METHOD__,
+			array( 'IGNORE' )
+		);
 
-			if ( $success ) {
-				if ( $dbw->affectedRows() == 0 ) {
-					// Blob was already present, fetch it
-					$blob = $dbw->selectField( 'msg_resource', 'mr_blob', array(
-							'mr_resource' => $name,
-							'mr_lang' => $lang,
-						),
-						__METHOD__
-					);
-				} else {
-					// Update msg_resource_links
-					$rows = array();
+		if ( $success ) {
+			if ( $dbw->affectedRows() == 0 ) {
+				// Blob was already present, fetch it
+				$blob = $dbw->selectField( 'msg_resource', 'mr_blob', array(
+						'mr_resource' => $name,
+						'mr_lang' => $lang,
+					),
+					__METHOD__
+				);
+			} else {
+				// Update msg_resource_links
+				$rows = array();
 
-					foreach ( $module->getMessages() as $key ) {
-						$rows[] = array(
-							'mrl_resource' => $name,
-							'mrl_message' => $key
-						);
-					}
-					$dbw->insert( 'msg_resource_links', $rows,
-						__METHOD__, array( 'IGNORE' )
+				foreach ( $module->getMessages() as $key ) {
+					$rows[] = array(
+						'mrl_resource' => $name,
+						'mrl_message' => $key
 					);
 				}
+				$dbw->insert( 'msg_resource_links', $rows,
+					__METHOD__, array( 'IGNORE' )
+				);
 			}
-		} catch ( Exception $e ) {
-			wfDebug( __METHOD__ . " failed to update DB: $e\n" );
 		}
+
 		return $blob;
 	}
 
 	/**
 	 * Update the message blob for a given module in a given language
 	 *
-	 * @param string $name module name
+	 * @param $name String: module name
 	 * @param $module ResourceLoaderModule object
-	 * @param string $lang language code
+	 * @param $lang String: language code
 	 * @return String Regenerated message blob, or null if there was no blob for the given module/language pair
 	 */
 	public static function updateModule( $name, ResourceLoaderModule $module, $lang ) {
@@ -143,120 +137,109 @@ class MessageBlobStore {
 		// Save the old and new blobs for later
 		$oldBlob = $row->mr_blob;
 		$newBlob = self::generateMessageBlob( $module, $lang );
+		
+		$newRow = array(
+			'mr_resource' => $name,
+			'mr_lang' => $lang,
+			'mr_blob' => $newBlob,
+			'mr_timestamp' => $dbw->timestamp()
+		);
 
-		try {
-			$newRow = array(
-				'mr_resource' => $name,
-				'mr_lang' => $lang,
-				'mr_blob' => $newBlob,
-				'mr_timestamp' => $dbw->timestamp()
-			);
+		$dbw->replace( 'msg_resource',
+			array( array( 'mr_resource', 'mr_lang' ) ),
+			$newRow, __METHOD__
+		);
 
-			$dbw->replace( 'msg_resource',
-				array( array( 'mr_resource', 'mr_lang' ) ),
-				$newRow, __METHOD__
-			);
+		// Figure out which messages were added and removed
+		$oldMessages = array_keys( FormatJson::decode( $oldBlob, true ) );
+		$newMessages = array_keys( FormatJson::decode( $newBlob, true ) );
+		$added = array_diff( $newMessages, $oldMessages );
+		$removed = array_diff( $oldMessages, $newMessages );
 
-			// Figure out which messages were added and removed
-			$oldMessages = array_keys( FormatJson::decode( $oldBlob, true ) );
-			$newMessages = array_keys( FormatJson::decode( $newBlob, true ) );
-			$added = array_diff( $newMessages, $oldMessages );
-			$removed = array_diff( $oldMessages, $newMessages );
-
-			// Delete removed messages, insert added ones
-			if ( $removed ) {
-				$dbw->delete( 'msg_resource_links', array(
-						'mrl_resource' => $name,
-						'mrl_message' => $removed
-					), __METHOD__
-				);
-			}
-
-			$newLinksRows = array();
-
-			foreach ( $added as $message ) {
-				$newLinksRows[] = array(
+		// Delete removed messages, insert added ones
+		if ( $removed ) {
+			$dbw->delete( 'msg_resource_links', array(
 					'mrl_resource' => $name,
-					'mrl_message' => $message
-				);
-			}
-
-			if ( $newLinksRows ) {
-				$dbw->insert( 'msg_resource_links', $newLinksRows, __METHOD__,
-					array( 'IGNORE' ) // just in case
-				);
-			}
-		} catch ( Exception $e ) {
-			wfDebug( __METHOD__ . " failed to update DB: $e\n" );
+					'mrl_message' => $removed
+				), __METHOD__
+			);
 		}
+
+		$newLinksRows = array();
+
+		foreach ( $added as $message ) {
+			$newLinksRows[] = array(
+				'mrl_resource' => $name,
+				'mrl_message' => $message
+			);
+		}
+
+		if ( $newLinksRows ) {
+			$dbw->insert( 'msg_resource_links', $newLinksRows, __METHOD__,
+				 array( 'IGNORE' ) // just in case
+			);
+		}
+
 		return $newBlob;
 	}
 
 	/**
 	 * Update a single message in all message blobs it occurs in.
 	 *
-	 * @param string $key message key
+	 * @param $key String: message key
 	 */
 	public static function updateMessage( $key ) {
-		try {
-			$dbw = wfGetDB( DB_MASTER );
+		$dbw = wfGetDB( DB_MASTER );
 
-			// Keep running until the updates queue is empty.
-			// Due to update conflicts, the queue might not be emptied
-			// in one iteration.
-			$updates = null;
-			do {
-				$updates = self::getUpdatesForMessage( $key, $updates );
+		// Keep running until the updates queue is empty.
+		// Due to update conflicts, the queue might not be emptied
+		// in one iteration.
+		$updates = null;
+		do {
+			$updates = self::getUpdatesForMessage( $key, $updates );
 
-				foreach ( $updates as $k => $update ) {
-					// Update the row on the condition that it
-					// didn't change since we fetched it by putting
-					// the timestamp in the WHERE clause.
-					$success = $dbw->update( 'msg_resource',
-						array(
-							'mr_blob' => $update['newBlob'],
-							'mr_timestamp' => $dbw->timestamp() ),
-						array(
-							'mr_resource' => $update['resource'],
-							'mr_lang' => $update['lang'],
-							'mr_timestamp' => $update['timestamp'] ),
-						__METHOD__
-					);
+			foreach ( $updates as $k => $update ) {
+				// Update the row on the condition that it
+				// didn't change since we fetched it by putting
+				// the timestamp in the WHERE clause.
+				$success = $dbw->update( 'msg_resource',
+					array(
+						'mr_blob' => $update['newBlob'],
+						'mr_timestamp' => $dbw->timestamp() ),
+					array(
+						'mr_resource' => $update['resource'],
+						'mr_lang' => $update['lang'],
+						'mr_timestamp' => $update['timestamp'] ),
+					__METHOD__
+				);
 
-					// Only requeue conflicted updates.
-					// If update() returned false, don't retry, for
-					// fear of getting into an infinite loop
-					if ( !( $success && $dbw->affectedRows() == 0 ) ) {
-						// Not conflicted
-						unset( $updates[$k] );
-					}
+				// Only requeue conflicted updates.
+				// If update() returned false, don't retry, for
+				// fear of getting into an infinite loop
+				if ( !( $success && $dbw->affectedRows() == 0 ) ) {
+					// Not conflicted
+					unset( $updates[$k] );
 				}
-			} while ( count( $updates ) );
+			}
+		} while ( count( $updates ) );
 
-			// No need to update msg_resource_links because we didn't add
-			// or remove any messages, we just changed their contents.
-		} catch ( Exception $e ) {
-			wfDebug( __METHOD__ . " failed to update DB: $e\n" );
-		}
+		// No need to update msg_resource_links because we didn't add
+		// or remove any messages, we just changed their contents.
 	}
 
 	public static function clear() {
 		// TODO: Give this some more thought
 		// TODO: Is TRUNCATE better?
-		try {
-			$dbw = wfGetDB( DB_MASTER );
-			$dbw->delete( 'msg_resource', '*', __METHOD__ );
-			$dbw->delete( 'msg_resource_links', '*', __METHOD__ );
-		} catch ( Exception $e ) {
-			wfDebug( __METHOD__ . " failed to update DB: $e\n" );
-		}
+		$dbw = wfGetDB( DB_MASTER );
+		$dbw->delete( 'msg_resource', '*', __METHOD__ );
+		$dbw->delete( 'msg_resource_links', '*', __METHOD__ );
 	}
 
 	/**
 	 * Create an update queue for updateMessage()
 	 *
-	 * @param string $key message key
-	 * @param array $prevUpdates updates queue to refresh or null to build a fresh update queue
+	 * @param $key String: message key
+	 * @param $prevUpdates Array: updates queue to refresh or null to build a fresh update queue
 	 * @return Array: updates queue
 	 */
 	private static function getUpdatesForMessage( $key, $prevUpdates = null ) {
@@ -306,14 +289,14 @@ class MessageBlobStore {
 	/**
 	 * Reencode a message blob with the updated value for a message
 	 *
-	 * @param string $blob message blob (JSON object)
-	 * @param string $key message key
-	 * @param string $lang language code
+	 * @param $blob String: message blob (JSON object)
+	 * @param $key String: message key
+	 * @param $lang String: language code
 	 * @return Message blob with $key replaced with its new value
 	 */
 	private static function reencodeBlob( $blob, $key, $lang ) {
 		$decoded = FormatJson::decode( $blob, true );
-		$decoded[$key] = wfMessage( $key )->inLanguage( $lang )->plain();
+		$decoded[$key] = wfMsgExt( $key, array( 'language' => $lang ) );
 
 		return FormatJson::encode( (object)$decoded );
 	}
@@ -323,9 +306,8 @@ class MessageBlobStore {
 	 * Modules whose blobs are not in the database are silently dropped.
 	 *
 	 * @param $resourceLoader ResourceLoader object
-	 * @param array $modules of module names
-	 * @param string $lang language code
-	 * @throws MWException
+	 * @param $modules Array of module names
+	 * @param $lang String: language code
 	 * @return array Array mapping module names to blobs
 	 */
 	private static function getFromDB( ResourceLoader $resourceLoader, $modules, $lang ) {
@@ -361,14 +343,14 @@ class MessageBlobStore {
 	 * Generate the message blob for a given module in a given language.
 	 *
 	 * @param $module ResourceLoaderModule object
-	 * @param string $lang language code
+	 * @param $lang String: language code
 	 * @return String: JSON object
 	 */
 	private static function generateMessageBlob( ResourceLoaderModule $module, $lang ) {
 		$messages = array();
 
 		foreach ( $module->getMessages() as $key ) {
-			$messages[$key] = wfMessage( $key )->inLanguage( $lang )->plain();
+			$messages[$key] = wfMsgExt( $key, array( 'language' => $lang ) );
 		}
 
 		return FormatJson::encode( (object)$messages );
