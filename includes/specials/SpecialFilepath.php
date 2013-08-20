@@ -47,7 +47,7 @@ class SpecialFilepath extends SpecialPage {
 			$file = wfFindFile( $title );
 
 			if ( $file && $file->exists() ) {
-				// Default behaviour: Use the direct link to the file.
+				// Default behavior: Use the direct link to the file.
 				$url = $file->getURL();
 				$width = $request->getInt( 'width', -1 );
 				$height = $request->getInt( 'height', -1 );
@@ -78,12 +78,16 @@ class SpecialFilepath extends SpecialPage {
 		$this->getOutput()->addHTML(
 			Html::openElement( 'form', array( 'method' => 'get', 'action' => $wgScript, 'id' => 'specialfilepath' ) ) .
 			Html::openElement( 'fieldset' ) .
-			Html::element( 'legend', null, wfMsg( 'filepath' ) ) .
+			Html::element( 'legend', null, $this->msg( 'filepath' )->text() ) .
 			Html::hidden( 'title', $this->getTitle()->getPrefixedText() ) .
-			Xml::inputLabel( wfMsg( 'filepath-page' ), 'file', 'file', 25, is_object( $title ) ? $title->getText() : '' ) . ' ' .
-			Xml::submitButton( wfMsg( 'filepath-submit' ) ) . "\n" .
+			Xml::inputLabel( $this->msg( 'filepath-page' )->text(), 'file', 'file', 25, is_object( $title ) ? $title->getText() : '' ) . ' ' .
+			Xml::submitButton( $this->msg( 'filepath-submit' )->text() ) . "\n" .
 			Html::closeElement( 'fieldset' ) .
 			Html::closeElement( 'form' )
 		);
+	}
+
+	protected function getGroupName() {
+		return 'media';
 	}
 }

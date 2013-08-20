@@ -1,4 +1,24 @@
 <?php
+/**
+ * Client for querying zhdaemon.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * http://www.gnu.org/copyleft/gpl.html
+ *
+ * @file
+ */
 
 /**
  * Client for querying zhdaemon
@@ -30,7 +50,7 @@ class ZhClient {
 	}
 
 	/**
-	 * Establish conncetion
+	 * Establish connection
 	 *
 	 * @access private
 	 *
@@ -80,8 +100,8 @@ class ZhClient {
 	/**
 	 * Convert the input to a different language variant
 	 *
-	 * @param $text String: input text
-	 * @param $tolang String: language variant
+	 * @param string $text input text
+	 * @param string $tolang language variant
 	 * @return string the converted text
 	 */
 	function convert( $text, $tolang ) {
@@ -97,7 +117,7 @@ class ZhClient {
 	/**
 	 * Convert the input to all possible variants
 	 *
-	 * @param $text String: input text
+	 * @param string $text input text
 	 * @return array langcode => converted_string
 	 */
 	function convertToAllVariants( $text ) {
@@ -122,7 +142,7 @@ class ZhClient {
 	/**
 	 * Perform word segmentation
 	 *
-	 * @param $text String: input text
+	 * @param string $text input text
 	 * @return string segmented text
 	 */
 	function segment( $text ) {

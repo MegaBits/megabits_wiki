@@ -1,4 +1,25 @@
 <?php
+/**
+ * This file contains database error classes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * http://www.gnu.org/copyleft/gpl.html
+ *
+ * @file
+ * @ingroup Database
+ */
 
 /**
  * Database error base class
@@ -14,9 +35,9 @@ class DBError extends MWException {
 	/**
 	 * Construct a database error
 	 * @param $db DatabaseBase object which threw the error
-	 * @param $error String A simple error message to be used for debugging
+	 * @param string $error A simple error message to be used for debugging
 	 */
-	function __construct( DatabaseBase &$db, $error ) {
+	function __construct( DatabaseBase $db = null, $error ) {
 		$this->db = $db;
 		parent::__construct( $error );
 	}
@@ -70,7 +91,7 @@ class DBError extends MWException {
 class DBConnectionError extends DBError {
 	public $error;
 
-	function __construct( DatabaseBase &$db, $error = 'unknown error' ) {
+	function __construct( DatabaseBase $db = null, $error = 'unknown error' ) {
 		$msg = 'DB connection error';
 
 		if ( trim( $error ) != '' ) {
@@ -132,12 +153,12 @@ class DBConnectionError extends DBError {
 
 		$sorry = htmlspecialchars( $this->msg( 'dberr-problems', 'Sorry! This site is experiencing technical difficulties.' ) );
 		$again = htmlspecialchars( $this->msg( 'dberr-again', 'Try waiting a few minutes and reloading.' ) );
-		$info  = htmlspecialchars( $this->msg( 'dberr-info', '(Can\'t contact the database server: $1)' ) );
+		$info = htmlspecialchars( $this->msg( 'dberr-info', '(Can\'t contact the database server: $1)' ) );
 
 		# No database access
 		MessageCache::singleton()->disable();
 
-		if ( trim( $this->error ) == '' ) {
+		if ( trim( $this->error ) == '' && $this->db ) {
 			$this->error = $this->db->getProperty( 'mServer' );
 		}
 
@@ -155,7 +176,7 @@ class DBConnectionError extends DBError {
 		return "$text<hr />$extra";
 	}
 
-	public function reportHTML(){
+	public function reportHTML() {
 		global $wgUseFileCache;
 
 		# Check whether we can serve a file-cached copy of the page with the error underneath
@@ -189,7 +210,7 @@ class DBConnectionError extends DBError {
 	 * @return string
 	 */
 	function searchForm() {
-		global $wgSitename, $wgServer, $wgRequest;
+		global $wgSitename, $wgCanonicalServer, $wgRequest;
 
 		$usegoogle = htmlspecialchars( $this->msg( 'dberr-usegoogle', 'You can try searching via Google in the meantime.' ) );
 		$outofdate = htmlspecialchars( $this->msg( 'dberr-outofdate', 'Note that their indexes of our content may be out of date.' ) );
@@ -197,7 +218,7 @@ class DBConnectionError extends DBError {
 
 		$search = htmlspecialchars( $wgRequest->getVal( 'search' ) );
 
-		$server = htmlspecialchars( $wgServer );
+		$server = htmlspecialchars( $wgCanonicalServer );
 		$sitename = htmlspecialchars( $wgSitename );
 
 		$trygoogle = <<<EOT
@@ -267,11 +288,11 @@ class DBQueryError extends DBError {
 	 * @param $sql string
 	 * @param $fname string
 	 */
-	function __construct( DatabaseBase &$db, $error, $errno, $sql, $fname ) {
-		$message = "A database error has occurred.  Did you forget to run maintenance/update.php after upgrading?  See: https://www.mediawiki.org/wiki/Manual:Upgrading#Run_the_update_script\n" .
-		  "Query: $sql\n" .
-		  "Function: $fname\n" .
-		  "Error: $errno $error\n";
+	function __construct( DatabaseBase $db, $error, $errno, $sql, $fname ) {
+		$message = "A database error has occurred. Did you forget to run maintenance/update.php after upgrading?  See: https://www.mediawiki.org/wiki/Manual:Upgrading#Run_the_update_script\n" .
+			"Query: $sql\n" .
+			"Function: $fname\n" .
+			"Error: $errno $error\n";
 		parent::__construct( $db, $message );
 
 		$this->error = $error;
@@ -297,7 +318,7 @@ class DBQueryError extends DBError {
 				$fname = $this->fname;
 				$error = $this->error;
 			}
-			return wfMsg( $msg, $sql, $fname, $this->errno, $error );
+			return wfMessage( $msg )->rawParams( $sql, $fname, $this->errno, $error )->text();
 		} else {
 			return parent::getContentMessage( $html );
 		}

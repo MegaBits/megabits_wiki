@@ -84,6 +84,12 @@ a:hover {
 	left: 0;
 }
 
+/* Hide, but keep accessible for screen-readers */
+#column-one h2 {
+	position: absolute;
+	top: -9999px;
+}
+
 body {
 	margin: 0;
 	padding: 0;
@@ -215,7 +221,7 @@ textarea {
 	margin-left: 0.5em;
 }
 
-pre {
+pre, .mw-code {
 	margin: 2em;
 	border: solid 1px black;
 }
@@ -345,6 +351,7 @@ a.stub {
 }
 a.new,
 #p-personal a.new {
+	color: #BA0000;
 	text-decoration: line-through;
 }
 li.new {
@@ -370,9 +377,6 @@ li.new {
 }
 #p-cactions {
 	background-color: inherit;
-}
-div.printfooter {
-	display: none;
 }
 
 #footer {

@@ -2,6 +2,21 @@
 /**
  * Generator for LocalSettings.php file.
  *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * http://www.gnu.org/copyleft/gpl.html
+ *
  * @file
  * @ingroup Deployment
  */
@@ -14,16 +29,16 @@
  */
 class LocalSettingsGenerator {
 
-	private $extensions = array();
-	private $values = array();
-	private $groupPermissions = array();
-	private $dbSettings = '';
-	private $safeMode = false;
+	protected $extensions = array();
+	protected $values = array();
+	protected $groupPermissions = array();
+	protected $dbSettings = '';
+	protected $safeMode = false;
 
 	/**
 	 * @var Installer
 	 */
-	private $installer;
+	protected $installer;
 
 	/**
 	 * Constructor.
@@ -47,12 +62,12 @@ class LocalSettingsGenerator {
 				'wgRightsText', 'wgMainCacheType', 'wgEnableUploads',
 				'wgMainCacheType', '_MemCachedServers', 'wgDBserver', 'wgDBuser',
 				'wgDBpassword', 'wgUseInstantCommons', 'wgUpgradeKey', 'wgDefaultSkin',
-				'wgMetaNamespace', 'wgResourceLoaderMaxQueryLength'
+				'wgMetaNamespace', 'wgResourceLoaderMaxQueryLength', 'wgLogo',
 			),
 			$db->getGlobalNames()
 		);
 
-		$unescaped = array( 'wgRightsIcon' );
+		$unescaped = array( 'wgRightsIcon', 'wgLogo' );
 		$boolItems = array(
 			'wgEnableEmail', 'wgEnableUserEmail', 'wgEnotifUserTalk',
 			'wgEnotifWatchlist', 'wgEmailAuthentication', 'wgEnableUploads', 'wgUseInstantCommons'
@@ -79,8 +94,8 @@ class LocalSettingsGenerator {
 
 	/**
 	 * For $wgGroupPermissions, set a given ['group']['permission'] value.
-	 * @param $group String Group name
-	 * @param $rightsArr Array An array of permissions, in the form of:
+	 * @param string $group Group name
+	 * @param array $rightsArr An array of permissions, in the form of:
 	 *   array( 'right' => true, 'right2' => false )
 	 */
 	public function setGroupRights( $group, $rightsArr ) {
@@ -142,7 +157,7 @@ class LocalSettingsGenerator {
 	/**
 	 * Write the generated LocalSettings to a file
 	 *
-	 * @param $fileName String Full path to filename to write to
+	 * @param string $fileName Full path to filename to write to
 	 */
 	public function writeFile( $fileName ) {
 		file_put_contents( $fileName, $this->getText() );
@@ -151,7 +166,7 @@ class LocalSettingsGenerator {
 	/**
 	 * @return String
 	 */
-	private function buildMemcachedServerList() {
+	protected function buildMemcachedServerList() {
 		$servers = $this->values['_MemCachedServers'];
 
 		if( !$servers ) {
@@ -172,7 +187,7 @@ class LocalSettingsGenerator {
 	/**
 	 * @return String
 	 */
-	private function getDefaultText() {
+	protected function getDefaultText() {
 		if( !$this->values['wgImageMagickConvertCommand'] ) {
 			$this->values['wgImageMagickConvertCommand'] = '/usr/bin/convert';
 			$magic = '#';
@@ -240,58 +255,59 @@ if ( !defined( 'MEDIAWIKI' ) ) {
 ## Uncomment this to disable output compression
 # \$wgDisableOutputCompression = true;
 
-\$wgSitename      = \"{$this->values['wgSitename']}\";
+\$wgSitename = \"{$this->values['wgSitename']}\";
 {$metaNamespace}
 ## The URL base path to the directory containing the wiki;
 ## defaults for all runtime URL paths are based off of this.
-## For more information on customizing the URLs please see:
+## For more information on customizing the URLs
+## (like /w/index.php/Page_title to /wiki/Page_title) please see:
 ## http://www.mediawiki.org/wiki/Manual:Short_URL
-\$wgScriptPath       = \"{$this->values['wgScriptPath']}\";
-\$wgScriptExtension  = \"{$this->values['wgScriptExtension']}\";
+\$wgScriptPath = \"{$this->values['wgScriptPath']}\";
+\$wgScriptExtension = \"{$this->values['wgScriptExtension']}\";
 
 ## The protocol and server name to use in fully-qualified URLs
-\$wgServer           = \"{$this->values['wgServer']}\";
+\$wgServer = \"{$this->values['wgServer']}\";
 
 ## The relative URL path to the skins directory
-\$wgStylePath        = \"\$wgScriptPath/skins\";
+\$wgStylePath = \"\$wgScriptPath/skins\";
 
 ## The relative URL path to the logo.  Make sure you change this from the default,
 ## or else you'll overwrite your logo when you upgrade!
-\$wgLogo             = \"\$wgStylePath/common/images/wiki.png\";
+\$wgLogo             = \"{$this->values['wgLogo']}\";
 
 ## UPO means: this is also a user preference option
 
-\$wgEnableEmail      = {$this->values['wgEnableEmail']};
-\$wgEnableUserEmail  = {$this->values['wgEnableUserEmail']}; # UPO
+\$wgEnableEmail = {$this->values['wgEnableEmail']};
+\$wgEnableUserEmail = {$this->values['wgEnableUserEmail']}; # UPO
 
 \$wgEmergencyContact = \"{$this->values['wgEmergencyContact']}\";
-\$wgPasswordSender   = \"{$this->values['wgPasswordSender']}\";
+\$wgPasswordSender = \"{$this->values['wgPasswordSender']}\";
 
-\$wgEnotifUserTalk      = {$this->values['wgEnotifUserTalk']}; # UPO
-\$wgEnotifWatchlist     = {$this->values['wgEnotifWatchlist']}; # UPO
+\$wgEnotifUserTalk = {$this->values['wgEnotifUserTalk']}; # UPO
+\$wgEnotifWatchlist = {$this->values['wgEnotifWatchlist']}; # UPO
 \$wgEmailAuthentication = {$this->values['wgEmailAuthentication']};
 
 ## Database settings
-\$wgDBtype           = \"{$this->values['wgDBtype']}\";
-\$wgDBserver         = \"{$this->values['wgDBserver']}\";
-\$wgDBname           = \"{$this->values['wgDBname']}\";
-\$wgDBuser           = \"{$this->values['wgDBuser']}\";
-\$wgDBpassword       = \"{$this->values['wgDBpassword']}\";
+\$wgDBtype = \"{$this->values['wgDBtype']}\";
+\$wgDBserver = \"{$this->values['wgDBserver']}\";
+\$wgDBname = \"{$this->values['wgDBname']}\";
+\$wgDBuser = \"{$this->values['wgDBuser']}\";
+\$wgDBpassword = \"{$this->values['wgDBpassword']}\";
 
 {$this->dbSettings}
 
 ## Shared memory settings
-\$wgMainCacheType    = $cacheType;
+\$wgMainCacheType = $cacheType;
 \$wgMemCachedServers = $mcservers;
 
 ## To enable image uploads, make sure the 'images' directory
 ## is writable, then set this to true:
-\$wgEnableUploads  = {$this->values['wgEnableUploads']};
+\$wgEnableUploads = {$this->values['wgEnableUploads']};
 {$magic}\$wgUseImageMagick = true;
 {$magic}\$wgImageMagickConvertCommand = \"{$this->values['wgImageMagickConvertCommand']}\";
 
 # InstantCommons allows wiki to use images from http://commons.wikimedia.org
-\$wgUseInstantCommons  = {$this->values['wgUseInstantCommons']};
+\$wgUseInstantCommons = {$this->values['wgUseInstantCommons']};
 
 ## If you use ImageMagick (or any other shell command) on a
 ## Linux server, this will need to be set to the name of an
@@ -326,7 +342,7 @@ if ( !defined( 'MEDIAWIKI' ) ) {
 ## appropriate copyright notice / icon. GNU Free Documentation
 ## License and Creative Commons licenses are supported so far.
 \$wgRightsPage = \"\"; # Set to the title of a wiki page that describes your license/copyright
-\$wgRightsUrl  = \"{$this->values['wgRightsUrl']}\";
+\$wgRightsUrl = \"{$this->values['wgRightsUrl']}\";
 \$wgRightsText = \"{$this->values['wgRightsText']}\";
 \$wgRightsIcon = \"{$this->values['wgRightsIcon']}\";
 

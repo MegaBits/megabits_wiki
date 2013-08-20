@@ -1,5 +1,22 @@
 <?php
 /**
+ * Localisation messages cache.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * http://www.gnu.org/copyleft/gpl.html
+ *
  * @file
  * @ingroup Cache
  */
@@ -41,26 +58,6 @@ class MessageCache {
 
 	/// Variable for tracking which variables are already loaded
 	protected $mLoadedLanguages = array();
-
-	/**
-	 * Used for automatic detection of most used messages.
-	 */
-	protected $mRequestedMessages = array();
-
-	/**
-	 * How long the message request counts are stored. Longer period gives
-	 * better sample, but also takes longer to adapt changes. The counts
-	 * are aggregrated per day, regardless of the value of this variable.
-	 */
-	protected static $mAdaptiveDataAge = 604800; // Is 7*24*3600
-
-	/**
-	 * Filter the tail of less used messages that are requested more seldom
-	 * than this factor times the number of request of most requested message.
-	 * These messages are not loaded in the default set, but are still cached
-	 * individually on demand with the normal cache expiry time.
-	 */
-	protected static $mAdaptiveInclusionThreshold = 0.05;
 
 	/**
 	 * Singleton instance
@@ -115,6 +112,7 @@ class MessageCache {
 	function getParserOptions() {
 		if ( !$this->mParserOptions ) {
 			$this->mParserOptions = new ParserOptions;
+			$this->mParserOptions->setEditSection( false );
 		}
 		return $this->mParserOptions;
 	}
@@ -124,9 +122,9 @@ class MessageCache {
 	 * Actual format of the file depends on the $wgLocalMessageCacheSerialized
 	 * setting.
 	 *
-	 * @param $hash String: the hash of contents, to check validity.
+	 * @param string $hash the hash of contents, to check validity.
 	 * @param $code Mixed: Optional language code, see documenation of load().
-	 * @return false on failure.
+	 * @return bool on failure.
 	 */
 	function loadFromLocal( $hash, $code ) {
 		global $wgCacheDirectory, $wgLocalMessageCacheSerialized;
@@ -259,10 +257,14 @@ class MessageCache {
 	 * or false if populating empty cache fails. Also returns true if MessageCache
 	 * is disabled.
 	 *
-	 * @param $code String: language to which load messages
+	 * @param bool|String $code String: language to which load messages
+	 * @throws MWException
+	 * @return bool
 	 */
 	function load( $code = false ) {
 		global $wgUseLocalMessageCache;
+
+		$exception = null; // deferred error
 
 		if( !is_string( $code ) ) {
 			# This isn't really nice, so at least make a note about it and try to
@@ -325,35 +327,52 @@ class MessageCache {
 			$where[] = 'cache is empty';
 			$where[] = 'loading from database';
 
-			$this->lock( $cacheKey );
-
+			if ( $this->lock( $cacheKey ) ) {
+				$that = $this;
+				$osc = new ScopedCallback( function() use ( $that, $cacheKey ) {
+					$that->unlock( $cacheKey );
+				} );
+			}
 			# Limit the concurrency of loadFromDB to a single process
 			# This prevents the site from going down when the cache expires
 			$statusKey = wfMemcKey( 'messages', $code, 'status' );
 			$success = $this->mMemc->add( $statusKey, 'loading', MSG_LOAD_TIMEOUT );
-			if ( $success ) {
+			if ( $success ) { // acquired lock
+				$cache = $this->mMemc;
+				$isc = new ScopedCallback( function() use ( $cache, $statusKey ) {
+					$cache->delete( $statusKey );
+				} );
 				$cache = $this->loadFromDB( $code );
 				$success = $this->setCache( $cache, $code );
-			}
-			if ( $success ) {
-				$success = $this->saveToCaches( $cache, true, $code );
-				if ( $success ) {
-					$this->mMemc->delete( $statusKey );
+				if ( $success ) { // messages loaded
+					$success = $this->saveToCaches( $cache, true, $code );
+					$isc = null; // unlock
+					if ( !$success ) {
+						$this->mMemc->set( $statusKey, 'error', 60 * 5 );
+						wfDebug( __METHOD__ . ": set() error: restart memcached server!\n" );
+						$exception = new MWException( "Could not save cache for '$code'." );
+					}
 				} else {
-					$this->mMemc->set( $statusKey, 'error', 60 * 5 );
-					wfDebug( "MemCached set error in MessageCache: restart memcached server!\n" );
+					$isc = null; // unlock
+					$exception = new MWException( "Could not load cache from DB for '$code'." );
 				}
+			} else {
+				$exception = new MWException( "Could not acquire '$statusKey' lock." );
 			}
-			$this->unlock($cacheKey);
+			$osc = null; // unlock
 		}
 
 		if ( !$success ) {
-			# Bad luck... this should not happen
-			$where[] = 'loading FAILED - cache is disabled';
-			$info = implode( ', ', $where );
-			wfDebug( __METHOD__ . ": Loading $code... $info\n" );
 			$this->mDisable = true;
 			$this->mCache = false;
+			// This used to go on, but that led to lots of nasty side
+			// effects like gadgets and sidebar getting cached with their
+			// default content
+			if ( $exception instanceof Exception ) {
+				throw $exception;
+			} else {
+				throw new MWException( "MessageCache failed to load messages" );
+			}
 		} else {
 			# All good, just record the success
 			$info = implode( ', ', $where );
@@ -369,7 +388,7 @@ class MessageCache {
 	 * $wgMaxMsgCacheEntrySize are assigned a special value, and are loaded
 	 * on-demand from the database later.
 	 *
-	 * @param $code String: language code.
+	 * @param string $code language code.
 	 * @return Array: loaded messages for storing in caches.
 	 */
 	function loadFromDB( $code ) {
@@ -385,19 +404,20 @@ class MessageCache {
 		);
 
 		$mostused = array();
-		if ( $wgAdaptiveMessageCache ) {
-			$mostused = $this->getMostUsedMessages();
-			if ( $code !== $wgLanguageCode ) {
-				foreach ( $mostused as $key => $value ) {
-					$mostused[$key] = "$value/$code";
-				}
+		if ( $wgAdaptiveMessageCache && $code !== $wgLanguageCode ) {
+			if ( !isset( $this->mCache[$wgLanguageCode] ) ) {
+				$this->load( $wgLanguageCode );
+			}
+			$mostused = array_keys( $this->mCache[$wgLanguageCode] );
+			foreach ( $mostused as $key => $value ) {
+				$mostused[$key] = "$value/$code";
 			}
 		}
 
 		if ( count( $mostused ) ) {
 			$conds['page_title'] = $mostused;
 		} elseif ( $code !== $wgLanguageCode ) {
-			$conds[] = 'page_title' . $dbr->buildLike( $dbr->anyString(), "/$code" );
+			$conds[] = 'page_title' . $dbr->buildLike( $dbr->anyString(), '/', $code );
 		} else {
 			# Effectively disallows use of '/' character in NS_MEDIAWIKI for uses
 			# other than language code.
@@ -440,12 +460,6 @@ class MessageCache {
 			$cache[$row->page_title] = $entry;
 		}
 
-		foreach ( $mostused as $key ) {
-			if ( !isset( $cache[$key] ) ) {
-				$cache[$key] = '!NONEXISTENT';
-			}
-		}
-
 		$cache['VERSION'] = MSG_CACHE_VERSION;
 		wfProfileOut( __METHOD__ );
 		return $cache;
@@ -454,7 +468,7 @@ class MessageCache {
 	/**
 	 * Updates cache as necessary when message page is changed
 	 *
-	 * @param $title String: name of the page changed.
+	 * @param string $title name of the page changed.
 	 * @param $text Mixed: new contents of the page.
 	 */
 	public function replace( $title, $text ) {
@@ -493,10 +507,10 @@ class MessageCache {
 
 		// Also delete cached sidebar... just in case it is affected
 		$codes = array( $code );
-		if ( $code === 'en'  ) {
+		if ( $code === 'en' ) {
 			// Delete all sidebars, like for example on action=purge on the
 			// sidebar messages
-			$codes = array_keys( Language::getLanguageNames() );
+			$codes = array_keys( Language::fetchLanguageNames() );
 		}
 
 		global $wgMemc;
@@ -517,10 +531,10 @@ class MessageCache {
 	/**
 	 * Shortcut to update caches.
 	 *
-	 * @param $cache Array: cached messages with a version.
-	 * @param $memc Bool: Wether to update or not memcache.
-	 * @param $code String: Language code.
-	 * @return False on somekind of error.
+	 * @param array $cache cached messages with a version.
+	 * @param bool $memc Wether to update or not memcache.
+	 * @param string $code Language code.
+	 * @return bool on somekind of error.
 	 */
 	protected function saveToCaches( $cache, $memc = true, $code = false ) {
 		wfProfileIn( __METHOD__ );
@@ -539,7 +553,7 @@ class MessageCache {
 			$serialized = serialize( $cache );
 			$hash = md5( $serialized );
 			$this->mMemc->set( wfMemcKey( 'messages', $code, 'hash' ), $hash, $this->mExpiry );
-			if ($wgLocalMessageCacheSerialized) {
+			if ( $wgLocalMessageCacheSerialized ) {
 				$this->saveToLocal( $serialized, $hash, $code );
 			} else {
 				$this->saveToScript( $cache, $hash, $code );
@@ -574,10 +588,10 @@ class MessageCache {
 	/**
 	 * Get a message from either the content language or the user language.
 	 *
-	 * @param $key String: the message cache key
+	 * @param string $key the message cache key
 	 * @param $useDB Boolean: get the message from the DB, false to use only
 	 *               the localisation
-	 * @param $langcode String: code of the language to get the message for, if
+	 * @param bool|string $langcode Code of the language to get the message for, if
 	 *                  it is a valid code create a language for that language,
 	 *                  if it is a string but not a valid code then make a basic
 	 *                  language object, if it is a false boolean then use the
@@ -588,7 +602,8 @@ class MessageCache {
 	 * @param $isFullKey Boolean: specifies whether $key is a two part key
 	 *                   "msg/lang".
 	 *
-	 * @return string|false
+	 * @throws MWException
+	 * @return string|bool
 	 */
 	function get( $key, $useDB = true, $langcode = true, $isFullKey = false ) {
 		global $wgLanguageCode, $wgContLang;
@@ -625,13 +640,6 @@ class MessageCache {
 			$lckey = $wgContLang->lcfirst( $lckey );
 			$uckey = $wgContLang->ucfirst( $lckey );
 		}
-
-		/**
-		 * Record each message request, but only once per request.
-		 * This information is not used unless $wgAdaptiveMessageCache
-		 * is enabled.
-		 */
-		$this->mRequestedMessages[$uckey] = true;
 
 		# Try the MediaWiki namespace
 		if( !$this->mDisable && $useDB ) {
@@ -693,14 +701,12 @@ class MessageCache {
 	 * Get a message from the MediaWiki namespace, with caching. The key must
 	 * first be converted to two-part lang/msg form if necessary.
 	 *
-	 * @param $title String: Message cache key with initial uppercase letter.
-	 * @param $code String: code denoting the language to try.
+	 * @param string $title Message cache key with initial uppercase letter.
+	 * @param string $code code denoting the language to try.
 	 *
-	 * @return string|false
+	 * @return string|bool False on failure
 	 */
 	function getMsgFromNamespace( $title, $code ) {
-		global $wgAdaptiveMessageCache;
-
 		$this->load( $code );
 		if ( isset( $this->mCache[$code][$title] ) ) {
 			$entry = $this->mCache[$code][$title];
@@ -719,15 +725,7 @@ class MessageCache {
 				return $message;
 			}
 
-			/**
-			 * If message cache is in normal mode, it is guaranteed
-			 * (except bugs) that there is always entry (or placeholder)
-			 * in the cache if message exists. Thus we can do minor
-			 * performance improvement and return false early.
-			 */
-			if ( !$wgAdaptiveMessageCache ) {
-				return false;
-			}
+			return false;
 		}
 
 		# Try the individual message cache
@@ -747,18 +745,36 @@ class MessageCache {
 		}
 
 		# Try loading it from the database
-		$revision = Revision::newFromTitle( Title::makeTitle( NS_MEDIAWIKI, $title ) );
+		$revision = Revision::newFromTitle(
+			Title::makeTitle( NS_MEDIAWIKI, $title ), false, Revision::READ_LATEST
+		);
 		if ( $revision ) {
-			$message = $revision->getText();
-			if ($message === false) {
+			$content = $revision->getContent();
+			if ( !$content ) {
 				// A possibly temporary loading failure.
-				wfDebugLog( 'MessageCache', __METHOD__ . ": failed to load message page text for {$title->getDbKey()} ($code)" );
+				wfDebugLog( 'MessageCache', __METHOD__ . ": failed to load message page text for {$title} ($code)" );
+				$message = null; // no negative caching
 			} else {
-				$this->mCache[$code][$title] = ' ' . $message;
-				$this->mMemc->set( $titleKey, ' ' . $message, $this->mExpiry );
+				// XXX: Is this the right way to turn a Content object into a message?
+				// NOTE: $content is typically either WikitextContent, JavaScriptContent or CssContent.
+				//       MessageContent is *not* used for storing messages, it's only used for wrapping them when needed.
+				$message = $content->getWikitextForTransclusion();
+
+				if ( $message === false || $message === null ) {
+					wfDebugLog( 'MessageCache', __METHOD__ . ": message content doesn't provide wikitext "
+								. "(content model: " . $content->getContentHandler() . ")" );
+
+					$message = false; // negative caching
+				} else {
+					$this->mCache[$code][$title] = ' ' . $message;
+					$this->mMemc->set( $titleKey, ' ' . $message, $this->mExpiry );
+				}
 			}
 		} else {
-			$message = false;
+			$message = false; // negative caching
+		}
+
+		if ( $message === false ) { // negative caching
 			$this->mCache[$code][$title] = '!NONEXISTENT';
 			$this->mMemc->set( $titleKey, '!NONEXISTENT', $this->mExpiry );
 		}
@@ -824,7 +840,7 @@ class MessageCache {
 	 * @param $linestart bool
 	 * @param $interface bool
 	 * @param $language
-	 * @return ParserOutput
+	 * @return ParserOutput|string
 	 */
 	public function parse( $text, $title = null, $linestart = true, $interface = false, $language = null  ) {
 		if ( $this->mInParser ) {
@@ -868,8 +884,8 @@ class MessageCache {
 	 * Clear all stored messages. Mainly used after a mass rebuild.
 	 */
 	function clear() {
-		$langs = Language::getLanguageNames( false );
-		foreach ( array_keys($langs) as $code ) {
+		$langs = Language::fetchLanguageNames( null, 'mw' );
+		foreach ( array_keys( $langs ) as $code ) {
 			# Global cache
 			$this->mMemc->delete( wfMemcKey( 'messages', $code ) );
 			# Invalidate all local caches
@@ -890,89 +906,12 @@ class MessageCache {
 		}
 
 		$lang = array_pop( $pieces );
-		$validCodes = Language::getLanguageNames();
-		if( !array_key_exists( $lang, $validCodes ) ) {
+		if( !Language::fetchLanguageName( $lang, null, 'mw' ) ) {
 			return array( $key, $wgLanguageCode );
 		}
 
 		$message = implode( '/', $pieces );
 		return array( $message, $lang );
-	}
-
-	public static function logMessages() {
-		wfProfileIn( __METHOD__ );
-		global $wgAdaptiveMessageCache;
-		if ( !$wgAdaptiveMessageCache || !self::$instance instanceof MessageCache ) {
-			wfProfileOut( __METHOD__ );
-			return;
-		}
-
-		$cachekey = wfMemckey( 'message-profiling' );
-		$cache = wfGetCache( CACHE_DB );
-		$data = $cache->get( $cachekey );
-
-		if ( !$data ) {
-			$data = array();
-		}
-
-		$age = self::$mAdaptiveDataAge;
-		$filterDate = substr( wfTimestamp( TS_MW, time() - $age ), 0, 8 );
-		foreach ( array_keys( $data ) as $key ) {
-			if ( $key < $filterDate ) {
-				unset( $data[$key] );
-			}
-		}
-
-		$index = substr( wfTimestampNow(), 0, 8 );
-		if ( !isset( $data[$index] ) ) {
-			$data[$index] = array();
-		}
-
-		foreach ( self::$instance->mRequestedMessages as $message => $_ ) {
-			if ( !isset( $data[$index][$message] ) ) {
-				$data[$index][$message] = 0;
-			}
-			$data[$index][$message]++;
-		}
-
-		$cache->set( $cachekey, $data );
-		wfProfileOut( __METHOD__ );
-	}
-
-	/**
-	 * @return array
-	 */
-	public function getMostUsedMessages() {
-		wfProfileIn( __METHOD__ );
-		$cachekey = wfMemcKey( 'message-profiling' );
-		$cache = wfGetCache( CACHE_DB );
-		$data = $cache->get( $cachekey );
-		if ( !$data ) {
-			wfProfileOut( __METHOD__ );
-			return array();
-		}
-
-		$list = array();
-
-		foreach( $data as $messages ) {
-			foreach( $messages as $message => $count ) {
-				$key = $message;
-				if ( !isset( $list[$key] ) ) {
-					$list[$key] = 0;
-				}
-				$list[$key] += $count;
-			}
-		}
-
-		$max = max( $list );
-		foreach ( $list as $message => $count ) {
-			if ( $count < intval( $max * self::$mAdaptiveInclusionThreshold ) ) {
-				unset( $list[$message] );
-			}
-		}
-
-		wfProfileOut( __METHOD__ );
-		return array_keys( $list );
 	}
 
 	/**

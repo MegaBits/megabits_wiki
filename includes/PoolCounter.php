@@ -1,4 +1,25 @@
 <?php
+/**
+ * Provides of semaphore semantics for restricting the number
+ * of workers that may be concurrently performing the same task.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * http://www.gnu.org/copyleft/gpl.html
+ *
+ * @file
+ */
 
 /**
  *  When you have many workers (threads/servers) giving service, and a
@@ -21,15 +42,15 @@
 abstract class PoolCounter {
 
 	/* Return codes */
-	const LOCKED   = 1; /* Lock acquired */
+	const LOCKED = 1; /* Lock acquired */
 	const RELEASED = 2; /* Lock released */
-	const DONE     = 3; /* Another worker did the work for you */
+	const DONE = 3; /* Another worker did the work for you */
 
-	const ERROR      = -1; /* Indeterminate error */
+	const ERROR = -1; /* Indeterminate error */
 	const NOT_LOCKED = -2; /* Called release() with no lock held */
 	const QUEUE_FULL = -3; /* There are already maxqueue workers on this lock */
-	const TIMEOUT    = -4; /* Timeout exceeded */
-	const LOCK_HELD  = -5; /* Cannot acquire another lock while you have one lock held */
+	const TIMEOUT = -4; /* Timeout exceeded */
+	const LOCK_HELD = -5; /* Cannot acquire another lock while you have one lock held */
 
 	/**
 	 * I want to do this task and I need to do it myself.
@@ -86,9 +107,9 @@ abstract class PoolCounter {
 
 	protected function __construct( $conf, $type, $key ) {
 		$this->key = $key;
-		$this->workers  = $conf['workers'];
+		$this->workers = $conf['workers'];
 		$this->maxqueue = $conf['maxqueue'];
-		$this->timeout  = $conf['timeout'];
+		$this->timeout = $conf['timeout'];
 	}
 }
 
@@ -150,6 +171,7 @@ abstract class PoolCounterWork {
 
 	/**
 	 * Do something with the error, like showing it to the user.
+	 * @return bool
 	 */
 	function error( $status ) {
 		return false;

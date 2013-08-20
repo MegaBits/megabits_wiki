@@ -1,5 +1,7 @@
 <?php
 /**
+ * Minification of CSS stylesheets.
+ *
  * Copyright 2010 Wikimedia Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -12,18 +14,18 @@
  * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
  * OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
- */
-
-/**
- * Transforms CSS data
- *
- * This class provides minification, URL remapping, URL extracting, and data-URL embedding.
  *
  * @file
  * @version 0.1.1 -- 2010-09-11
  * @author Trevor Parscal <tparscal@wikimedia.org>
  * @copyright Copyright 2010 Wikimedia Foundation
  * @license http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+/**
+ * Transforms CSS data
+ *
+ * This class provides minification, URL remapping, URL extracting, and data-URL embedding.
  */
 class CSSMin {
 
@@ -57,8 +59,8 @@ class CSSMin {
 	/**
 	 * Gets a list of local file paths which are referenced in a CSS style sheet
 	 *
-	 * @param $source string CSS data to remap
-	 * @param $path string File path where the source was read from (optional)
+	 * @param string $source CSS data to remap
+	 * @param string $path File path where the source was read from (optional)
 	 * @return array List of local file references
 	 */
 	public static function getLocalFileReferences( $source, $path = null ) {
@@ -113,10 +115,10 @@ class CSSMin {
 	 * Remaps CSS URL paths and automatically embeds data URIs for URL rules
 	 * preceded by an /* @embed * / comment
 	 *
-	 * @param $source string CSS data to remap
-	 * @param $local string File path where the source was read from
-	 * @param $remote string URL path to the file
-	 * @param $embedData bool If false, never do any data URI embedding, even if / * @embed * / is found
+	 * @param string $source CSS data to remap
+	 * @param string $local File path where the source was read from
+	 * @param string $remote URL path to the file
+	 * @param bool $embedData If false, never do any data URI embedding, even if / * @embed * / is found
 	 * @return string Remapped CSS data
 	 */
 	public static function remap( $source, $local, $remote, $embedData = true ) {
@@ -150,6 +152,13 @@ class CSSMin {
 				$offset = $match[0][1] + strlen( $match[0][0] ) + $lengthIncrease;
 				continue;
 			}
+
+			// Guard against double slashes, because "some/remote/../foo.png"
+			// resolves to "some/remote/foo.png" on (some?) clients (bug 27052).
+			if ( substr( $remote, -1 ) == '/' ) {
+				$remote = substr( $remote, 0, -1 );
+			}
+
 			// Shortcuts
 			$embed = $match['embed'][0];
 			$pre = $match['pre'][0];
@@ -157,10 +166,9 @@ class CSSMin {
 			$query = $match['query'][0];
 			$url = "{$remote}/{$match['file'][0]}";
 			$file = "{$local}/{$match['file'][0]}";
-			// bug 27052 - Guard against double slashes, because foo//../bar
-			// apparently resolves to foo/bar on (some?) clients
-			$url = preg_replace( '#([^:])//+#', '\1/', $url );
+
 			$replacement = false;
+
 			if ( $local !== false && file_exists( $file ) ) {
 				// Add version parameter as a time-stamp in ISO 8601 format,
 				// using Z for the timezone, meaning GMT
@@ -211,7 +219,7 @@ class CSSMin {
 	/**
 	 * Removes whitespace from CSS data
 	 *
-	 * @param $css string CSS data to minify
+	 * @param string $css CSS data to minify
 	 * @return string Minified CSS data
 	 */
 	public static function minify( $css ) {

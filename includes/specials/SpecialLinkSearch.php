@@ -22,7 +22,6 @@
  * @author Brion Vibber
  */
 
-
 /**
  * Special:LinkSearch to search the external-links table.
  * @ingroup SpecialPage
@@ -43,7 +42,7 @@ class LinkSearchPage extends QueryPage {
 	}
 
 	function execute( $par ) {
-		global $wgUrlProtocols, $wgMiserMode;
+		global $wgUrlProtocols, $wgMiserMode, $wgScript;
 
 		$this->setHeaders();
 		$this->outputHeader();
@@ -64,15 +63,15 @@ class LinkSearchPage extends QueryPage {
 
 		$target2 = $target;
 		$protocol = '';
-		$pr_sl = strpos($target2, '//' );
-		$pr_cl = strpos($target2, ':' );
+		$pr_sl = strpos( $target2, '//' );
+		$pr_cl = strpos( $target2, ':' );
 		if ( $pr_sl ) {
 			// For protocols with '//'
-			$protocol = substr( $target2, 0 , $pr_sl+2 );
-			$target2 = substr( $target2, $pr_sl+2 );
+			$protocol = substr( $target2, 0, $pr_sl + 2 );
+			$target2 = substr( $target2, $pr_sl + 2 );
 		} elseif ( !$pr_sl && $pr_cl ) {
 			// For protocols without '//' like 'mailto:'
-			$protocol = substr( $target2, 0 , $pr_cl+1 );
+			$protocol = substr( $target2, 0, $pr_cl + 1 );
 			$target2 = substr( $target2, $pr_cl+1 );
 		} elseif ( $protocol == '' && $target2 != '' ) {
 			// default
@@ -84,19 +83,32 @@ class LinkSearchPage extends QueryPage {
 			$protocol = '';
 		}
 
-		$out->addWikiMsg( 'linksearch-text', '<nowiki>' . $this->getLanguage()->commaList( $protocols_list ) . '</nowiki>' );
-		$s = Xml::openElement( 'form', array( 'id' => 'mw-linksearch-form', 'method' => 'get', 'action' => $GLOBALS['wgScript'] ) ) .
-			Html::hidden( 'title', $this->getTitle()->getPrefixedDbKey() ) .
-			'<fieldset>' .
-			Xml::element( 'legend', array(), wfMsg( 'linksearch' ) ) .
-			Xml::inputLabel( wfMsg( 'linksearch-pat' ), 'target', 'target', 50, $target ) . ' ';
+		$out->addWikiMsg(
+			'linksearch-text',
+			'<nowiki>' . $this->getLanguage()->commaList( $protocols_list ) . '</nowiki>',
+			count( $protocols_list )
+		);
+		$s = Html::openElement( 'form', array( 'id' => 'mw-linksearch-form', 'method' => 'get', 'action' => $wgScript ) ) . "\n" .
+			Html::hidden( 'title', $this->getTitle()->getPrefixedDBkey() ) . "\n" .
+			Html::openElement( 'fieldset' ) . "\n" .
+			Html::element( 'legend', array(), $this->msg( 'linksearch' )->text() ) . "\n" .
+			Xml::inputLabel( $this->msg( 'linksearch-pat' )->text(), 'target', 'target', 50, $target ) . "\n";
 		if ( !$wgMiserMode ) {
-			$s .= Xml::label( wfMsg( 'linksearch-ns' ), 'namespace' ) . ' ' .
-				Xml::namespaceSelector( $namespace, '' );
+			$s .= Html::namespaceSelector(
+				array(
+					'selected' => $namespace,
+					'all' => '',
+					'label' => $this->msg( 'linksearch-ns' )->text()
+				), array(
+					'name'  => 'namespace',
+					'id'    => 'namespace',
+					'class' => 'namespaceselector',
+				)
+			);
 		}
-		$s .=	Xml::submitButton( wfMsg( 'linksearch-ok' ) ) .
-			'</fieldset>' .
-			Xml::closeElement( 'form' );
+		$s .= Xml::submitButton( $this->msg( 'linksearch-ok' )->text() ) . "\n" .
+			Html::closeElement( 'fieldset' ) . "\n" .
+			Html::closeElement( 'form' ) . "\n";
 		$out->addHTML( $s );
 
 		if( $target != '' ) {
@@ -112,6 +124,7 @@ class LinkSearchPage extends QueryPage {
 
 	/**
 	 * Disable RSS/Atom feeds
+	 * @return bool
 	 */
 	function isSyndicated() {
 		return false;
@@ -124,10 +137,10 @@ class LinkSearchPage extends QueryPage {
 	 */
 	static function mungeQuery( $query, $prot ) {
 		$field = 'el_index';
-		$rv = LinkFilter::makeLikeArray( $query , $prot );
+		$rv = LinkFilter::makeLikeArray( $query, $prot );
 		if ( $rv === false ) {
 			// LinkFilter doesn't handle wildcard in IP, so we'll have to munge here.
-			if (preg_match('/^(:?[0-9]{1,3}\.)+\*\s*$|^(:?[0-9]{1,3}\.){3}[0-9]{1,3}:[0-9]*\*\s*$/', $query)) {
+			if ( preg_match( '/^(:?[0-9]{1,3}\.)+\*\s*$|^(:?[0-9]{1,3}\.){3}[0-9]{1,3}:[0-9]*\*\s*$/', $query ) ) {
 				$dbr = wfGetDB( DB_SLAVE );
 				$rv = array( $prot . rtrim( $query, " \t*" ), $dbr->anyString() );
 				$field = 'el_to';
@@ -161,9 +174,9 @@ class LinkSearchPage extends QueryPage {
 		$like = $dbr->buildLike( $stripped );
 		$retval = array (
 			'tables' => array ( 'page', 'externallinks' ),
-			'fields' => array ( 'page_namespace AS namespace',
-					'page_title AS title',
-					'el_index AS value', 'el_to AS url' ),
+			'fields' => array ( 'namespace' => 'page_namespace',
+					'title' => 'page_title',
+					'value' => 'el_index', 'url' => 'el_to' ),
 			'conds' => array ( 'page_id = el_from',
 					"$clause $like" ),
 			'options' => array( 'USE INDEX' => $clause )
@@ -180,14 +193,14 @@ class LinkSearchPage extends QueryPage {
 		$pageLink = Linker::linkKnown( $title );
 		$urlLink = Linker::makeExternalLink( $url, $url );
 
-		return wfMsgHtml( 'linksearch-line', $urlLink, $pageLink );
+		return $this->msg( 'linksearch-line' )->rawParams( $urlLink, $pageLink )->escaped();
 	}
 
 	/**
 	 * Override to check query validity.
 	 */
 	function doQuery( $offset = false, $limit = false ) {
-		list( $this->mMungedQuery,  ) = LinkSearchPage::mungeQuery( $this->mQuery, $this->mProt );
+		list( $this->mMungedQuery, ) = LinkSearchPage::mungeQuery( $this->mQuery, $this->mProt );
 		if( $this->mMungedQuery === false ) {
 			$this->getOutput()->addWikiMsg( 'linksearch-error' );
 		} else {
@@ -203,8 +216,13 @@ class LinkSearchPage extends QueryPage {
 	 * We do a truncated index search, so the optimizer won't trust
 	 * it as good enough for optimizing sort. The implicit ordering
 	 * from the scan will usually do well enough for our needs.
+	 * @return array
 	 */
 	function getOrderFields() {
 		return array();
+	}
+
+	protected function getGroupName() {
+		return 'redirects';
 	}
 }

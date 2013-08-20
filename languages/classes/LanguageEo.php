@@ -1,9 +1,31 @@
 <?php
+/**
+ * Esperanto (Esperanto) specific code.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * http://www.gnu.org/copyleft/gpl.html
+ *
+ * @file
+ * @author Brion Vibber <brion@pobox.com>
+ * @ingroup Language
+ */
 
-/** Esperanto (Esperanto)
+/**
+ * Esperanto (Esperanto)
  *
  * @ingroup Language
- * @author Brion Vibber <brion@pobox.com>
  */
 class LanguageEo extends Language {
 	/**
@@ -41,7 +63,7 @@ class LanguageEo extends Language {
 		if ( strcasecmp( $in, 'x' ) == 0 && strcasecmp( $out, 'utf-8' ) == 0 ) {
 			return preg_replace_callback (
 				'/([cghjsu]x?)((?:xx)*)(?!x)/i',
-				array( $this, 'strrtxuCallback' ), $string	);
+				array( $this, 'strrtxuCallback' ), $string );
 		} elseif ( strcasecmp( $in, 'UTF-8' ) == 0 && strcasecmp( $out, 'x' ) == 0 ) {
 			# Double Xs only if they follow cxapelutaj literoj.
 			return preg_replace_callback(

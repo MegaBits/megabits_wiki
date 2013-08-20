@@ -19,8 +19,6 @@
 $wgVectorFeatures = array(
 	'collapsiblenav' => array( 'global' => true, 'user' => true ),
 	'collapsibletabs' => array( 'global' => true, 'user' => false ),
-	'editwarning' => array( 'global' => false, 'user' => true ),
-	'simplesearch' => array( 'global' => false, 'user' => true ),
 	// The follwing are experimental and likely unstable - use at your own risk
 	'expandablesearch' => array( 'global' => false, 'user' => false ),
 	'footercleanup' => array( 'global' => false, 'user' => false ),
@@ -68,6 +66,11 @@ $vectorResourceTemplate = array(
 	'group' => 'ext.vector',
 );
 $wgResourceModules += array(
+	// TODO this module should be merged with ext.vector.collapsibleTabs
+	'jquery.collapsibleTabs' => $vectorResourceTemplate + array(
+		'scripts' => 'jquery.collapsibleTabs.js',
+		'dependencies' => 'jquery.delayedBind',
+	),
 	'ext.vector.collapsibleNav' => $vectorResourceTemplate + array(
 		'scripts' => 'ext.vector.collapsibleNav.js',
 		'styles' => 'ext.vector.collapsibleNav.css',
@@ -88,12 +91,6 @@ $wgResourceModules += array(
 			'jquery.delayedBind',
 		),
 	),
-	'ext.vector.editWarning' => $vectorResourceTemplate + array(
-		'scripts' => 'ext.vector.editWarning.js',
-		'messages' => array(
-			'vector-editwarning-warning',
-		),
-	),
 	'ext.vector.expandableSearch' => $vectorResourceTemplate + array(
 		'scripts' => 'ext.vector.expandableSearch.js',
 		'styles' => 'ext.vector.expandableSearch.css',
@@ -104,36 +101,28 @@ $wgResourceModules += array(
 		),
 	),
 	'ext.vector.footerCleanup' => $vectorResourceTemplate + array(
-		'scripts' => 'ext.vector.footerCleanup.js',
+		'scripts' => array(
+			'jquery.footerCollapsibleList.js',
+			'ext.vector.footerCleanup.js',
+		),
 		'styles' => 'ext.vector.footerCleanup.css',
 		'messages' => array (
 			'vector-footercleanup-transclusion',
+			'vector-footercleanup-templates',
+			'vector-footercleanup-categories',
 		),
 		'dependencies' => array(
 			// The message require plural support at javascript.
 			'mediawiki.jqueryMsg',
-		)
+			'jquery.cookie'
+		),
+		'position' => 'top',
 	),
 	'ext.vector.sectionEditLinks' => $vectorResourceTemplate + array(
 		'scripts' => 'ext.vector.sectionEditLinks.js',
 		'styles' => 'ext.vector.sectionEditLinks.css',
 		'dependencies' => array(
 			'jquery.cookie',
-			'jquery.clickTracking',
-		),
-	),
-	'ext.vector.simpleSearch' => $vectorResourceTemplate + array(
-		'scripts' => 'ext.vector.simpleSearch.js',
-		'messages' => array(
-			'vector-simplesearch-search',
-			'vector-simplesearch-containing',
-		),
-		'dependencies' => array(
-			'jquery.autoEllipsis',
-			'jquery.client',
-			'jquery.placeholder',
-			'jquery.suggestions',
-			'mediawiki.legacy.mwsuggest', // to ensure we disable it in proper order
 		),
 	),
 );

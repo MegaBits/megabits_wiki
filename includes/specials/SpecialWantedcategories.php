@@ -37,9 +37,9 @@ class WantedCategoriesPage extends WantedQueryPage {
 	function getQueryInfo() {
 		return array (
 			'tables' => array ( 'categorylinks', 'page' ),
-			'fields' => array ( "'" . NS_CATEGORY . "' AS namespace",
-					'cl_to AS title',
-					'COUNT(*) AS value' ),
+			'fields' => array ( 'namespace' => NS_CATEGORY,
+					'title' => 'cl_to',
+					'value' => 'COUNT(*)' ),
 			'conds' => array ( 'page_title IS NULL' ),
 			'options' => array ( 'GROUP BY' => 'cl_to' ),
 			'join_conds' => array ( 'page' => array ( 'LEFT JOIN',
@@ -71,5 +71,9 @@ class WantedCategoriesPage extends WantedQueryPage {
 
 		$nlinks = $this->msg( 'nmembers' )->numParams( $result->value )->escaped();
 		return $this->getLanguage()->specialList( $plink, $nlinks );
+	}
+
+	protected function getGroupName() {
+		return 'maintenance';
 	}
 }

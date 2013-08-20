@@ -1,7 +1,28 @@
 <?php
+/**
+ * Gan Chinese specific code.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * http://www.gnu.org/copyleft/gpl.html
+ *
+ * @file
+ * @ingroup Language
+ */
 
-require_once( dirname( __FILE__ ) . '/../LanguageConverter.php' );
-require_once( dirname( __FILE__ ) . '/LanguageZh.php' );
+require_once( __DIR__ . '/../LanguageConverter.php' );
+require_once( __DIR__ . '/LanguageZh.php' );
 
 /**
  * @ingroup Language
@@ -37,26 +58,12 @@ class GanConverter extends LanguageConverter {
 	}
 
 	function loadDefaultTables() {
-		require( dirname( __FILE__ ) . "/../../includes/ZhConversion.php" );
+		require( __DIR__ . "/../../includes/ZhConversion.php" );
 		$this->mTables = array(
 			'gan-hans' => new ReplacementArray( $zh2Hans ),
 			'gan-hant' => new ReplacementArray( $zh2Hant ),
 			'gan'      => new ReplacementArray
 		);
-	}
-
-	/**
-	 * there shouldn't be any latin text in Chinese conversion, so no need
-	 * to mark anything.
-	 * $noParse is there for compatibility with LanguageConvert::markNoConversion
-	 *
-	 * @param $text string
-	 * @param $noParse bool
-	 *
-	 * @return string
-	 */
-	function markNoConversion( $text, $noParse = false ) {
-		return $text;
 	}
 
 	/**
@@ -95,7 +102,7 @@ class LanguageGan extends LanguageZh {
 								array(),
 								$ml );
 
-		$wgHooks['ArticleSaveComplete'][] = $this->mConverter;
+		$wgHooks['PageContentSaveComplete'][] = $this->mConverter;
 	}
 
 	/**

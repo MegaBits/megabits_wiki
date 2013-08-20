@@ -1,5 +1,7 @@
 <?php
 /**
+ * Abstraction for resource loader modules.
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -56,6 +58,7 @@ abstract class ResourceLoaderModule {
 	/* Protected Members */
 
 	protected $name = null;
+	protected $targets = array( 'desktop' );
 
 	// In-object cache for file dependencies
 	protected $fileDeps = array();
@@ -75,10 +78,10 @@ abstract class ResourceLoaderModule {
 	}
 
 	/**
-	 * Set this module's name. This is called by ResourceLodaer::register()
+	 * Set this module's name. This is called by ResourceLoader::register()
 	 * when registering the module. Other code should not call this.
 	 *
-	 * @param $name String: Name
+	 * @param string $name Name
 	 */
 	public function setName( $name ) {
 		$this->name = $name;
@@ -89,17 +92,17 @@ abstract class ResourceLoaderModule {
 	 * with ResourceLoader::register()
 	 *
 	 * @return Int ResourceLoaderModule class constant, the subclass default
-	 *     if not set manuall
+	 *     if not set manually
 	 */
 	public function getOrigin() {
 		return $this->origin;
 	}
 
 	/**
-	 * Set this module's origin. This is called by ResourceLodaer::register()
+	 * Set this module's origin. This is called by ResourceLoader::register()
 	 * when registering the module. Other code should not call this.
 	 *
-	 * @param $origin Int origin
+	 * @param int $origin origin
 	 */
 	public function setOrigin( $origin ) {
 		$this->origin = $origin;
@@ -170,7 +173,9 @@ abstract class ResourceLoaderModule {
 	 * Get all CSS for this module for a given skin.
 	 *
 	 * @param $context ResourceLoaderContext: Context object
-	 * @return Array: List of CSS strings keyed by media type
+	 * @return Array: List of CSS strings or array of CSS strings keyed by media type.
+	 *  like array( 'screen' => '.foo { width: 0 }' );
+	 *  or array( 'screen' => array( '.foo { width: 0 }' ) );
 	 */
 	public function getStyles( ResourceLoaderContext $context ) {
 		// Stub, override expected
@@ -235,13 +240,24 @@ abstract class ResourceLoaderModule {
 
 	/**
 	 * Where on the HTML page should this module's JS be loaded?
-	 * 'top': in the <head>
-	 * 'bottom': at the bottom of the <body>
+	 *  - 'top': in the "<head>"
+	 *  - 'bottom': at the bottom of the "<body>"
 	 *
 	 * @return string
 	 */
 	public function getPosition() {
 		return 'bottom';
+	}
+
+	/**
+	 * Whether this module's JS expects to work without the client-side ResourceLoader module.
+	 * Returning true from this function will prevent mw.loader.state() call from being
+	 * appended to the bottom of the script.
+	 *
+	 * @return bool
+	 */
+	public function isRaw() {
+		return false;
 	}
 
 	/**
@@ -275,10 +291,19 @@ abstract class ResourceLoaderModule {
 	}
 
 	/**
+	 * Get target(s) for the module, eg ['desktop'] or ['desktop', 'mobile']
+	 *
+	 * @return array of strings
+	 */
+	public function getTargets() {
+		return $this->targets;
+	}
+
+	/**
 	 * Get the files this module depends on indirectly for a given skin.
 	 * Currently these are only image files referenced by the module's CSS.
 	 *
-	 * @param $skin String: Skin name
+	 * @param string $skin Skin name
 	 * @return Array: List of files
 	 */
 	public function getFileDependencies( $skin ) {
@@ -304,8 +329,8 @@ abstract class ResourceLoaderModule {
 	/**
 	 * Set preloaded file dependency information. Used so we can load this
 	 * information for all modules at once.
-	 * @param $skin String: Skin name
-	 * @param $deps Array: Array of file names
+	 * @param string $skin Skin name
+	 * @param array $deps Array of file names
 	 */
 	public function setFileDependencies( $skin, $deps ) {
 		$this->fileDeps[$skin] = $deps;
@@ -314,13 +339,14 @@ abstract class ResourceLoaderModule {
 	/**
 	 * Get the last modification timestamp of the message blob for this
 	 * module in a given language.
-	 * @param $lang String: Language code
+	 * @param string $lang Language code
 	 * @return Integer: UNIX timestamp, or 0 if the module doesn't have messages
 	 */
 	public function getMsgBlobMtime( $lang ) {
 		if ( !isset( $this->msgBlobMtime[$lang] ) ) {
-			if ( !count( $this->getMessages() ) )
+			if ( !count( $this->getMessages() ) ) {
 				return 0;
+			}
 
 			$dbr = wfGetDB( DB_SLAVE );
 			$msgBlobMtime = $dbr->selectField( 'msg_resource', 'mr_timestamp', array(
@@ -341,7 +367,7 @@ abstract class ResourceLoaderModule {
 	/**
 	 * Set a preloaded message blob last modification timestamp. Used so we
 	 * can load this information for all modules at once.
-	 * @param $lang String: Language code
+	 * @param string $lang Language code
 	 * @param $mtime Integer: UNIX timestamp or 0 if there is no such blob
 	 */
 	public function setMsgBlobMtime( $lang, $mtime ) {
@@ -360,7 +386,7 @@ abstract class ResourceLoaderModule {
 	 * NOTE: The mtime of the module's messages is NOT automatically included.
 	 * If you want this to happen, you'll need to call getMsgBlobMtime()
 	 * yourself and take its result into consideration.
-	 * 
+	 *
 	 * @param $context ResourceLoaderContext: Context object
 	 * @return Integer: UNIX timestamp
 	 */
@@ -381,7 +407,6 @@ abstract class ResourceLoaderModule {
 	public function isKnownEmpty( ResourceLoaderContext $context ) {
 		return false;
 	}
-
 
 	/** @var JSParser lazy-initialized; use self::javaScriptParser() */
 	private static $jsParser;
@@ -411,10 +436,10 @@ abstract class ResourceLoaderModule {
 			try {
 				$parser->parse( $contents, $fileName, 1 );
 				$result = $contents;
-			} catch (Exception $e) {
+			} catch ( Exception $e ) {
 				// We'll save this to cache to avoid having to validate broken JS over and over...
 				$err = $e->getMessage();
-				$result = "throw new Error(" . Xml::encodeJsVar("JavaScript parse error: $err") . ");";
+				$result = "throw new Error(" . Xml::encodeJsVar( "JavaScript parse error: $err" ) . ");";
 			}
 
 			$cache->set( $key, $result );
@@ -434,4 +459,20 @@ abstract class ResourceLoaderModule {
 		return self::$jsParser;
 	}
 
+	/**
+	 * Safe version of filemtime(), which doesn't throw a PHP warning if the file doesn't exist
+	 * but returns 1 instead.
+	 * @param string $filename File name
+	 * @return int UNIX timestamp, or 1 if the file doesn't exist
+	 */
+	protected static function safeFilemtime( $filename ) {
+		if ( file_exists( $filename ) ) {
+			return filemtime( $filename );
+		} else {
+			// We only ever map this function on an array if we're gonna call max() after,
+			// so return our standard minimum timestamps here. This is 1, not 0, because
+			// wfTimestamp(0) == NOW
+			return 1;
+		}
+	}
 }

@@ -40,9 +40,17 @@ class FileDuplicateSearchPage extends QueryPage {
 		parent::__construct( $name );
 	}
 
-	function isSyndicated() { return false; }
-	function isCacheable() { return false; }
-	function isCached() { return false; }
+	function isSyndicated() {
+		return false;
+	}
+
+	function isCacheable() {
+		return false;
+	}
+
+	function isCached() {
+		return false;
+	}
 
 	function linkParameters() {
 		return array( 'filename' => $this->filename );
@@ -59,7 +67,7 @@ class FileDuplicateSearchPage extends QueryPage {
 
 	/**
 	 *
-	 * @param $dupes Array of File objects
+	 * @param array $dupes of File objects
 	 */
 	function showList( $dupes ) {
 		$html = array();
@@ -78,8 +86,8 @@ class FileDuplicateSearchPage extends QueryPage {
 		return array(
 			'tables' => array( 'image' ),
 			'fields' => array(
-				'img_name AS title',
-				'img_sha1 AS value',
+				'title' => 'img_name',
+				'value' => 'img_sha1',
 				'img_user_text',
 				'img_timestamp'
 			),
@@ -93,7 +101,7 @@ class FileDuplicateSearchPage extends QueryPage {
 		$this->setHeaders();
 		$this->outputHeader();
 
-		$this->filename =  isset( $par ) ?  $par : $this->getRequest()->getText( 'filename' );
+		$this->filename = isset( $par ) ?  $par : $this->getRequest()->getText( 'filename' );
 		$this->file = null;
 		$this->hash = '';
 		$title = Title::newFromText( $this->filename, NS_FILE );
@@ -106,7 +114,7 @@ class FileDuplicateSearchPage extends QueryPage {
 		# Create the input form
 		$out->addHTML(
 			Xml::openElement( 'form', array( 'id' => 'fileduplicatesearch', 'method' => 'get', 'action' => $wgScript ) ) .
-			Html::hidden( 'title', $this->getTitle()->getPrefixedDbKey() ) .
+			Html::hidden( 'title', $this->getTitle()->getPrefixedDBkey() ) .
 			Xml::openElement( 'fieldset' ) .
 			Xml::element( 'legend', null, $this->msg( 'fileduplicatesearch-legend' )->text() ) .
 			Xml::inputLabel( $this->msg( 'fileduplicatesearch-filename' )->text(), 'filename', 'filename', 50, $this->filename ) . ' ' .
@@ -157,8 +165,22 @@ class FileDuplicateSearchPage extends QueryPage {
 				);
 			}
 
+			$this->doBatchLookups( $dupes );
 			$this->showList( $dupes );
 		}
+	}
+
+	function doBatchLookups( $list ) {
+		$batch = new LinkBatch();
+		foreach( $list as $file ) {
+			$batch->addObj( $file->getTitle() );
+			if( $file->isLocal() ) {
+				$userName = $file->getUser( 'text' );
+				$batch->add( NS_USER, $userName );
+				$batch->add( NS_USER_TALK, $userName );
+			}
+		}
+		$batch->execute();
 	}
 
 	/**
@@ -178,9 +200,23 @@ class FileDuplicateSearchPage extends QueryPage {
 		);
 
 		$userText = $result->getUser( 'text' );
-		$user = Linker::link( Title::makeTitle( NS_USER, $userText ), $userText );
+		if ( $result->isLocal() ) {
+			$userId = $result->getUser( 'id' );
+			$user = Linker::userLink( $userId, $userText );
+			$user .= $this->getContext()->msg( 'word-separator' )->plain();
+			$user .= '<span style="white-space: nowrap;">';
+			$user .= Linker::userToolLinks( $userId, $userText );
+			$user .= '</span>';
+		} else {
+			$user = htmlspecialchars( $userText );
+		}
+
 		$time = $this->getLanguage()->userTimeAndDate( $result->getTimestamp(), $this->getUser() );
 
 		return "$plink . . $user . . $time";
+	}
+
+	protected function getGroupName() {
+		return 'media';
 	}
 }

@@ -4,7 +4,7 @@
  *
  * Created on Sep 19, 2006
  *
- * Copyright © 2006 Yuri Astrakhan <Firstname><Lastname>@gmail.com
+ * Copyright © 2006 Yuri Astrakhan "<Firstname><Lastname>@gmail.com"
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -85,13 +85,9 @@ class ApiFormatJson extends ApiFormatBase {
 
 	public function getDescription() {
 		if ( $this->mIsRaw ) {
-			return 'Output data with the debuging elements in JSON format' . parent::getDescription();
+			return 'Output data with the debugging elements in JSON format' . parent::getDescription();
 		} else {
 			return 'Output data in JSON format' . parent::getDescription();
 		}
-	}
-
-	public function getVersion() {
-		return __CLASS__ . ': $Id$';
 	}
 }

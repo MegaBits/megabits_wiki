@@ -1,5 +1,7 @@
 <?php
 /**
+ * Resource loader module based on local JavaScript/CSS files.
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -109,6 +111,10 @@ class ResourceLoaderFileModule extends ResourceLoaderModule {
 	protected $position = 'bottom';
 	/** Boolean: Link to raw files in debug mode */
 	protected $debugRaw = true;
+	/** Boolean: Whether mw.loader.state() call should be omitted */
+	protected $raw = false;
+	protected $targets = array( 'desktop' );
+
 	/**
 	 * Array: Cache for mtime
 	 * @par Usage:
@@ -131,52 +137,53 @@ class ResourceLoaderFileModule extends ResourceLoaderModule {
 	/**
 	 * Constructs a new module from an options array.
 	 *
-	 * @param $options Array: List of options; if not given or empty, an empty module will be
+	 * @param array $options List of options; if not given or empty, an empty module will be
 	 *     constructed
-	 * @param $localBasePath String: Base path to prepend to all local paths in $options. Defaults
+	 * @param string $localBasePath Base path to prepend to all local paths in $options. Defaults
 	 *     to $IP
-	 * @param $remoteBasePath String: Base path to prepend to all remote paths in $options. Defaults
+	 * @param string $remoteBasePath Base path to prepend to all remote paths in $options. Defaults
 	 *     to $wgScriptPath
 	 *
 	 * Below is a description for the $options array:
+	 * @throws MWException
 	 * @par Construction options:
 	 * @code
-	 * 	array(
-	 * 		// Base path to prepend to all local paths in $options. Defaults to $IP
-	 * 		'localBasePath' => [base path],
-	 * 		// Base path to prepend to all remote paths in $options. Defaults to $wgScriptPath
-	 * 		'remoteBasePath' => [base path],
-	 * 		// Equivalent of remoteBasePath, but relative to $wgExtensionAssetsPath
-	 * 		'remoteExtPath' => [base path],
-	 * 		// Scripts to always include
-	 * 		'scripts' => [file path string or array of file path strings],
-	 * 		// Scripts to include in specific language contexts
-	 * 		'languageScripts' => array(
-	 * 			[language code] => [file path string or array of file path strings],
-	 * 		),
-	 * 		// Scripts to include in specific skin contexts
-	 * 		'skinScripts' => array(
-	 * 			[skin name] => [file path string or array of file path strings],
-	 * 		),
-	 * 		// Scripts to include in debug contexts
-	 * 		'debugScripts' => [file path string or array of file path strings],
-	 * 		// Scripts to include in the startup module
-	 * 		'loaderScripts' => [file path string or array of file path strings],
-	 * 		// Modules which must be loaded before this module
-	 * 		'dependencies' => [modile name string or array of module name strings],
-	 * 		// Styles to always load
-	 * 		'styles' => [file path string or array of file path strings],
-	 * 		// Styles to include in specific skin contexts
-	 * 		'skinStyles' => array(
-	 * 			[skin name] => [file path string or array of file path strings],
-	 * 		),
-	 * 		// Messages to always load
-	 * 		'messages' => [array of message key strings],
-	 * 		// Group which this module should be loaded together with
-	 * 		'group' => [group name string],
-	 * 		// Position on the page to load this module at
-	 * 		'position' => ['bottom' (default) or 'top']
-	 * 	)
+	 *     array(
+	 *         // Base path to prepend to all local paths in $options. Defaults to $IP
+	 *         'localBasePath' => [base path],
+	 *         // Base path to prepend to all remote paths in $options. Defaults to $wgScriptPath
+	 *         'remoteBasePath' => [base path],
+	 *         // Equivalent of remoteBasePath, but relative to $wgExtensionAssetsPath
+	 *         'remoteExtPath' => [base path],
+	 *         // Scripts to always include
+	 *         'scripts' => [file path string or array of file path strings],
+	 *         // Scripts to include in specific language contexts
+	 *         'languageScripts' => array(
+	 *             [language code] => [file path string or array of file path strings],
+	 *         ),
+	 *         // Scripts to include in specific skin contexts
+	 *         'skinScripts' => array(
+	 *             [skin name] => [file path string or array of file path strings],
+	 *         ),
+	 *         // Scripts to include in debug contexts
+	 *         'debugScripts' => [file path string or array of file path strings],
+	 *         // Scripts to include in the startup module
+	 *         'loaderScripts' => [file path string or array of file path strings],
+	 *         // Modules which must be loaded before this module
+	 *         'dependencies' => [module name string or array of module name strings],
+	 *         // Styles to always load
+	 *         'styles' => [file path string or array of file path strings],
+	 *         // Styles to include in specific skin contexts
+	 *         'skinStyles' => array(
+	 *             [skin name] => [file path string or array of file path strings],
+	 *         ),
+	 *         // Messages to always load
+	 *         'messages' => [array of message key strings],
+	 *         // Group which this module should be loaded together with
+	 *         'group' => [group name string],
+	 *         // Position on the page to load this module at
+	 *         'position' => ['bottom' (default) or 'top']
+	 *     )
 	 * @endcode
 	 */
 	public function __construct( $options = array(), $localBasePath = null,
@@ -227,6 +234,7 @@ class ResourceLoaderFileModule extends ResourceLoaderModule {
 				// Lists of strings
 				case 'dependencies':
 				case 'messages':
+				case 'targets':
 					$this->{$member} = (array) $option;
 					break;
 				// Single strings
@@ -238,6 +246,7 @@ class ResourceLoaderFileModule extends ResourceLoaderModule {
 					break;
 				// Single booleans
 				case 'debugRaw':
+				case 'raw':
 					$this->{$member} = (bool) $option;
 					break;
 			}
@@ -303,15 +312,19 @@ class ResourceLoaderFileModule extends ResourceLoaderModule {
 		// Collect referenced files
 		$this->localFileRefs = array_unique( $this->localFileRefs );
 		// If the list has been modified since last time we cached it, update the cache
-		if ( $this->localFileRefs !== $this->getFileDependencies( $context->getSkin() ) && !wfReadOnly() ) {
-			$dbw = wfGetDB( DB_MASTER );
-			$dbw->replace( 'module_deps',
-				array( array( 'md_module', 'md_skin' ) ), array(
-					'md_module' => $this->getName(),
-					'md_skin' => $context->getSkin(),
-					'md_deps' => FormatJson::encode( $this->localFileRefs ),
-				)
-			);
+		try {
+			if ( $this->localFileRefs !== $this->getFileDependencies( $context->getSkin() ) ) {
+				$dbw = wfGetDB( DB_MASTER );
+				$dbw->replace( 'module_deps',
+					array( array( 'md_module', 'md_skin' ) ), array(
+						'md_module' => $this->getName(),
+						'md_skin' => $context->getSkin(),
+						'md_deps' => FormatJson::encode( $this->localFileRefs ),
+					)
+				);
+			}
+		} catch ( Exception $e ) {
+			wfDebug( __METHOD__ . " failed to update DB: $e\n" );
 		}
 		return $styles;
 	}
@@ -363,6 +376,13 @@ class ResourceLoaderFileModule extends ResourceLoaderModule {
 	 */
 	public function getDependencies() {
 		return $this->dependencies;
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function isRaw() {
+		return $this->raw;
 	}
 
 	/**
@@ -421,9 +441,9 @@ class ResourceLoaderFileModule extends ResourceLoaderModule {
 			return $this->modifiedTime[$context->getHash()] = 1;
 		}
 
-		wfProfileIn( __METHOD__.'-filemtime' );
+		wfProfileIn( __METHOD__ . '-filemtime' );
 		$filesMtime = max( array_map( array( __CLASS__, 'safeFilemtime' ), $files ) );
-		wfProfileOut( __METHOD__.'-filemtime' );
+		wfProfileOut( __METHOD__ . '-filemtime' );
 		$this->modifiedTime[$context->getHash()] = max(
 			$filesMtime,
 			$this->getMsgBlobMtime( $context->getLanguage() ) );
@@ -453,9 +473,9 @@ class ResourceLoaderFileModule extends ResourceLoaderModule {
 	/**
 	 * Collates file paths by option (where provided).
 	 *
-	 * @param $list Array: List of file paths in any combination of index/path
+	 * @param array $list List of file paths in any combination of index/path
 	 *     or path/options pairs
-	 * @param $option String: option name
+	 * @param string $option option name
 	 * @param $default Mixed: default value if the option isn't set
 	 * @return Array: List of file paths, collated by $option
 	 */
@@ -483,9 +503,9 @@ class ResourceLoaderFileModule extends ResourceLoaderModule {
 	/**
 	 * Gets a list of element that match a key, optionally using a fallback key.
 	 *
-	 * @param $list Array: List of lists to select from
-	 * @param $key String: Key to look for in $map
-	 * @param $fallback String: Key to look for in $list if $key doesn't exist
+	 * @param array $list List of lists to select from
+	 * @param string $key Key to look for in $map
+	 * @param string $fallback Key to look for in $list if $key doesn't exist
 	 * @return Array: List of elements from $map which matched $key or $fallback,
 	 *     or an empty list in case of no match
 	 */
@@ -516,7 +536,8 @@ class ResourceLoaderFileModule extends ResourceLoaderModule {
 		if ( $context->getDebug() ) {
 			$files = array_merge( $files, $this->debugScripts );
 		}
-		return $files;
+
+		return array_unique( $files );
 	}
 
 	/**
@@ -537,7 +558,8 @@ class ResourceLoaderFileModule extends ResourceLoaderModule {
 	/**
 	 * Gets the contents of a list of JavaScript files.
 	 *
-	 * @param $scripts Array: List of file paths to scripts to read, remap and concetenate
+	 * @param array $scripts List of file paths to scripts to read, remap and concetenate
+	 * @throws MWException
 	 * @return String: Concatenated and remapped JavaScript data from $scripts
 	 */
 	protected function readScriptFiles( array $scripts ) {
@@ -549,7 +571,7 @@ class ResourceLoaderFileModule extends ResourceLoaderModule {
 		foreach ( array_unique( $scripts ) as $fileName ) {
 			$localPath = $this->getLocalPath( $fileName );
 			if ( !file_exists( $localPath ) ) {
-				throw new MWException( __METHOD__.": script file not found: \"$localPath\"" );
+				throw new MWException( __METHOD__ . ": script file not found: \"$localPath\"" );
 			}
 			$contents = file_get_contents( $localPath );
 			if ( $wgResourceLoaderValidateStaticJS ) {
@@ -566,7 +588,7 @@ class ResourceLoaderFileModule extends ResourceLoaderModule {
 	/**
 	 * Gets the contents of a list of CSS files.
 	 *
-	 * @param $styles Array: List of media type/list of file paths pairs, to read, remap and
+	 * @param array $styles List of media type/list of file paths pairs, to read, remap and
 	 * concetenate
 	 *
 	 * @param $flip bool
@@ -597,7 +619,7 @@ class ResourceLoaderFileModule extends ResourceLoaderModule {
 	 *
 	 * This method can be used as a callback for array_map()
 	 *
-	 * @param $path String: File path of style file to read
+	 * @param string $path File path of style file to read
 	 * @param $flip bool
 	 *
 	 * @return String: CSS data in script file
@@ -606,7 +628,9 @@ class ResourceLoaderFileModule extends ResourceLoaderModule {
 	protected function readStyleFile( $path, $flip ) {
 		$localPath = $this->getLocalPath( $path );
 		if ( !file_exists( $localPath ) ) {
-			throw new MWException( __METHOD__.": style file not found: \"$localPath\"" );
+			$msg = __METHOD__ . ": style file not found: \"$localPath\"";
+			wfDebugLog( 'resourceloader', $msg );
+			throw new MWException( $msg );
 		}
 		$style = file_get_contents( $localPath );
 		if ( $flip ) {
@@ -622,27 +646,11 @@ class ResourceLoaderFileModule extends ResourceLoaderModule {
 		// Get and register local file references
 		$this->localFileRefs = array_merge(
 			$this->localFileRefs,
-			CSSMin::getLocalFileReferences( $style, $dir ) );
+			CSSMin::getLocalFileReferences( $style, $dir )
+		);
 		return CSSMin::remap(
 			$style, $dir, $remoteDir, true
 		);
-	}
-
-	/**
-	 * Safe version of filemtime(), which doesn't throw a PHP warning if the file doesn't exist
-	 * but returns 1 instead.
-	 * @param $filename string File name
-	 * @return int UNIX timestamp, or 1 if the file doesn't exist
-	 */
-	protected static function safeFilemtime( $filename ) {
-		if ( file_exists( $filename ) ) {
-			return filemtime( $filename );
-		} else {
-			// We only ever map this function on an array if we're gonna call max() after,
-			// so return our standard minimum timestamps here. This is 1, not 0, because
-			// wfTimestamp(0) == NOW
-			return 1;
-		}
 	}
 
 	/**
@@ -653,4 +661,14 @@ class ResourceLoaderFileModule extends ResourceLoaderModule {
 	public function getFlip( $context ) {
 		return $context->getDirection() === 'rtl';
 	}
+
+	/**
+	 * Get target(s) for the module, eg ['desktop'] or ['desktop', 'mobile']
+	 *
+	 * @return array of strings
+	 */
+	public function getTargets() {
+		return $this->targets;
+	}
+
 }

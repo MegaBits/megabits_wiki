@@ -4,7 +4,7 @@
  *
  * Created on July 30, 2007
  *
- * Copyright © 2007 Yuri Astrakhan <Firstname><Lastname>@gmail.com
+ * Copyright © 2007 Yuri Astrakhan "<Firstname><Lastname>@gmail.com"
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ class ApiQueryUserInfo extends ApiQueryBase {
 	}
 
 	protected function getCurrentUserInfo() {
-		global $wgRequest, $wgHiddenPrefs;
+		global $wgHiddenPrefs;
 		$user = $this->getUser();
 		$result = $this->getResult();
 		$vals = array();
@@ -63,7 +63,10 @@ class ApiQueryUserInfo extends ApiQueryBase {
 
 		if ( isset( $this->prop['blockinfo'] ) ) {
 			if ( $user->isBlocked() ) {
-				$vals['blockedby'] = User::whoIs( $user->blockedBy() );
+				$block = $user->getBlock();
+				$vals['blockid'] = $block->getId();
+				$vals['blockedby'] = $block->getByName();
+				$vals['blockedbyid'] = $block->getBy();
 				$vals['blockreason'] = $user->blockedFor();
 			}
 		}
@@ -73,21 +76,19 @@ class ApiQueryUserInfo extends ApiQueryBase {
 		}
 
 		if ( isset( $this->prop['groups'] ) ) {
-			$autolist = ApiQueryUsers::getAutoGroups( $user );
-
-			$vals['groups'] = array_merge( $autolist, $user->getGroups() );
-			$result->setIndexedTagName( $vals['groups'], 'g' );	// even if empty
+			$vals['groups'] = $user->getEffectiveGroups();
+			$result->setIndexedTagName( $vals['groups'], 'g' ); // even if empty
 		}
 
 		if ( isset( $this->prop['implicitgroups'] ) ) {
-			$vals['implicitgroups'] = ApiQueryUsers::getAutoGroups( $user );
-			$result->setIndexedTagName( $vals['implicitgroups'], 'g' );	// even if empty
+			$vals['implicitgroups'] = $user->getAutomaticGroups();
+			$result->setIndexedTagName( $vals['implicitgroups'], 'g' ); // even if empty
 		}
 
 		if ( isset( $this->prop['rights'] ) ) {
 			// User::getRights() may return duplicate values, strip them
 			$vals['rights'] = array_values( array_unique( $user->getRights() ) );
-			$result->setIndexedTagName( $vals['rights'], 'r' );	// even if empty
+			$result->setIndexedTagName( $vals['rights'], 'r' ); // even if empty
 		}
 
 		if ( isset( $this->prop['changeablegroups'] ) ) {
@@ -136,7 +137,7 @@ class ApiQueryUserInfo extends ApiQueryBase {
 		}
 
 		if ( isset( $this->prop['acceptlang'] ) ) {
-			$langs = $wgRequest->getAcceptLang();
+			$langs = $this->getRequest()->getAcceptLang();
 			$acceptLang = array();
 			foreach ( $langs as $lang => $val ) {
 				$r = array( 'q' => $val );
@@ -231,6 +232,63 @@ class ApiQueryUserInfo extends ApiQueryBase {
 		);
 	}
 
+	public function getResultProperties() {
+		return array(
+			ApiBase::PROP_LIST => false,
+			'' => array(
+				'id' => 'integer',
+				'name' => 'string',
+				'anon' => 'boolean'
+			),
+			'blockinfo' => array(
+				'blockid' => array(
+					ApiBase::PROP_TYPE => 'integer',
+					ApiBase::PROP_NULLABLE => true
+				),
+				'blockedby' => array(
+					ApiBase::PROP_TYPE => 'string',
+					ApiBase::PROP_NULLABLE => true
+				),
+				'blockedbyid' => array(
+					ApiBase::PROP_TYPE => 'integer',
+					ApiBase::PROP_NULLABLE => true
+				),
+				'blockedreason' => array(
+					ApiBase::PROP_TYPE => 'string',
+					ApiBase::PROP_NULLABLE => true
+				)
+			),
+			'hasmsg' => array(
+				'messages' => 'boolean'
+			),
+			'preferencestoken' => array(
+				'preferencestoken' => 'string'
+			),
+			'editcount' => array(
+				'editcount' => 'integer'
+			),
+			'realname' => array(
+				'realname' => array(
+					ApiBase::PROP_TYPE => 'string',
+					ApiBase::PROP_NULLABLE => true
+				)
+			),
+			'email' => array(
+				'email' => 'string',
+				'emailauthenticated' => array(
+					ApiBase::PROP_TYPE => 'timestamp',
+					ApiBase::PROP_NULLABLE => true
+				)
+			),
+			'registrationdate' => array(
+				'registrationdate' => array(
+					ApiBase::PROP_TYPE => 'timestamp',
+					ApiBase::PROP_NULLABLE => true
+				)
+			)
+		);
+	}
+
 	public function getDescription() {
 		return 'Get information about the current user';
 	}
@@ -244,9 +302,5 @@ class ApiQueryUserInfo extends ApiQueryBase {
 
 	public function getHelpUrls() {
 		return 'https://www.mediawiki.org/wiki/API:Meta#userinfo_.2F_ui';
-	}
-
-	public function getVersion() {
-		return __CLASS__ . ': $Id$';
 	}
 }

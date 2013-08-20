@@ -52,11 +52,11 @@ class FeedItem {
 	/**
 	 * Constructor
 	 *
-	 * @param $title String|Title Item's title
+	 * @param string|Title $title Item's title
 	 * @param $description String
-	 * @param $url String: URL uniquely designating the item.
-	 * @param $date String: Item's date
-	 * @param $author String: Author's user name
+	 * @param string $url URL uniquely designating the item.
+	 * @param string $date Item's date
+	 * @param string $author Author's user name
 	 * @param $comments String
 	 */
 	function __construct( $title, $description, $url, $date = '', $author = '', $comments = '' ) {
@@ -72,7 +72,7 @@ class FeedItem {
 	/**
 	 * Encode $string so that it can be safely embedded in a XML document
 	 *
-	 * @param $string String: string to encode
+	 * @param string $string string to encode
 	 * @return String
 	 */
 	public function xmlEncode( $string ) {
@@ -95,7 +95,7 @@ class FeedItem {
 	/**
 	 * set the unique id of an item
 	 *
-	 * @param $uniqueId String: unique id for the item
+	 * @param string $uniqueId unique id for the item
 	 * @param $rssIsPermalink Boolean: set to true if the guid (unique id) is a permalink (RSS feeds only)
 	 */
 	public function setUniqueId( $uniqueId, $rssIsPermalink = false ) {
@@ -170,7 +170,7 @@ class FeedItem {
 	/**
 	 * Quickie hack... strip out wikilinks to more legible form from the comment.
 	 *
-	 * @param $text String: wikitext
+	 * @param string $text wikitext
 	 * @return String
 	 */
 	public static function stripComment( $text ) {
@@ -183,34 +183,35 @@ class FeedItem {
  * @todo document (needs one-sentence top-level class description).
  * @ingroup Feed
  */
-class ChannelFeed extends FeedItem {
-	/**#@+
-	 * Abstract function, override!
-	 * @abstract
-	 */
-
+abstract class ChannelFeed extends FeedItem {
 	/**
 	 * Generate Header of the feed
+	 * @par Example:
+	 * @code
+	 * print "<feed>";
+	 * @endcode
+	 * @param $item
 	 */
-	function outHeader() {
-		# print "<feed>";
-	}
+	abstract public function outHeader();
 
 	/**
 	 * Generate an item
+	 * @par Example:
+	 * @code
+	 * print "<item>...</item>";
+	 * @endcode
 	 * @param $item
 	 */
-	function outItem( $item ) {
-		# print "<item>...</item>";
-	}
+	abstract public function outItem( $item );
 
 	/**
 	 * Generate Footer of the feed
+	 * @par Example:
+	 * @code
+	 * print "</feed>";
+	 * @endcode
 	 */
-	function outFooter() {
-		# print "</feed>";
-	}
-	/**#@-*/
+	abstract public function outFooter();
 
 	/**
 	 * Setup and send HTTP headers. Don't send any content;
@@ -242,9 +243,9 @@ class ChannelFeed extends FeedItem {
 	 */
 	function contentType() {
 		global $wgRequest;
-		$ctype = $wgRequest->getVal('ctype','application/xml');
-		$allowedctypes = array('application/xml','text/xml','application/rss+xml','application/atom+xml');
-		return (in_array($ctype, $allowedctypes) ? $ctype : 'application/xml');
+		$ctype = $wgRequest->getVal( 'ctype', 'application/xml' );
+		$allowedctypes = array( 'application/xml', 'text/xml', 'application/rss+xml', 'application/atom+xml' );
+		return (in_array( $ctype, $allowedctypes ) ? $ctype : 'application/xml');
 	}
 
 	/**
@@ -281,7 +282,7 @@ class RSSFeed extends ChannelFeed {
 	}
 
 	/**
-	 * Ouput an RSS 2.0 header
+	 * Output an RSS 2.0 header
 	 */
 	function outHeader() {
 		global $wgVersion;
@@ -317,7 +318,7 @@ class RSSFeed extends ChannelFeed {
 	}
 
 	/**
-	 * Ouput an RSS 2.0 footer
+	 * Output an RSS 2.0 footer
 	 */
 	function outFooter() {
 	?>
@@ -334,6 +335,7 @@ class RSSFeed extends ChannelFeed {
 class AtomFeed extends ChannelFeed {
 	/**
 	 * @todo document
+	 * @return string
 	 */
 	function formatTime( $ts ) {
 		// need to use RFC 822 time format at least for rss2.0
@@ -360,7 +362,7 @@ class AtomFeed extends ChannelFeed {
 	}
 
 	/**
-	 * Atom 1.0 requires a unique, opaque IRI as a unique indentifier
+	 * Atom 1.0 requires a unique, opaque IRI as a unique identifier
 	 * for every feed we create. For now just use the URL, but who
 	 * can tell if that's right? If we put options on the feed, do we
 	 * have to change the id? Maybe? Maybe not.
@@ -407,7 +409,7 @@ class AtomFeed extends ChannelFeed {
 	}
 
 	/**
-	 * Outputs the footer for Atom 1.0 feed (basicly '\</feed\>').
+	 * Outputs the footer for Atom 1.0 feed (basically '\</feed\>').
 	 */
 	function outFooter() {?>
 	</feed><?php

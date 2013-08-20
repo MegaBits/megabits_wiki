@@ -93,6 +93,11 @@ if ( $maintenance->getDbType() === Maintenance::DB_ADMIN &&
 {
 	require( MWInit::interpretedPath( 'AdminSettings.php' ) );
 }
+
+if ( $maintenance->getDbType() === Maintenance::DB_NONE ) {
+	if ( $wgLocalisationCacheConf['storeClass'] === false && ( $wgLocalisationCacheConf['store'] == 'db' || ( $wgLocalisationCacheConf['store'] == 'detect' && !$wgCacheDirectory ) ) )
+		$wgLocalisationCacheConf['storeClass'] = 'LCStore_Null';
+}
 $maintenance->finalSetup();
 // Some last includes
 require_once( MWInit::compiledPath( 'includes/Setup.php' ) );
@@ -106,8 +111,18 @@ try {
 
 	// Potentially debug globals
 	$maintenance->globals();
+
+	// Perform deferred updates.
+	DeferredUpdates::doUpdates( 'commit' );
+
+	// log profiling info
+	wfLogProfilingData();
+
+	// Commit and close up!
+	$factory = wfGetLBFactory();
+	$factory->commitMasterChanges();
+	$factory->shutdown();
 } catch ( MWException $mwe ) {
 	echo( $mwe->getText() );
 	exit( 1 );
 }
-

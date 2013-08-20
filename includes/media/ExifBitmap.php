@@ -1,5 +1,22 @@
 <?php
 /**
+ * Handler for bitmap images with exif metadata.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * http://www.gnu.org/copyleft/gpl.html
+ *
  * @file
  * @ingroup Media
  */
@@ -17,8 +34,8 @@ class ExifBitmapHandler extends BitmapHandler {
 
 	function convertMetadataVersion( $metadata, $version = 1 ) {
 		// basically flattens arrays.
-		$version = explode(';', $version, 2);
-		$version = intval($version[0]);
+		$version = explode( ';', $version, 2 );
+		$version = intval( $version[0] );
 		if ( $version < 1 || $version >= 2 ) {
 			return $metadata;
 		}
@@ -39,7 +56,7 @@ class ExifBitmapHandler extends BitmapHandler {
 			&& is_array( $metadata['Software'][0])
 			&& isset( $metadata['Software'][0][0] )
 			&& isset( $metadata['Software'][0][1])
-		 ) {
+		) {
 			$metadata['Software'] = $metadata['Software'][0][0] . ' (Version '
 				. $metadata['Software'][0][1] . ')';
 		}
@@ -69,7 +86,7 @@ class ExifBitmapHandler extends BitmapHandler {
 		if ( $metadata === self::OLD_BROKEN_FILE ) {
 			# Old special value indicating that there is no EXIF data in the file.
 			# or that there was an error well extracting the metadata.
-			wfDebug( __METHOD__ . ": back-compat version\n");
+			wfDebug( __METHOD__ . ": back-compat version\n" );
 			return self::METADATA_COMPATIBLE;
 		}
 		if ( $metadata === self::BROKEN_FILE ) {
@@ -85,11 +102,11 @@ class ExifBitmapHandler extends BitmapHandler {
 				$exif['MEDIAWIKI_EXIF_VERSION'] == 1 )
 			{
 				//back-compatible but old
-				wfDebug( __METHOD__.": back-compat version\n" );
+				wfDebug( __METHOD__ . ": back-compat version\n" );
 				return self::METADATA_COMPATIBLE;
 			}
 			# Wrong (non-compatible) version
-			wfDebug( __METHOD__.": wrong version\n" );
+			wfDebug( __METHOD__ . ": wrong version\n" );
 			return self::METADATA_BAD;
 		}
 		return self::METADATA_GOOD;
@@ -146,7 +163,7 @@ class ExifBitmapHandler extends BitmapHandler {
 			$rotation = 0;
 		}
 
-		if ($rotation == 90 || $rotation == 270) {
+		if ( $rotation == 90 || $rotation == 270 ) {
 			$width = $gis[0];
 			$gis[0] = $gis[1];
 			$gis[1] = $width;
@@ -182,7 +199,8 @@ class ExifBitmapHandler extends BitmapHandler {
 	 *
 	 * @param string $data
 	 * @return int 0, 90, 180 or 270
-	 * @fixme orientation can include flipping as well; see if this is an issue!
+	 * @todo FIXME orientation can include flipping as well; see if this is an
+	 * issue!
 	 */
 	protected function getRotationForExif( $data ) {
 		if ( !$data ) {
@@ -207,4 +225,3 @@ class ExifBitmapHandler extends BitmapHandler {
 		return 0;
 	}
 }
-

@@ -2,6 +2,21 @@
 /**
  * Base code for MediaWiki installer.
  *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * http://www.gnu.org/copyleft/gpl.html
+ *
  * @file
  * @ingroup Deployment
  */
@@ -24,7 +39,7 @@
 abstract class Installer {
 
 	// This is the absolute minimum PHP version we can support
-	const MINIMUM_PHP_VERSION = '5.2.3';
+	const MINIMUM_PHP_VERSION = '5.3.2';
 
 	/**
 	 * @var array
@@ -73,7 +88,6 @@ abstract class Installer {
 		'postgres',
 		'oracle',
 		'sqlite',
-		'ibm_db2',
 	);
 
 	/**
@@ -293,24 +307,24 @@ abstract class Installer {
 
 	/**
 	 * UI interface for displaying a short message
-	 * The parameters are like parameters to wfMsg().
+	 * The parameters are like parameters to wfMessage().
 	 * The messages will be in wikitext format, which will be converted to an
 	 * output format such as HTML or text before being sent to the user.
 	 * @param $msg
 	 */
-	public abstract function showMessage( $msg /*, ... */ );
+	abstract public function showMessage( $msg /*, ... */ );
 
 	/**
 	 * Same as showMessage(), but for displaying errors
 	 * @param $msg
 	 */
-	public abstract function showError( $msg /*, ... */ );
+	abstract public function showError( $msg /*, ... */ );
 
 	/**
 	 * Show a message to the installing user by using a Status object
 	 * @param $status Status
 	 */
-	public abstract function showStatusMessage( Status $status );
+	abstract public function showStatusMessage( Status $status );
 
 	/**
 	 * Constructor, always call this from child classes.
@@ -324,7 +338,7 @@ abstract class Installer {
 
 		// Load the installer's i18n file.
 		$wgExtensionMessagesFiles['MediawikiInstaller'] =
-			dirname( __FILE__ ) . '/Installer.i18n.php';
+			__DIR__ . '/Installer.i18n.php';
 
 		// Having a user with id = 0 safeguards us from DB access via User::loadOptions().
 		$wgUser = User::newFromId( 0 );
@@ -473,7 +487,7 @@ abstract class Installer {
 		if( !$_lsExists ) {
 			return false;
 		}
-		unset($_lsExists);
+		unset( $_lsExists );
 
 		require( "$IP/includes/DefaultSettings.php" );
 		require( "$IP/LocalSettings.php" );
@@ -543,7 +557,7 @@ abstract class Installer {
 	 * write your messages. This appears to work well enough. Basic formatting and
 	 * external links work just fine.
 	 *
-	 * But in case a translator decides to throw in a #ifexist or internal link or
+	 * But in case a translator decides to throw in a "#ifexist" or internal link or
 	 * whatever, this function is guarded to catch the attempted DB access and to present
 	 * some fallback text.
 	 *
@@ -630,7 +644,7 @@ abstract class Installer {
 		$allNames = array();
 
 		foreach ( self::getDBTypes() as $name ) {
-			$allNames[] = wfMsg( "config-type-$name" );
+			$allNames[] = wfMessage( "config-type-$name" )->text();
 		}
 
 		// cache initially available databases to make sure that everything will be displayed correctly
@@ -659,6 +673,7 @@ abstract class Installer {
 			return false;
 		}
 		$this->setVar( '_CompiledDBs', $databases );
+		return true;
 	}
 
 	/**
@@ -672,6 +687,7 @@ abstract class Installer {
 
 	/**
 	 * Some versions of libxml+PHP break < and > encoding horribly
+	 * @return bool
 	 */
 	protected function envCheckBrokenXML() {
 		$test = new PhpXmlBugTester();
@@ -679,11 +695,13 @@ abstract class Installer {
 			$this->showError( 'config-brokenlibxml' );
 			return false;
 		}
+		return true;
 	}
 
 	/**
 	 * Test PHP (probably 5.3.1, but it could regress again) to make sure that
 	 * reference parameters to __call() are not converted to null
+	 * @return bool
 	 */
 	protected function envCheckPHP531() {
 		$test = new PhpRefCallBugTester;
@@ -692,70 +710,88 @@ abstract class Installer {
 			$this->showError( 'config-using531', phpversion() );
 			return false;
 		}
+		return true;
 	}
 
 	/**
 	 * Environment check for magic_quotes_runtime.
+	 * @return bool
 	 */
 	protected function envCheckMagicQuotes() {
 		if( wfIniGetBool( "magic_quotes_runtime" ) ) {
 			$this->showError( 'config-magic-quotes-runtime' );
 			return false;
 		}
+		return true;
 	}
 
 	/**
 	 * Environment check for magic_quotes_sybase.
+	 * @return bool
 	 */
 	protected function envCheckMagicSybase() {
 		if ( wfIniGetBool( 'magic_quotes_sybase' ) ) {
 			$this->showError( 'config-magic-quotes-sybase' );
 			return false;
 		}
+		return true;
 	}
 
 	/**
 	 * Environment check for mbstring.func_overload.
+	 * @return bool
 	 */
 	protected function envCheckMbstring() {
 		if ( wfIniGetBool( 'mbstring.func_overload' ) ) {
 			$this->showError( 'config-mbstring' );
 			return false;
 		}
+		return true;
 	}
 
 	/**
 	 * Environment check for zend.ze1_compatibility_mode.
+	 * @return bool
 	 */
 	protected function envCheckZE1() {
 		if ( wfIniGetBool( 'zend.ze1_compatibility_mode' ) ) {
 			$this->showError( 'config-ze1' );
 			return false;
 		}
+		return true;
 	}
 
 	/**
 	 * Environment check for safe_mode.
+	 * @return bool
 	 */
 	protected function envCheckSafeMode() {
 		if ( wfIniGetBool( 'safe_mode' ) ) {
 			$this->setVar( '_SafeMode', true );
 			$this->showMessage( 'config-safe-mode' );
 		}
+		return true;
 	}
 
 	/**
 	 * Environment check for the XML module.
+	 * @return bool
 	 */
 	protected function envCheckXML() {
 		if ( !function_exists( "utf8_encode" ) ) {
 			$this->showError( 'config-xml-bad' );
 			return false;
 		}
+		return true;
 	}
 
 	/**
 	 * Environment check for the PCRE module.
+	 *
+	 * @note If this check were to fail, the parser would
+	 *   probably throw an exception before the result
+	 *   of this check is shown to the user.
+	 * @return bool
 	 */
 	protected function envCheckPCRE() {
 		if ( !function_exists( 'preg_match' ) ) {
@@ -764,15 +800,22 @@ abstract class Installer {
 		}
 		wfSuppressWarnings();
 		$regexd = preg_replace( '/[\x{0430}-\x{04FF}]/iu', '', '-АБВГД-' );
+		// Need to check for \p support too, as PCRE can be compiled
+		// with utf8 support, but not unicode property support.
+		// check that \p{Zs} (space separators) matches
+		// U+3000 (Ideographic space)
+		$regexprop = preg_replace( '/\p{Zs}/u', '', "-\xE3\x80\x80-" );
 		wfRestoreWarnings();
-		if ( $regexd != '--' ) {
+		if ( $regexd != '--' || $regexprop != '--' ) {
 			$this->showError( 'config-pcre-no-utf8' );
 			return false;
 		}
+		return true;
 	}
 
 	/**
 	 * Environment check for available memory.
+	 * @return bool
 	 */
 	protected function envCheckMemory() {
 		$limit = ini_get( 'memory_limit' );
@@ -792,9 +835,8 @@ abstract class Installer {
 				$this->showMessage( 'config-memory-raised', $limit, $newLimit );
 				$this->setVar( '_RaiseMemory', true );
 			}
-		} else {
-			return true;
 		}
+		return true;
 	}
 
 	/**
@@ -820,15 +862,18 @@ abstract class Installer {
 
 	/**
 	 * Scare user to death if they have mod_security
+	 * @return bool
 	 */
 	protected function envCheckModSecurity() {
 		if ( self::apacheModulePresent( 'mod_security' ) ) {
 			$this->showMessage( 'config-mod-security' );
 		}
+		return true;
 	}
 
 	/**
 	 * Search for GNU diff3.
+	 * @return bool
 	 */
 	protected function envCheckDiff3() {
 		$names = array( "gdiff3", "diff3", "diff3.exe" );
@@ -842,10 +887,12 @@ abstract class Installer {
 			$this->setVar( 'wgDiff3', false );
 			$this->showMessage( 'config-diff3-bad' );
 		}
+		return true;
 	}
 
 	/**
 	 * Environment check for ImageMagick and GD.
+	 * @return bool
 	 */
 	protected function envCheckGraphics() {
 		$names = array( wfIsWindows() ? 'convert.exe' : 'convert' );
@@ -858,10 +905,11 @@ abstract class Installer {
 			return true;
 		} elseif ( function_exists( 'imagejpeg' ) ) {
 			$this->showMessage( 'config-gd' );
-			return true;
+
 		} else {
 			$this->showMessage( 'config-no-scaling' );
 		}
+		return true;
 	}
 
 	/**
@@ -871,13 +919,14 @@ abstract class Installer {
 		$server = $this->envGetDefaultServer();
 		$this->showMessage( 'config-using-server', $server );
 		$this->setVar( 'wgServer', $server );
+		return true;
 	}
 
 	/**
 	 * Helper function to be called from envCheckServer()
 	 * @return String
 	 */
-	protected abstract function envGetDefaultServer();
+	abstract protected function envGetDefaultServer();
 
 	/**
 	 * Environment check for setting $IP and $wgScriptPath.
@@ -885,7 +934,7 @@ abstract class Installer {
 	 */
 	protected function envCheckPath() {
 		global $IP;
-		$IP = dirname( dirname( dirname( __FILE__ ) ) );
+		$IP = dirname( dirname( __DIR__ ) );
 		$this->setVar( 'IP', $IP );
 
 		$this->showMessage( 'config-using-uri', $this->getVar( 'wgServer' ), $this->getVar( 'wgScriptPath' ) );
@@ -903,6 +952,7 @@ abstract class Installer {
 			$ext = 'php';
 		}
 		$this->setVar( 'wgScriptExtension', ".$ext" );
+		return true;
 	}
 
 	/**
@@ -938,7 +988,7 @@ abstract class Installer {
 				continue;
 			}
 
-			list( $all, $lang, $territory, $charset, $modifier ) = $m;
+			list( , $lang, , , ) = $m;
 
 			$candidatesByLocale[$m[0]] = $m;
 			$candidatesByLang[$lang][] = $m;
@@ -981,6 +1031,7 @@ abstract class Installer {
 
 	/**
 	 * TODO: document
+	 * @return bool
 	 */
 	protected function envCheckUploadsDirectory() {
 		global $IP;
@@ -989,17 +1040,17 @@ abstract class Installer {
 		$url = $this->getVar( 'wgServer' ) . $this->getVar( 'wgScriptPath' ) . '/images/';
 		$safe = !$this->dirIsExecutable( $dir, $url );
 
-		if ( $safe ) {
-			return true;
-		} else {
+		if ( !$safe ) {
 			$this->showMessage( 'config-uploads-not-safe', $dir );
 		}
+		return true;
 	}
 
 	/**
 	 * Checks if suhosin.get.max_value_length is set, and if so, sets
 	 * $wgResourceLoaderMaxQueryLength to that value in the generated
 	 * LocalSettings file
+	 * @return bool
 	 */
 	protected function envCheckSuhosinMaxValueLength() {
 		$maxValueLength = ini_get( 'suhosin.get.max_value_length' );
@@ -1012,6 +1063,7 @@ abstract class Installer {
 			$maxValueLength = -1;
 		}
 		$this->setVar( 'wgResourceLoaderMaxQueryLength', $maxValueLength );
+		return true;
 	}
 
 	/**
@@ -1020,23 +1072,22 @@ abstract class Installer {
 	 * @return string
 	 */
 	protected function unicodeChar( $c ) {
-		$c = hexdec($c);
-		if ($c <= 0x7F) {
-			return chr($c);
-		} elseif ($c <= 0x7FF) {
-			return chr(0xC0 | $c >> 6) . chr(0x80 | $c & 0x3F);
-		} elseif ($c <= 0xFFFF) {
-			return chr(0xE0 | $c >> 12) . chr(0x80 | $c >> 6 & 0x3F)
-				. chr(0x80 | $c & 0x3F);
-		} elseif ($c <= 0x10FFFF) {
-			return chr(0xF0 | $c >> 18) . chr(0x80 | $c >> 12 & 0x3F)
-				. chr(0x80 | $c >> 6 & 0x3F)
-				. chr(0x80 | $c & 0x3F);
+		$c = hexdec( $c );
+		if ( $c <= 0x7F ) {
+			return chr( $c );
+		} elseif ( $c <= 0x7FF ) {
+			return chr( 0xC0 | $c >> 6 ) . chr( 0x80 | $c & 0x3F );
+		} elseif ( $c <= 0xFFFF ) {
+			return chr( 0xE0 | $c >> 12 ) . chr( 0x80 | $c >> 6 & 0x3F )
+				. chr( 0x80 | $c & 0x3F );
+		} elseif ( $c <= 0x10FFFF ) {
+			return chr( 0xF0 | $c >> 18 ) . chr( 0x80 | $c >> 12 & 0x3F )
+				. chr( 0x80 | $c >> 6 & 0x3F )
+				. chr( 0x80 | $c & 0x3F );
 		} else {
 			return false;
 		}
 	}
-
 
 	/**
 	 * Check the libicu version
@@ -1052,8 +1103,8 @@ abstract class Installer {
 		 * Note that we use the hex representation to create the code
 		 * points in order to avoid any Unicode-destroying during transit.
 		 */
-		$not_normal_c = $this->unicodeChar("FA6C");
-		$normal_c = $this->unicodeChar("242EE");
+		$not_normal_c = $this->unicodeChar( "FA6C" );
+		$normal_c = $this->unicodeChar( "242EE" );
 
 		$useNormalizer = 'php';
 		$needsUpdate = false;
@@ -1065,12 +1116,16 @@ abstract class Installer {
 		if( $utf8 ) {
 			$useNormalizer = 'utf8';
 			$utf8 = utf8_normalize( $not_normal_c, UtfNormal::UNORM_NFC );
-			if ( $utf8 !== $normal_c ) $needsUpdate = true;
+			if ( $utf8 !== $normal_c ) {
+				$needsUpdate = true;
+			}
 		}
 		if( $intl ) {
 			$useNormalizer = 'intl';
 			$intl = normalizer_normalize( $not_normal_c, Normalizer::FORM_C );
-			if ( $intl !== $normal_c ) $needsUpdate = true;
+			if ( $intl !== $normal_c ) {
+				$needsUpdate = true;
+			}
 		}
 
 		// Uses messages 'config-unicode-using-php', 'config-unicode-using-utf8', 'config-unicode-using-intl'
@@ -1084,11 +1139,15 @@ abstract class Installer {
 		}
 	}
 
+	/**
+	 * @return bool
+	 */
 	protected function envCheckCtype() {
 		if ( !function_exists( 'ctype_digit' ) ) {
 			$this->showError( 'config-ctype' );
 			return false;
 		}
+		return true;
 	}
 
 	/**
@@ -1113,14 +1172,15 @@ abstract class Installer {
 	 *
 	 * Used only by environment checks.
 	 *
-	 * @param $path String: path to search
-	 * @param $names Array of executable names
+	 * @param string $path path to search
+	 * @param array $names of executable names
 	 * @param $versionInfo Boolean false or array with two members:
 	 *		 0 => Command to run for version check, with $1 for the full executable name
 	 *		 1 => String to compare the output with
 	 *
 	 * If $versionInfo is not false, only executables with a version
 	 * matching $versionInfo[1] will be returned.
+	 * @return bool|string
 	 */
 	public static function locateExecutable( $path, $names, $versionInfo = false ) {
 		if ( !is_array( $names ) ) {
@@ -1169,6 +1229,9 @@ abstract class Installer {
 	 * Checks if scripts located in the given directory can be executed via the given URL.
 	 *
 	 * Used only by environment checks.
+	 * @param $dir string
+	 * @param $url string
+	 * @return bool|int|string
 	 */
 	public function dirIsExecutable( $dir, $url ) {
 		$scriptTypes = array(
@@ -1214,7 +1277,7 @@ abstract class Installer {
 	/**
 	 * Checks for presence of an Apache module. Works only if PHP is running as an Apache module, too.
 	 *
-	 * @param $moduleName String: Name of module to check.
+	 * @param string $moduleName Name of module to check.
 	 * @return bool
 	 */
 	public static function apacheModulePresent( $moduleName ) {
@@ -1371,8 +1434,8 @@ abstract class Installer {
 	/**
 	 * Actually perform the installation.
 	 *
-	 * @param $startCB Array A callback array for the beginning of each step
-	 * @param $endCB Array A callback array for the end of each step
+	 * @param array $startCB A callback array for the beginning of each step
+	 * @param array $endCB A callback array for the end of each step
 	 *
 	 * @return Array of Status objects
 	 */
@@ -1529,12 +1592,16 @@ abstract class Installer {
 		$status = Status::newGood();
 		try {
 			$page = WikiPage::factory( Title::newMainPage() );
-			$page->doEdit( wfMsgForContent( 'mainpagetext' ) . "\n\n" .
-							wfMsgForContent( 'mainpagedocfooter' ),
-							'',
-							EDIT_NEW,
-							false,
-							User::newFromName( 'MediaWiki default' ) );
+			$content = new WikitextContent (
+				wfMessage( 'mainpagetext' )->inContentLanguage()->text() . "\n\n" .
+				wfMessage( 'mainpagedocfooter' )->inContentLanguage()->text()
+			);
+
+			$page->doEditContent( $content,
+					'',
+					EDIT_NEW,
+					false,
+					User::newFromName( 'MediaWiki default' ) );
 		} catch (MWException $e) {
 			//using raw, because $wgShowExceptionDetails can not be set yet
 			$status->fatal( 'config-install-mainpage-failed', $e->getMessage() );
@@ -1551,6 +1618,8 @@ abstract class Installer {
 
 		// Don't access the database
 		$GLOBALS['wgUseDatabaseMessages'] = false;
+		// Don't cache langconv tables
+		$GLOBALS['wgLanguageConverterCacheType'] = CACHE_NONE;
 		// Debug-friendly
 		$GLOBALS['wgShowExceptionDetails'] = true;
 		// Don't break forms
@@ -1573,9 +1642,9 @@ abstract class Installer {
 	/**
 	 * Add an installation step following the given step.
 	 *
-	 * @param $callback Array A valid installation callback array, in this form:
+	 * @param array $callback A valid installation callback array, in this form:
 	 *    array( 'name' => 'some-unique-name', 'callback' => array( $obj, 'function' ) );
-	 * @param $findStep String the step to find. Omit to put the step at the beginning
+	 * @param string $findStep the step to find. Omit to put the step at the beginning
 	 */
 	public function addInstallStep( $callback, $findStep = 'BEGINNING' ) {
 		$this->extraInstallSteps[$findStep][] = $callback;

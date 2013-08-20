@@ -1,47 +1,49 @@
-/**
- * mediaWiki.Title
- *
+/*!
  * @author Neil Kandalgaonkar, 2010
  * @author Timo Tijhof, 2011
  * @since 1.18
  *
  * Relies on: mw.config (wgFormattedNamespaces, wgNamespaceIds, wgCaseSensitiveNamespaces), mw.util.wikiGetlink
  */
-( function( $ ) {
+( function ( mw, $ ) {
 
 	/* Local space */
 
 	/**
-	 * Title
-	 * @constructor
+	 * @class mw.Title
 	 *
-	 * @param title {String} Title of the page. If no second argument given,
+	 * @constructor
+	 * @param {string} title Title of the page. If no second argument given,
 	 * this will be searched for a namespace.
-	 * @param namespace {Number} (optional) Namespace id. If given, title will be taken as-is.
-	 * @return {Title} this
+	 * @param {number} [namespace] Namespace id. If given, title will be taken as-is.
 	 */
-var	Title = function( title, namespace ) {
-		this._ns = 0; // integer namespace id
-		this._name = null; // name in canonical 'database' form
-		this._ext = null; // extension
+	function Title( title, namespace ) {
+		this.ns = 0; // integer namespace id
+		this.name = null; // name in canonical 'database' form
+		this.ext = null; // extension
 
 		if ( arguments.length === 2 ) {
 			setNameAndExtension( this, title );
-			this._ns = fixNsId( namespace );
+			this.ns = fixNsId( namespace );
 		} else if ( arguments.length === 1 ) {
 			setAll( this, title );
 		}
 		return this;
-	},
+	}
+
+var
+	/* Public methods (defined later) */
+	fn,
 
 	/**
 	 * Strip some illegal chars: control chars, colon, less than, greater than,
 	 * brackets, braces, pipe, whitespace and normal spaces. This still leaves some insanity
 	 * intact, like unicode bidi chars, but it's a good start..
-	 * @param s {String}
-	 * @return {String}
+	 * @ignore
+	 * @param {string} s
+	 * @return {string}
 	 */
-	clean = function( s ) {
+	clean = function ( s ) {
 		if ( s !== undefined ) {
 			return s.replace( /[\x00-\x1f\x23\x3c\x3e\x5b\x5d\x7b\x7c\x7d\x7f\s]+/g, '_' );
 		}
@@ -49,8 +51,9 @@ var	Title = function( title, namespace ) {
 
 	/**
 	 * Convert db-key to readable text.
-	 * @param s {String}
-	 * @return {String}
+	 * @ignore
+	 * @param {string} s
+	 * @return {string}
 	 */
 	text = function ( s ) {
 		if ( s !== null && s !== undefined ) {
@@ -62,24 +65,27 @@ var	Title = function( title, namespace ) {
 
 	/**
 	 * Sanitize name.
+	 * @ignore
 	 */
-	fixName = function( s ) {
+	fixName = function ( s ) {
 		return clean( $.trim( s ) );
 	},
 
 	/**
-	 * Sanitize name.
+	 * Sanitize extension.
+	 * @ignore
 	 */
-	fixExt = function( s ) {
+	fixExt = function ( s ) {
 		return clean( s );
 	},
 
 	/**
 	 * Sanitize namespace id.
+	 * @ignore
 	 * @param id {Number} Namespace id.
 	 * @return {Number|Boolean} The id as-is or boolean false if invalid.
 	 */
-	fixNsId = function( id ) {
+	fixNsId = function ( id ) {
 		// wgFormattedNamespaces is an object of *string* key-vals (ie. arr["0"] not arr[0] )
 		var ns = mw.config.get( 'wgFormattedNamespaces' )[id.toString()];
 
@@ -93,14 +99,18 @@ var	Title = function( title, namespace ) {
 
 	/**
 	 * Get namespace id from namespace name by any known namespace/id pair (localized, canonical or alias).
-	 *
-	 * @example On a German wiki this would return 6 for any of 'File', 'Datei', 'Image' or even 'Bild'.
+	 * Example: On a German wiki this would return 6 for any of 'File', 'Datei', 'Image' or even 'Bild'.
+	 * @ignore
 	 * @param ns {String} Namespace name (case insensitive, leading/trailing space ignored).
 	 * @return {Number|Boolean} Namespace id or boolean false if unrecognized.
 	 */
-	getNsIdByName = function( ns ) {
-		// toLowerCase throws exception on null/undefined. Return early.
-		if ( ns == null ) {
+	getNsIdByName = function ( ns ) {
+		// Don't cast non-strings to strings, because null or undefined
+		// should not result in returning the id of a potential namespace
+		// called "Null:" (e.g. on nullwiki.example.org)
+		// Also, toLowerCase throws exception on null/undefined, because
+		// it is a String.prototype method.
+		if ( typeof ns !== 'string' ) {
 			return false;
 		}
 		ns = clean( $.trim( ns.toLowerCase() ) ); // Normalize
@@ -115,26 +125,27 @@ var	Title = function( title, namespace ) {
 	/**
 	 * Helper to extract namespace, name and extension from a string.
 	 *
-	 * @param title {mw.Title}
-	 * @param raw {String}
+	 * @ignore
+	 * @param {mw.Title} title
+	 * @param {string} raw
 	 * @return {mw.Title}
 	 */
-	setAll = function( title, s ) {
+	setAll = function ( title, s ) {
 		// In normal browsers the match-array contains null/undefined if there's no match,
 		// IE returns an empty string.
-		var	matches = s.match( /^(?:([^:]+):)?(.*?)(?:\.(\w{1,5}))?$/ ),
-			ns_match = getNsIdByName( matches[1] );
+		var matches = s.match( /^(?:([^:]+):)?(.*?)(?:\.(\w+))?$/ ),
+			nsMatch = getNsIdByName( matches[1] );
 
 		// Namespace must be valid, and title must be a non-empty string.
-		if ( ns_match && typeof matches[2] === 'string' && matches[2] !== '' ) {
-			title._ns = ns_match;
-			title._name = fixName( matches[2] );
+		if ( nsMatch && typeof matches[2] === 'string' && matches[2] !== '' ) {
+			title.ns = nsMatch;
+			title.name = fixName( matches[2] );
 			if ( typeof matches[3] === 'string' && matches[3] !== '' ) {
-				title._ext = fixExt( matches[3] );
+				title.ext = fixExt( matches[3] );
 			}
 		} else {
 			// Consistency with MediaWiki PHP: Unknown namespace -> fallback to main namespace.
-			title._ns = 0;
+			title.ns = 0;
 			setNameAndExtension( title, s );
 		}
 		return title;
@@ -143,20 +154,21 @@ var	Title = function( title, namespace ) {
 	/**
 	 * Helper to extract name and extension from a string.
 	 *
-	 * @param title {mw.Title}
-	 * @param raw {String}
+	 * @ignore
+	 * @param {mw.Title} title
+	 * @param {string} raw
 	 * @return {mw.Title}
 	 */
-	setNameAndExtension = function( title, raw ) {
+	setNameAndExtension = function ( title, raw ) {
 		// In normal browsers the match-array contains null/undefined if there's no match,
 		// IE returns an empty string.
-		var matches = raw.match( /^(?:)?(.*?)(?:\.(\w{1,5}))?$/ );
+		var matches = raw.match( /^(?:)?(.*?)(?:\.(\w+))?$/ );
 
 		// Title must be a non-empty string.
 		if ( typeof matches[1] === 'string' && matches[1] !== '' ) {
-			title._name = fixName( matches[1] );
+			title.name = fixName( matches[1] );
 			if ( typeof matches[2] === 'string' && matches[2] !== '' ) {
-				title._ext = fixExt( matches[2] );
+				title.ext = fixExt( matches[2] );
 			}
 		} else {
 			throw new Error( 'mw.Title: Could not parse title "' + raw + '"' );
@@ -169,10 +181,11 @@ var	Title = function( title, namespace ) {
 
 	/**
 	 * Whether this title exists on the wiki.
-	 * @param title {mixed} prefixed db-key name (string) or instance of Title
-	 * @return {mixed} Boolean true/false if the information is available. Otherwise null.
+	 * @static
+	 * @param {Mixed} title prefixed db-key name (string) or instance of Title
+	 * @return {Mixed} Boolean true/false if the information is available. Otherwise null.
 	 */
-	Title.exists = function( title ) {
+	Title.exists = function ( title ) {
 		var type = $.type( title ), obj = Title.exist.pages, match;
 		if ( type === 'string' ) {
 			match = obj[title];
@@ -188,22 +201,29 @@ var	Title = function( title, namespace ) {
 	};
 
 	/**
-	 * @var Title.exist {Object}
+	 * @static
+	 * @property
 	 */
 	Title.exist = {
 		/**
-		 * @var Title.exist.pages {Object} Keyed by PrefixedDb title.
+		 * @static
+		 * @property {Object} exist.pages Keyed by PrefixedDb title.
 		 * Boolean true value indicates page does exist.
 		 */
 		pages: {},
 		/**
-		 * @example Declare existing titles: Title.exist.set(['User:John_Doe', ...]);
-		 * @example Declare titles nonexistent: Title.exist.set(['File:Foo_bar.jpg', ...], false);
-		 * @param titles {String|Array} Title(s) in strict prefixedDb title form.
-		 * @param state {Boolean} (optional) State of the given titles. Defaults to true.
-		 * @return {Boolean}
+		 * Example to declare existing titles:
+		 *     Title.exist.set(['User:John_Doe', ...]);
+		 * Eample to declare titles nonexistent:
+		 *     Title.exist.set(['File:Foo_bar.jpg', ...], false);
+		 *
+		 * @static
+		 * @property exist.set
+		 * @param {string|Array} titles Title(s) in strict prefixedDb title form.
+		 * @param {boolean} [state] State of the given titles. Defaults to true.
+		 * @return {boolean}
 		 */
-		set: function( titles, state ) {
+		set: function ( titles, state ) {
 			titles = $.isArray( titles ) ? titles : [titles];
 			state = state === undefined ? true : !!state;
 			var pages = this.pages, i, len = titles.length;
@@ -216,107 +236,110 @@ var	Title = function( title, namespace ) {
 
 	/* Public methods */
 
-	var fn = {
+	fn = {
 		constructor: Title,
 
 		/**
 		 * Get the namespace number.
-		 * @return {Number}
+		 * @return {number}
 		 */
-		getNamespaceId: function(){
-			return this._ns;
+		getNamespaceId: function (){
+			return this.ns;
 		},
 
 		/**
 		 * Get the namespace prefix (in the content-language).
 		 * In NS_MAIN this is '', otherwise namespace name plus ':'
-		 * @return {String}
+		 * @return {string}
 		 */
-		getNamespacePrefix: function(){
-			return mw.config.get( 'wgFormattedNamespaces' )[this._ns].replace( / /g, '_' ) + (this._ns === 0 ? '' : ':');
+		getNamespacePrefix: function (){
+			return mw.config.get( 'wgFormattedNamespaces' )[this.ns].replace( / /g, '_' ) + (this.ns === 0 ? '' : ':');
 		},
 
 		/**
 		 * The name, like "Foo_bar"
-		 * @return {String}
+		 * @return {string}
 		 */
-		getName: function() {
-			if ( $.inArray( this._ns, mw.config.get( 'wgCaseSensitiveNamespaces' ) ) !== -1 ) {
-				return this._name;
+		getName: function () {
+			if ( $.inArray( this.ns, mw.config.get( 'wgCaseSensitiveNamespaces' ) ) !== -1 ) {
+				return this.name;
 			} else {
-				return $.ucFirst( this._name );
+				return $.ucFirst( this.name );
 			}
 		},
 
 		/**
 		 * The name, like "Foo bar"
-		 * @return {String}
+		 * @return {string}
 		 */
-		getNameText: function() {
+		getNameText: function () {
 			return text( this.getName() );
 		},
 
 		/**
 		 * Get full name in prefixed DB form, like File:Foo_bar.jpg,
 		 * most useful for API calls, anything that must identify the "title".
+		 * @return {string}
 		 */
-		getPrefixedDb: function() {
+		getPrefixedDb: function () {
 			return this.getNamespacePrefix() + this.getMain();
 		},
 
 		/**
 		 * Get full name in text form, like "File:Foo bar.jpg".
-		 * @return {String}
+		 * @return {string}
 		 */
-		getPrefixedText: function() {
+		getPrefixedText: function () {
 			return text( this.getPrefixedDb() );
 		},
 
 		/**
 		 * The main title (without namespace), like "Foo_bar.jpg"
-		 * @return {String}
+		 * @return {string}
 		 */
-		getMain: function() {
+		getMain: function () {
 			return this.getName() + this.getDotExtension();
 		},
 
 		/**
 		 * The "text" form, like "Foo bar.jpg"
-		 * @return {String}
+		 * @return {string}
 		 */
-		getMainText: function() {
+		getMainText: function () {
 			return text( this.getMain() );
 		},
 
 		/**
 		 * Get the extension (returns null if there was none)
-		 * @return {String|null} extension
+		 * @return {string|null}
 		 */
-		getExtension: function() {
-			return this._ext;
+		getExtension: function () {
+			return this.ext;
 		},
 
 		/**
 		 * Convenience method: return string like ".jpg", or "" if no extension
-		 * @return {String}
+		 * @return {string}
 		 */
-		getDotExtension: function() {
-			return this._ext === null ? '' : '.' + this._ext;
+		getDotExtension: function () {
+			return this.ext === null ? '' : '.' + this.ext;
 		},
 
 		/**
 		 * Return the URL to this title
-		 * @return {String}
+		 * @see mw.util#wikiGetlink
+		 * @return {string}
 		 */
-		getUrl: function() {
+		getUrl: function () {
 			return mw.util.wikiGetlink( this.toString() );
 		},
 
 		/**
 		 * Whether this title exists on the wiki.
-		 * @return {mixed} Boolean true/false if the information is available. Otherwise null.
+		 * @see #static-method-exists
+		 * @return {boolean|null} If the information is available. Otherwise null.
 		 */
-		exists: function() {
+		exists: function () {
 			return Title.exists( this );
 		}
 	};
@@ -331,4 +354,4 @@ var	Title = function( title, namespace ) {
 	// Expose
 	mw.Title = Title;
 
-})(jQuery);
+}( mediaWiki, jQuery ) );

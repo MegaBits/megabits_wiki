@@ -29,10 +29,6 @@
  */
 class ApiFeedContributions extends ApiBase {
 
-	public function __construct( $main, $action ) {
-		parent::__construct( $main, $action );
-	}
-
 	/**
 	 * This module uses a custom feed wrapper printer.
 	 *
@@ -51,7 +47,7 @@ class ApiFeedContributions extends ApiBase {
 			$this->dieUsage( 'Syndication feeds are not available', 'feed-unavailable' );
 		}
 
-		if( !isset( $wgFeedClasses[ $params['feedformat'] ] ) ) {
+		if( !isset( $wgFeedClasses[$params['feedformat']] ) ) {
 			$this->dieUsage( 'Invalid subscription feed type', 'feed-invalid' );
 		}
 
@@ -60,7 +56,7 @@ class ApiFeedContributions extends ApiBase {
 			$this->dieUsage( 'Size difference is disabled in Miser Mode', 'sizediffdisabled' );
 		}
 
-		$msg = wfMsgForContent( 'Contributions' );
+		$msg = wfMessage( 'Contributions' )->inContentLanguage()->text();
 		$feedTitle = $wgSitename . ' - ' . $msg . ' [' . $wgLanguageCode . ']';
 		$feedUrl = SpecialPage::getTitleFor( 'Contributions', $params['user'] )->getFullURL();
 
@@ -96,7 +92,7 @@ class ApiFeedContributions extends ApiBase {
 	}
 
 	protected function feedItem( $row ) {
-		$title = Title::MakeTitle( intval( $row->page_namespace ), $row->page_title );
+		$title = Title::makeTitle( intval( $row->page_namespace ), $row->page_title );
 		if( $title ) {
 			$date = $row->rev_timestamp;
 			$comments = $title->getTalkPage()->getFullURL();
@@ -129,10 +125,23 @@ class ApiFeedContributions extends ApiBase {
 	 */
 	protected function feedItemDesc( $revision ) {
 		if( $revision ) {
-			return '<p>' . htmlspecialchars( $revision->getUserText() ) . wfMsgForContent( 'colon-separator' ) .
+			$msg = wfMessage( 'colon-separator' )->inContentLanguage()->text();
+			$content = $revision->getContent();
+
+			if ( $content instanceof TextContent ) {
+				// only textual content has a "source view".
+				$html = nl2br( htmlspecialchars( $content->getNativeData() ) );
+			} else {
+				//XXX: we could get an HTML representation of the content via getParserOutput, but that may
+				//     contain JS magic and generally may not be suitable for inclusion in a feed.
+				//     Perhaps Content should have a getDescriptiveHtml method and/or a getSourceText method.
+				//Compare also FeedUtils::formatDiffRow.
+				$html = '';
+			}
+
+			return '<p>' . htmlspecialchars( $revision->getUserText() ) . $msg .
 				htmlspecialchars( FeedItem::stripComment( $revision->getComment() ) ) .
-				"</p>\n<hr />\n<div>" .
-				nl2br( htmlspecialchars( $revision->getText() ) ) . "</div>";
+				"</p>\n<hr />\n<div>" . $html . "</div>";
 		}
 		return '';
 	}
@@ -150,8 +159,7 @@ class ApiFeedContributions extends ApiBase {
 				ApiBase::PARAM_REQUIRED => true,
 			),
 			'namespace' => array(
-				ApiBase::PARAM_TYPE => 'namespace',
-				ApiBase::PARAM_ISMULTI => true
+				ApiBase::PARAM_TYPE => 'namespace'
 			),
 			'year' => array(
 				ApiBase::PARAM_TYPE => 'integer'
@@ -200,9 +208,5 @@ class ApiFeedContributions extends ApiBase {
 		return array(
 			'api.php?action=feedcontributions&user=Reedy',
 		);
-	}
-
-	public function getVersion() {
-		return __CLASS__ . ': $Id$';
 	}
 }

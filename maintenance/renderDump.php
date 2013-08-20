@@ -28,8 +28,14 @@
  * @ingroup Maintenance
  */
 
-require_once( dirname( __FILE__ ) . '/Maintenance.php' );
+require_once( __DIR__ . '/Maintenance.php' );
 
+/**
+ * Maintenance script that takes page text out of an XML dump file
+ * and render basic HTML out to files.
+ *
+ * @ingroup Maintenance
+ */
 class DumpRenderer extends Maintenance {
 
 	private $count = 0;
@@ -46,7 +52,7 @@ class DumpRenderer extends Maintenance {
 	public function execute() {
 		$this->outputDirectory = $this->getOption( 'output-dir' );
 		$this->prefix = $this->getOption( 'prefix', 'wiki' );
-		$this->startTime = wfTime();
+		$this->startTime = microtime( true );
 
 		if ( $this->hasOption( 'parser' ) ) {
 			global $wgParserConf;
@@ -62,7 +68,7 @@ class DumpRenderer extends Maintenance {
 
 		$importer->doImport();
 
-		$delta = wfTime() - $this->startTime;
+		$delta = microtime( true ) - $this->startTime;
 		$this->error( "Rendered {$this->count} pages in " . round($delta, 2) . " seconds " );
 		if ($delta > 0)
 			$this->error( round($this->count / $delta, 2) . " pages/sec" );
@@ -74,8 +80,6 @@ class DumpRenderer extends Maintenance {
 	 * @param $rev Revision
 	 */
 	public function handleRevision( $rev ) {
-		global $wgParserConf;
-
 		$title = $rev->getTitle();
 		if ( !$title ) {
 			$this->error( "Got bogus revision with null title!" );
@@ -94,10 +98,10 @@ class DumpRenderer extends Maintenance {
 		$this->output( sprintf( "%s\n", $filename, $display ) );
 
 		$user = new User();
-		$parser = new $wgParserConf['class']();
 		$options = ParserOptions::newFromUser( $user );
 
-		$output = $parser->parse( $rev->getText(), $title, $options );
+		$content = $rev->getContent();
+		$output = $content->getParserOutput( $title, null, $options );
 
 		file_put_contents( $filename,
 			"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" " .

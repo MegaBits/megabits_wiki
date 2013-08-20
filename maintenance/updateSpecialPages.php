@@ -1,7 +1,7 @@
 <?php
 /**
- * Run this script periodically if you have miser mode enabled, to refresh the
- * caches
+ * Update for cached special pages.
+ * Run this script periodically if you have miser mode enabled.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,8 +22,13 @@
  * @ingroup Maintenance
  */
 
-require_once( dirname( __FILE__ ) . '/Maintenance.php' );
+require_once( __DIR__ . '/Maintenance.php' );
 
+/**
+ * Maintenance script to update cached special pages.
+ *
+ * @ingroup Maintenance
+ */
 class UpdateSpecialPages extends Maintenance {
 	public function __construct() {
 		parent::__construct();
@@ -42,10 +47,10 @@ class UpdateSpecialPages extends Maintenance {
 				$this->error( "Uncallable function $call!" );
 				continue;
 			}
+			$this->output( sprintf( '%-30s ', $special ) );
 			$t1 = explode( ' ', microtime() );
 			call_user_func( $call, $dbw );
 			$t2 = explode( ' ', microtime() );
-			$this->output( sprintf( '%-30s ', $special ) );
 			$elapsed = ( $t2[0] - $t1[0] ) + ( $t2[1] - $t1[1] );
 			$hours = intval( $elapsed / 3600 );
 			$minutes = intval( $elapsed % 3600 / 60 );
@@ -128,7 +133,7 @@ class UpdateSpecialPages extends Maintenance {
 						$this->output( "Reconnected\n\n" );
 					} else {
 						# Commit the results
-						$dbw->commit();
+						$dbw->commit( __METHOD__ );
 					}
 					# Wait for the slave to catch up
 					wfWaitForSlaves();

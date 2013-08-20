@@ -26,7 +26,7 @@
  * @ingroup UtfNormal
  */
 
-if( php_sapi_name() != 'cli' ) {
+if( PHP_SAPI != 'cli' ) {
 	die( "Run me from the command line please.\n" );
 }
 
@@ -55,10 +55,6 @@ function donorm( $str ) {
 	# UnicodeString constructor fails if the string ends with a head byte.
 	# Add a junk char at the end, we'll strip it off
 	return rtrim( utf8_normalize( $str . "\x01", UtfNormal::UNORM_NFC ), "\x01" );
-}
-
-function wfMsg($x) {
-	return $x;
 }
 
 function showDiffs( $a, $b ) {

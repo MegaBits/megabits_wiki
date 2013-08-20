@@ -23,6 +23,16 @@ $specialPageAliases['arz'] = array(
 	'Renameuser' => array( 'سمّى_تانى_يوزر' ),
 );
 
+/** Assamese (অসমীয়া) */
+$specialPageAliases['as'] = array(
+	'Renameuser' => array( 'সদস্য_পুনৰ্নামকৰণ' ),
+);
+
+/** Bashkir (башҡортса) */
+$specialPageAliases['ba'] = array(
+	'Renameuser' => array( 'RenameUser' ),
+);
+
 /** Bulgarian (български) */
 $specialPageAliases['bg'] = array(
 	'Renameuser' => array( 'Преименуване' ),
@@ -63,14 +73,14 @@ $specialPageAliases['diq'] = array(
 	'Renameuser' => array( 'NamedayışêKarberi' ),
 );
 
-/** Lower Sorbian (Dolnoserbski) */
+/** Lower Sorbian (dolnoserbski) */
 $specialPageAliases['dsb'] = array(
 	'Renameuser' => array( 'Wužywarja pśemjeniś' ),
 );
 
 /** Divehi (ދިވެހިބަސް) */
 $specialPageAliases['dv'] = array(
-	'Renameuser' => array( 'މެމްބަރުގެ ނަން ބަދަލު ކުރައްވާ' ),
+	'Renameuser' => array( 'މެމްބަރުގެ_ނަން_ބަދަލު_ކުރައްވާ' ),
 );
 
 /** Greek (Ελληνικά) */
@@ -113,7 +123,7 @@ $specialPageAliases['frp'] = array(
 	'Renameuser' => array( 'Renomar_l\'usanciér', 'RenomarLUsanciér' ),
 );
 
-/** Galician (Galego) */
+/** Galician (galego) */
 $specialPageAliases['gl'] = array(
 	'Renameuser' => array( 'Renomear_o_usuario' ),
 );
@@ -138,7 +148,7 @@ $specialPageAliases['hr'] = array(
 	'Renameuser' => array( 'Preimenuj_suradnika' ),
 );
 
-/** Upper Sorbian (Hornjoserbsce) */
+/** Upper Sorbian (hornjoserbsce) */
 $specialPageAliases['hsb'] = array(
 	'Renameuser' => array( 'Wužiwarja přemjenować' ),
 );
@@ -188,9 +198,14 @@ $specialPageAliases['ksh'] = array(
 	'Renameuser' => array( 'Metmaacher ömnänne', 'Medmaacher ömnänne', 'Metmaacher ömnenne', 'Medmaacher ömnenne', 'Metmaacher ömdäufe', 'Medmaacher ömdäufe' ),
 );
 
+/** Cornish (kernowek) */
+$specialPageAliases['kw'] = array(
+	'Renameuser' => array( 'DashenwelDevnydhyer' ),
+);
+
 /** Latin (Latina) */
 $specialPageAliases['la'] = array(
-	'Renameuser' => array( 'Usorem renominare' ),
+	'Renameuser' => array( 'Usorem_renominare' ),
 );
 
 /** Luxembourgish (Lëtzebuergesch) */
@@ -223,12 +238,12 @@ $specialPageAliases['mt'] = array(
 	'Renameuser' => array( 'BiddelIsemUtent' ),
 );
 
-/** Norwegian Bokmål (‪norsk (bokmål)‬) */
+/** Norwegian Bokmål (norsk bokmål) */
 $specialPageAliases['nb'] = array(
 	'Renameuser' => array( 'Gi_en_bruker_nytt_navn' ),
 );
 
-/** Nedersaksisch (Nedersaksisch) */
+/** Low Saxon (Netherlands) (Nedersaksies) */
 $specialPageAliases['nds-nl'] = array(
 	'Renameuser' => array( 'Gebruker_herneumen' ),
 );
@@ -238,7 +253,7 @@ $specialPageAliases['nl'] = array(
 	'Renameuser' => array( 'GebruikerHernoemen' ),
 );
 
-/** Norwegian Nynorsk (‪norsk (nynorsk)‬) */
+/** Norwegian Nynorsk (norsk nynorsk) */
 $specialPageAliases['nn'] = array(
 	'Renameuser' => array( 'Døyp_om_brukar' ),
 );
@@ -278,6 +293,11 @@ $specialPageAliases['ru'] = array(
 	'Renameuser' => array( 'Переименовать_участника' ),
 );
 
+/** Sicilian (sicilianu) */
+$specialPageAliases['scn'] = array(
+	'Renameuser' => array( 'RinominaUtente' ),
+);
+
 /** Slovak (slovenčina) */
 $specialPageAliases['sk'] = array(
 	'Renameuser' => array( 'PremenovaťPoužívateľa' ),
@@ -288,7 +308,7 @@ $specialPageAliases['sq'] = array(
 	'Renameuser' => array( 'RiemërtoPërdorues' ),
 );
 
-/** Serbian (Cyrillic script) (‪српски (ћирилица)‬) */
+/** Serbian (Cyrillic script) (српски (ћирилица)‎) */
 $specialPageAliases['sr-ec'] = array(
 	'Renameuser' => array( 'Преименуј_корисника' ),
 );
@@ -310,7 +330,7 @@ $specialPageAliases['th'] = array(
 
 /** Tagalog (Tagalog) */
 $specialPageAliases['tl'] = array(
-	'Renameuser' => array( 'Muling pangalan ang tagagamit' ),
+	'Renameuser' => array( 'Muling_pangalan_ang_tagagamit' ),
 );
 
 /** Turkish (Türkçe) */
@@ -323,7 +343,12 @@ $specialPageAliases['vi'] = array(
 	'Renameuser' => array( 'Đổi_tên_thành_viên', 'Đổi_tên_người_dùng' ),
 );
 
-/** Simplified Chinese (‪中文（简体）‬) */
+/** Simplified Chinese (中文（简体）‎) */
 $specialPageAliases['zh-hans'] = array(
 	'Renameuser' => array( '重命名用户' ),
+);
+
+/** Traditional Chinese (中文（繁體）‎) */
+$specialPageAliases['zh-hant'] = array(
+	'Renameuser' => array( '重命名用戶' ),
 );

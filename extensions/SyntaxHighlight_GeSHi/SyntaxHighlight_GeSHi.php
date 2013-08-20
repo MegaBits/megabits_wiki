@@ -72,8 +72,8 @@ $wgResourceModules['ext.geshi.local'] = array( 'class' => 'HighlightGeSHilocal' 
  * Pages with one of the given content models will automatically be highlighted.
  */
 $wgSyntaxHighlightModels = array(
-	'CONTENT_MODEL_CSS' => 'css',
-	'CONTENT_MODEL_JAVASCRIPT' => 'javascript',
+	CONTENT_MODEL_CSS => 'css',
+	CONTENT_MODEL_JAVASCRIPT => 'javascript',
 );
 
 /**

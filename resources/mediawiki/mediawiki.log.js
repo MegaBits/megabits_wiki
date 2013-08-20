@@ -6,7 +6,7 @@
  * @author Trevor Parscal <tparscal@wikimedia.org>
  */
 
-( function ( $ ) {
+( function ( mw, $ ) {
 
 	/**
 	 * Logs a message to the console.
@@ -17,7 +17,7 @@
 	 *
 	 * @param {String} First in list of variadic messages to output to console.
 	 */
-	mw.log = function( /* logmsg, logmsg, */ ) {
+	mw.log = function ( /* logmsg, logmsg, */ ) {
 		// Turn arguments into an array
 		var	args = Array.prototype.slice.call( arguments ),
 			// Allow log messages to use a configured prefix to identify the source window (ie. frame)
@@ -33,14 +33,15 @@
 		// If there is no console, use our own log box
 		mw.loader.using( 'jquery.footHovzer', function () {
 
-			var	d = new Date(),
+			var	hovzer,
+				d = new Date(),
 				// Create HH:MM:SS.MIL timestamp
 				time = ( d.getHours() < 10 ? '0' + d.getHours() : d.getHours() ) +
 				 ':' + ( d.getMinutes() < 10 ? '0' + d.getMinutes() : d.getMinutes() ) +
 				 ':' + ( d.getSeconds() < 10 ? '0' + d.getSeconds() : d.getSeconds() ) +
 				 '.' + ( d.getMilliseconds() < 10 ? '00' + d.getMilliseconds() : ( d.getMilliseconds() < 100 ? '0' + d.getMilliseconds() : d.getMilliseconds() ) ),
 				 $log = $( '#mw-log-console' );
-	
+
 			if ( !$log.length ) {
 				$log = $( '<div id="mw-log-console"></div>' ).css( {
 						overflow: 'auto',
@@ -48,7 +49,7 @@
 						backgroundColor: 'white',
 						borderTop: 'solid 2px #ADADAD'
 					} );
-				var hovzer = $.getFootHovzer();
+				hovzer = $.getFootHovzer();
 				hovzer.$.append( $log );
 				hovzer.update();
 			}
@@ -67,4 +68,4 @@
 		} );
 	};
 
-})( jQuery );
+}( mediaWiki, jQuery ) );

@@ -1,8 +1,74 @@
 <?php
 /**
+ * Methods to play with strings.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * http://www.gnu.org/copyleft/gpl.html
+ *
+ * @file
+ */
+
+/**
  * A collection of static methods to play with strings.
  */
 class StringUtils {
+
+	/**
+	 * Test whether a string is valid UTF-8.
+	 *
+	 * The function check for invalid byte sequences, overlong encoding but
+	 * not for different normalisations.
+	 *
+	 * This relies internally on the mbstring function mb_check_encoding()
+	 * hardcoded to check against UTF-8. Whenever the function is not available
+	 * we fallback to a pure PHP implementation. Setting $disableMbstring to
+	 * true will skip the use of mb_check_encoding, this is mostly intended for
+	 * unit testing our internal implementation.
+	 *
+	 * @since 1.21
+	 *
+	 * @param string $value String to check
+	 * @param boolean $disableMbstring Whether to use the pure PHP
+	 * implementation instead of trying mb_check_encoding. Intended for unit
+	 * testing. Default: false
+	 *
+	 * @return boolean Whether the given $value is a valid UTF-8 encoded string
+	 */
+	static function isUtf8( $value, $disableMbstring = false ) {
+
+		if ( preg_match( '/[\x80-\xff]/', $value ) === 0 ) {
+			# no high bit set, this is pure ASCII which is de facto
+			# valid UTF-8
+			return true;
+		}
+
+		if ( !$disableMbstring && function_exists( 'mb_check_encoding' ) ) {
+			return mb_check_encoding( $value, 'UTF-8' );
+		} else {
+			$hasUtf8 = preg_match( '/^(?>
+				  [\x00-\x7f]
+				| [\xc0-\xdf][\x80-\xbf]
+				| [\xe0-\xef][\x80-\xbf]{2}
+				| [\xf0-\xf7][\x80-\xbf]{3}
+				| [\xf8-\xfb][\x80-\xbf]{4}
+				| \xfc[\x84-\xbf][\x80-\xbf]{4}
+			)+$/x', $value );
+			return ($hasUtf8 > 0 );
+		}
+	}
+
 	/**
 	 * Perform an operation equivalent to
 	 *
@@ -44,16 +110,17 @@ class StringUtils {
 	 * memory. The delimiters are literal strings, not regular expressions.
 	 *
 	 * If the start delimiter ends with an initial substring of the end delimiter,
-	 * e.g. in the case of C-style comments, the behaviour differs from the model
+	 * e.g. in the case of C-style comments, the behavior differs from the model
 	 * regex. In this implementation, the end must share no characters with the
 	 * start, so e.g. /*\/ is not considered to be both the start and end of a
 	 * comment. /*\/xy/*\/ is considered to be a single comment with contents /xy/.
 	 *
-	 * @param $startDelim String: start delimiter
-	 * @param $endDelim String: end delimiter
+	 * @param string $startDelim start delimiter
+	 * @param string $endDelim end delimiter
 	 * @param $callback Callback: function to call on each match
 	 * @param $subject String
-	 * @param $flags String: regular expression flags
+	 * @param string $flags regular expression flags
+	 * @throws MWException
 	 * @return string
 	 */
 	static function delimiterReplaceCallback( $startDelim, $endDelim, $callback, $subject, $flags = '' ) {
@@ -68,12 +135,12 @@ class StringUtils {
 		$m = array();
 
 		while ( $inputPos < strlen( $subject ) &&
-		  preg_match( "!($encStart)|($encEnd)!S$flags", $subject, $m, PREG_OFFSET_CAPTURE, $inputPos ) )
+			preg_match( "!($encStart)|($encEnd)!S$flags", $subject, $m, PREG_OFFSET_CAPTURE, $inputPos ) )
 		{
 			$tokenOffset = $m[0][1];
 			if ( $m[1][0] != '' ) {
 				if ( $foundStart &&
-				  $strcmp( $endDelim, substr( $subject, $tokenOffset, $endLength ) ) == 0 )
+					$strcmp( $endDelim, substr( $subject, $tokenOffset, $endLength ) ) == 0 )
 				{
 					# An end match is present at the same location
 					$tokenType = 'end';
@@ -133,12 +200,12 @@ class StringUtils {
 	 *
 	 *   preg_replace( "!$startDelim(.*)$endDelim!$flags", $replace, $subject )
 	 *
-	 * @param $startDelim String: start delimiter regular expression
-	 * @param $endDelim String: end delimiter regular expression
-	 * @param $replace String: replacement string. May contain $1, which will be
+	 * @param string $startDelim start delimiter regular expression
+	 * @param string $endDelim end delimiter regular expression
+	 * @param string $replace replacement string. May contain $1, which will be
 	 *                 replaced by the text between the delimiters
-	 * @param $subject String to search
-	 * @param $flags String: regular expression flags
+	 * @param string $subject to search
+	 * @param string $flags regular expression flags
 	 * @return String: The string with the matches replaced
 	 */
 	static function delimiterReplace( $startDelim, $endDelim, $replace, $subject, $flags = '' ) {
@@ -191,7 +258,7 @@ class StringUtils {
 	 * Returns an Iterator
 	 * @param $separator
 	 * @param $subject
-	 * @return \ArrayIterator|\ExplodeIterator
+	 * @return ArrayIterator|ExplodeIterator
 	 */
 	static function explode( $separator, $subject ) {
 		if ( substr_count( $subject, $separator ) > 1000 ) {
@@ -207,6 +274,10 @@ class StringUtils {
  * StringUtils::delimiterReplaceCallback()
  */
 class Replacer {
+
+	/**
+	 * @return array
+	 */
 	function cb() {
 		return array( &$this, 'replace' );
 	}
@@ -217,10 +288,18 @@ class Replacer {
  */
 class RegexlikeReplacer extends Replacer {
 	var $r;
+
+	/**
+	 * @param $r string
+	 */
 	function __construct( $r ) {
 		$this->r = $r;
 	}
 
+	/**
+	 * @param $matches array
+	 * @return string
+	 */
 	function replace( $matches ) {
 		$pairs = array();
 		foreach ( $matches as $i => $match ) {
@@ -235,12 +314,22 @@ class RegexlikeReplacer extends Replacer {
  * Class to perform secondary replacement within each replacement string
  */
 class DoubleReplacer extends Replacer {
+
+	/**
+	 * @param $from
+	 * @param $to
+	 * @param $index int
+	 */
 	function __construct( $from, $to, $index = 0 ) {
 		$this->from = $from;
 		$this->to = $to;
 		$this->index = $index;
 	}
 
+	/**
+	 * @param $matches array
+	 * @return mixed
+	 */
 	function replace( $matches ) {
 		return str_replace( $this->from, $this->to, $matches[$this->index] );
 	}
@@ -252,11 +341,19 @@ class DoubleReplacer extends Replacer {
 class HashtableReplacer extends Replacer {
 	var $table, $index;
 
+	/**
+	 * @param $table
+	 * @param $index int
+	 */
 	function __construct( $table, $index = 0 ) {
 		$this->table = $table;
 		$this->index = $index;
 	}
 
+	/**
+	 * @param $matches array
+	 * @return mixed
+	 */
 	function replace( $matches ) {
 		return $this->table[$matches[$this->index]];
 	}
@@ -273,11 +370,15 @@ class ReplacementArray {
 	/**
 	 * Create an object with the specified replacement array
 	 * The array should have the same form as the replacement array for strtr()
+	 * @param array $data
 	 */
 	function __construct( $data = array() ) {
 		$this->data = $data;
 	}
 
+	/**
+	 * @return array
+	 */
 	function __sleep() {
 		return array( 'data' );
 	}
@@ -294,39 +395,61 @@ class ReplacementArray {
 		$this->fss = false;
 	}
 
+	/**
+	 * @return array|bool
+	 */
 	function getArray() {
 		return $this->data;
 	}
 
 	/**
 	 * Set an element of the replacement array
+	 * @param $from string
+	 * @param $to string
 	 */
 	function setPair( $from, $to ) {
 		$this->data[$from] = $to;
 		$this->fss = false;
 	}
 
+	/**
+	 * @param $data array
+	 */
 	function mergeArray( $data ) {
 		$this->data = array_merge( $this->data, $data );
 		$this->fss = false;
 	}
 
+	/**
+	 * @param $other
+	 */
 	function merge( $other ) {
 		$this->data = array_merge( $this->data, $other->data );
 		$this->fss = false;
 	}
 
+	/**
+	 * @param $from string
+	 */
 	function removePair( $from ) {
-		unset($this->data[$from]);
+		unset( $this->data[$from] );
 		$this->fss = false;
 	}
 
+	/**
+	 * @param $data array
+	 */
 	function removeArray( $data ) {
-		foreach( $data as $from => $to )
+		foreach( $data as $from => $to ) {
 			$this->removePair( $from );
+		}
 		$this->fss = false;
 	}
 
+	/**
+	 * @param $subject string
+	 * @return string
+	 */
 	function replace( $subject ) {
 		if ( function_exists( 'fss_prep_replace' ) ) {
 			wfProfileIn( __METHOD__.'-fss' );
@@ -346,7 +469,7 @@ class ReplacementArray {
 
 /**
  * An iterator which works exactly like:
- * 
+ *
  * foreach ( explode( $delim, $s ) as $element ) {
  *    ...
  * }
@@ -369,8 +492,10 @@ class ExplodeIterator implements Iterator {
 	// The current token
 	var $current;
 
-	/** 
+	/**
 	 * Construct a DelimIterator
+	 * @param $delim string
+	 * @param $s string
 	 */
 	function __construct( $delim, $s ) {
 		$this->subject = $s;
@@ -388,7 +513,6 @@ class ExplodeIterator implements Iterator {
 		$this->endPos = strpos( $this->subject, $this->delim );
 		$this->refreshCurrent();
 	}
-
 
 	function refreshCurrent() {
 		if ( $this->curPos === false ) {
@@ -410,6 +534,9 @@ class ExplodeIterator implements Iterator {
 		return $this->curPos;
 	}
 
+	/**
+	 * @return string
+	 */
 	function next() {
 		if ( $this->endPos === false ) {
 			$this->curPos = false;
@@ -425,8 +552,10 @@ class ExplodeIterator implements Iterator {
 		return $this->current;
 	}
 
+	/**
+	 * @return bool
+	 */
 	function valid() {
 		return $this->curPos !== false;
 	}
 }
-

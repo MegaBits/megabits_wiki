@@ -39,8 +39,7 @@ class SpecialPreferences extends SpecialPage {
 
 		$user = $this->getUser();
 		if ( $user->isAnon() ) {
-			$out->showErrorPage( 'prefsnologin', 'prefsnologintext', array( $this->getTitle()->getPrefixedDBkey() ) );
-			return;
+			throw new ErrorPageError( 'prefsnologin', 'prefsnologintext', array( $this->getTitle()->getPrefixedDBkey() ) );
 		}
 		$this->checkReadOnly();
 
@@ -69,7 +68,7 @@ class SpecialPreferences extends SpecialPage {
 
 		$htmlForm = new HTMLForm( array(), $this->getContext(), 'prefs-restore' );
 
-		$htmlForm->setSubmitText( wfMsg( 'restoreprefs' ) );
+		$htmlForm->setSubmitTextMsg( 'restoreprefs' );
 		$htmlForm->setTitle( $this->getTitle( 'reset' ) );
 		$htmlForm->setSubmitCallback( array( $this, 'submitReset' ) );
 		$htmlForm->suppressReset();
@@ -79,13 +78,17 @@ class SpecialPreferences extends SpecialPage {
 
 	public function submitReset( $formData ) {
 		$user = $this->getUser();
-		$user->resetOptions();
+		$user->resetOptions( 'all' );
 		$user->saveSettings();
 
-		$url = SpecialPage::getTitleFor( 'Preferences' )->getFullURL( 'success' );
+		$url = $this->getTitle()->getFullURL( 'success' );
 
 		$this->getOutput()->redirect( $url );
 
 		return true;
+	}
+
+	protected function getGroupName() {
+		return 'users';
 	}
 }

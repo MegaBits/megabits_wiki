@@ -1,4 +1,24 @@
 <?php
+/**
+ * Feed for list of changes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * http://www.gnu.org/copyleft/gpl.html
+ *
+ * @file
+ */
 
 /**
  * Feed to Special:RecentChanges and Special:RecentChangesLiked
@@ -11,8 +31,8 @@ class ChangesFeed {
 	/**
 	 * Constructor
 	 *
-	 * @param $format String: feed's format (either 'rss' or 'atom')
-	 * @param $type String: type of feed (for cache keys)
+	 * @param string $format feed's format (either 'rss' or 'atom')
+	 * @param string $type type of feed (for cache keys)
 	 */
 	public function __construct( $format, $type ) {
 		$this->format = $format;
@@ -22,9 +42,9 @@ class ChangesFeed {
 	/**
 	 * Get a ChannelFeed subclass object to use
 	 *
-	 * @param $title String: feed's title
-	 * @param $description String: feed's description
-	 * @param $url String: url of origin page
+	 * @param string $title feed's title
+	 * @param string $description feed's description
+	 * @param string $url url of origin page
 	 * @return ChannelFeed subclass or false on failure
 	 */
 	public function getFeedObject( $title, $description, $url ) {
@@ -51,13 +71,13 @@ class ChangesFeed {
 	 * @param $rows ResultWrapper object with rows in recentchanges table
 	 * @param $lastmod Integer: timestamp of the last item in the recentchanges table (only used for the cache key)
 	 * @param $opts FormOptions as in SpecialRecentChanges::getDefaultOptions()
-	 * @return null or true
+	 * @return null|bool True or null
 	 */
 	public function execute( $feed, $rows, $lastmod, $opts ) {
 		global $wgLang, $wgRenderHashAppend;
 
 		if ( !FeedUtils::checkFeedOutput( $this->format ) ) {
-			return;
+			return null;
 		}
 
 		$optionsHash = md5( serialize( $opts->getAllValues() ) ) . $wgRenderHashAppend;
@@ -90,9 +110,9 @@ class ChangesFeed {
 	/**
 	 * Save to feed result to $messageMemc
 	 *
-	 * @param $feed String: feed's content
-	 * @param $timekey String: memcached key of the last modification
-	 * @param $key String: memcached key of the content
+	 * @param string $feed feed's content
+	 * @param string $timekey memcached key of the last modification
+	 * @param string $key memcached key of the content
 	 */
 	public function saveToCache( $feed, $timekey, $key ) {
 		global $messageMemc;
@@ -105,9 +125,9 @@ class ChangesFeed {
 	 * Try to load the feed result from $messageMemc
 	 *
 	 * @param $lastmod Integer: timestamp of the last item in the recentchanges table
-	 * @param $timekey String: memcached key of the last modification
-	 * @param $key String: memcached key of the content
-	 * @return feed's content on cache hit or false on cache miss
+	 * @param string $timekey memcached key of the last modification
+	 * @param string $key memcached key of the content
+	 * @return string|bool feed's content on cache hit or false on cache miss
 	 */
 	public function loadFromCache( $lastmod, $timekey, $key ) {
 		global $wgFeedCacheTimeout, $wgOut, $messageMemc;
@@ -115,7 +135,7 @@ class ChangesFeed {
 		$feedLastmod = $messageMemc->get( $timekey );
 
 		if( ( $wgFeedCacheTimeout > 0 ) && $feedLastmod ) {
-		    /**
+			/**
 			 * If the cached feed was rendered very recently, we may
 			 * go ahead and use it even if there have been edits made
 			 * since it was rendered. This keeps a swarm of requests
@@ -186,7 +206,7 @@ class ChangesFeed {
 				FeedUtils::formatDiff( $obj ),
 				$url,
 				$obj->rc_timestamp,
-				($obj->rc_deleted & Revision::DELETED_USER) ? wfMsgHtml('rev-deleted-user') : $obj->rc_user_text,
+				( $obj->rc_deleted & Revision::DELETED_USER ) ? wfMessage( 'rev-deleted-user' )->escaped() : $obj->rc_user_text,
 				$talkpage
 			);
 			$feed->outItem( $item );

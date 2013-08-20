@@ -43,10 +43,10 @@ class languages {
 	 * Load the list of languages: all the Messages*.php
 	 * files in the languages directory.
 	 *
-	 * @param $exif Treat the EXIF messages?
+	 * @param $exif bool Treat the EXIF messages?
 	 */
 	function __construct( $exif = true ) {
-		require( dirname(__FILE__) . '/messageTypes.inc' );
+		require( __DIR__ . '/messageTypes.inc' );
 		$this->mIgnoredMessages = $wgIgnoredMessages;
 		if ( $exif ) {
 			$this->mOptionalMessages = array_merge( $wgOptionalMessages );
@@ -54,7 +54,7 @@ class languages {
 			$this->mOptionalMessages = array_merge( $wgOptionalMessages, $wgEXIFMessages );
 		}
 
-		$this->mLanguages = array_keys( Language::getLanguageNames( true ) );
+		$this->mLanguages = array_keys( Language::fetchLanguageNames( null, 'mwfile' ) );
 		sort( $this->mLanguages );
 	}
 
@@ -244,7 +244,7 @@ class languages {
 	 *
 	 * @param $code string The language code.
 	 *
-	 * @return Namespace names.
+	 * @return array Namespace names.
 	 */
 	public function getNamespaceNames( $code ) {
 		$this->loadFile( $code );
@@ -256,7 +256,7 @@ class languages {
 	 *
 	 * @param $code string The language code.
 	 *
-	 * @return Namespace aliases.
+	 * @return array Namespace aliases.
 	 */
 	public function getNamespaceAliases( $code ) {
 		$this->loadFile( $code );
@@ -268,7 +268,7 @@ class languages {
 	 *
 	 * @param $code string The language code.
 	 *
-	 * @return Magic words.
+	 * @return array Magic words.
 	 */
 	public function getMagicWords( $code ) {
 		$this->loadFile( $code );
@@ -280,7 +280,7 @@ class languages {
 	 *
 	 * @param $code string The language code.
 	 *
-	 * @return Special page aliases.
+	 * @return array Special page aliases.
 	 */
 	public function getSpecialPageAliases( $code ) {
 		$this->loadFile( $code );
@@ -508,7 +508,7 @@ class languages {
 
 
 			if ( isset( $messages[$key] ) ) {
-				$messages[$key] = implode( $messages[$key],", " );
+				$messages[$key] = implode( $messages[$key], ", " );
 			}
 		}
 		return $messages;
@@ -581,14 +581,14 @@ class languages {
 		# Check default namespace name
 		if( isset( $this->mNamespaceNames[$code][NS_PROJECT_TALK] ) ) {
 			$default = $this->mNamespaceNames[$code][NS_PROJECT_TALK];
-			if ( strpos( $default, '$1' ) === FALSE ) {
+			if ( strpos( $default, '$1' ) === false ) {
 				$namespaces[$default] = 'default';
 			}
 		}
 
 		# Check namespace aliases
 		foreach( $this->mNamespaceAliases[$code] as $key => $value ) {
-			if ( $value == NS_PROJECT_TALK && strpos( $key, '$1' ) === FALSE ) {
+			if ( $value == NS_PROJECT_TALK && strpos( $key, '$1' ) === false ) {
 				$namespaces[$key] = '';
 			}
 		}
@@ -734,14 +734,13 @@ class extensionLanguages extends languages {
 
 	/**
 	 * Load the messages group.
-	 * @param $group The messages group.
+	 * @param $group MessageGroup The messages group.
 	 */
 	function __construct( MessageGroup $group ) {
 		$this->mMessageGroup = $group;
 
-		$bools = $this->mMessageGroup->getBools();
-		$this->mIgnoredMessages = $bools['ignored'];
-		$this->mOptionalMessages = $bools['optional'];
+		$this->mIgnoredMessages = $this->mMessageGroup->getIgnored();
+		$this->mOptionalMessages = $this->mMessageGroup->getOptional();
 	}
 
 	/**

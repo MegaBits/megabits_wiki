@@ -2,6 +2,21 @@
 /**
  * Sqlite-specific installer.
  *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * http://www.gnu.org/copyleft/gpl.html
+ *
  * @file
  * @ingroup Deployment
  */
@@ -98,6 +113,8 @@ class SqliteInstaller extends DatabaseInstaller {
 			$dir = self::realpath( $dir );
 			$this->setVar( 'wgSQLiteDataDir', $dir );
 		}
+		# Table prefix is not used on SQLite, keep it empty
+		$this->setVar( 'wgDBprefix', '' );
 		return $result;
 	}
 
@@ -207,7 +224,7 @@ class SqliteInstaller extends DatabaseInstaller {
 	}
 
 	/**
-	 * @return Staus
+	 * @return Status
 	 */
 	public function createTables() {
 		$status = parent::createTables();
@@ -223,7 +240,7 @@ class SqliteInstaller extends DatabaseInstaller {
 
 		$module = DatabaseSqlite::getFulltextSearchModule();
 		$fts3tTable = $this->db->checkForEnabledSearch();
-		if ( $fts3tTable &&  !$module ) {
+		if ( $fts3tTable && !$module ) {
 			$status->warning( 'config-sqlite-fts3-downgrade' );
 			$this->db->sourceFile( "$IP/maintenance/sqlite/archives/searchindex-no-fts.sql" );
 		} elseif ( !$fts3tTable && $module == 'FTS3' ) {
@@ -239,6 +256,6 @@ class SqliteInstaller extends DatabaseInstaller {
 		$dir = LocalSettingsGenerator::escapePhpString( $this->getVar( 'wgSQLiteDataDir' ) );
 		return
 "# SQLite-specific settings
-\$wgSQLiteDataDir    = \"{$dir}\";";
+\$wgSQLiteDataDir = \"{$dir}\";";
 	}
 }

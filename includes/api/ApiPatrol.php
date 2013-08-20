@@ -30,10 +30,6 @@
  */
 class ApiPatrol extends ApiBase {
 
-	public function __construct( $main, $action ) {
-		parent::__construct( $main, $action );
-	}
-
 	/**
 	 * Patrols the article or provides the reason the patrol failed.
 	 */
@@ -65,7 +61,10 @@ class ApiPatrol extends ApiBase {
 
 	public function getAllowedParams() {
 		return array(
-			'token' => null,
+			'token' => array(
+				ApiBase::PARAM_TYPE => 'string',
+				ApiBase::PARAM_REQUIRED => true
+			),
 			'rcid' => array(
 				ApiBase::PARAM_TYPE => 'integer',
 				ApiBase::PARAM_REQUIRED => true
@@ -77,6 +76,16 @@ class ApiPatrol extends ApiBase {
 		return array(
 			'token' => 'Patrol token obtained from list=recentchanges',
 			'rcid' => 'Recentchanges ID to patrol',
+		);
+	}
+
+	public function getResultProperties() {
+		return array(
+			'' => array(
+				'rcid' => 'integer',
+				'ns' => 'namespace',
+				'title' => 'string'
+			)
 		);
 	}
 
@@ -106,9 +115,5 @@ class ApiPatrol extends ApiBase {
 
 	public function getHelpUrls() {
 		return 'https://www.mediawiki.org/wiki/API:Patrol';
-	}
-
-	public function getVersion() {
-		return __CLASS__ . ': $Id$';
 	}
 }

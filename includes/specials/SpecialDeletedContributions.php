@@ -25,7 +25,6 @@
  * Implements Special:DeletedContributions to display archived revisions
  * @ingroup SpecialPage
  */
-
 class DeletedContribsPager extends IndexPager {
 	public $mDefaultDirection = true;
 	var $messages, $target;
@@ -54,9 +53,9 @@ class DeletedContribsPager extends IndexPager {
 		$user = $this->getUser();
 		// Paranoia: avoid brute force searches (bug 17792)
 		if( !$user->isAllowed( 'deletedhistory' ) ) {
-			$conds[] = $this->mDb->bitAnd('ar_deleted',Revision::DELETED_USER) . ' = 0';
+			$conds[] = $this->mDb->bitAnd( 'ar_deleted', Revision::DELETED_USER ) . ' = 0';
 		} elseif( !$user->isAllowed( 'suppressrevision' ) ) {
-			$conds[] = $this->mDb->bitAnd('ar_deleted',Revision::SUPPRESSED_USER) .
+			$conds[] = $this->mDb->bitAnd( 'ar_deleted', Revision::SUPPRESSED_USER ) .
 				' != ' . Revision::SUPPRESSED_USER;
 		}
 		return array(
@@ -95,17 +94,17 @@ class DeletedContribsPager extends IndexPager {
 		if ( isset( $this->mNavigationBar ) ) {
 			return $this->mNavigationBar;
 		}
-		$lang = $this->getLanguage();
-		$fmtLimit = $lang->formatNum( $this->mLimit );
+
 		$linkTexts = array(
-			'prev' => $this->msg( 'pager-newer-n', $fmtLimit )->escaped(),
-			'next' => $this->msg( 'pager-older-n', $fmtLimit )->escaped(),
+			'prev' => $this->msg( 'pager-newer-n' )->numParams( $this->mLimit )->escaped(),
+			'next' => $this->msg( 'pager-older-n' )->numParams( $this->mLimit )->escaped(),
 			'first' => $this->msg( 'histlast' )->escaped(),
 			'last' => $this->msg( 'histfirst' )->escaped()
 		);
 
 		$pagingLinks = $this->getPagingLinks( $linkTexts );
 		$limitLinks = $this->getLimitLinks();
+		$lang = $this->getLanguage();
 		$limits = $lang->pipeList( $limitLinks );
 
 		$this->mNavigationBar = "(" . $lang->pipeList( array( $pagingLinks['first'], $pagingLinks['last'] ) ) . ") " .
@@ -130,11 +129,16 @@ class DeletedContribsPager extends IndexPager {
 	 * written by the target user.
 	 *
 	 * @todo This would probably look a lot nicer in a table.
+	 * @param $row
+	 * @return string
 	 */
 	function formatRow( $row ) {
 		wfProfileIn( __METHOD__ );
 
+		$page = Title::makeTitle( $row->ar_namespace, $row->ar_title );
+
 		$rev = new Revision( array(
+				'title'      => $page,
 				'id'         => $row->ar_rev_id,
 				'comment'    => $row->ar_comment,
 				'user'       => $row->ar_user,
@@ -143,8 +147,6 @@ class DeletedContribsPager extends IndexPager {
 				'minor_edit' => $row->ar_minor_edit,
 				'deleted'    => $row->ar_deleted,
 				) );
-
-		$page = Title::makeTitle( $row->ar_namespace, $row->ar_title );
 
 		$undelete = SpecialPage::getTitleFor( 'Undelete' );
 
@@ -166,7 +168,7 @@ class DeletedContribsPager extends IndexPager {
 
 		$user = $this->getUser();
 
-		if( $user->isAllowed('deletedtext') ) {
+		if( $user->isAllowed( 'deletedtext' ) ) {
 			$last = Linker::linkKnown(
 				$undelete,
 				$this->messages['diff'],
@@ -190,7 +192,7 @@ class DeletedContribsPager extends IndexPager {
 			$link = Linker::linkKnown(
 				$undelete,
 				$date,
-				array(),
+				array( 'class' => 'mw-changeslist-date' ),
 				array(
 					'target' => $page->getPrefixedText(),
 					'timestamp' => $rev->getTimestamp()
@@ -202,7 +204,11 @@ class DeletedContribsPager extends IndexPager {
 			$link = '<span class="history-deleted">' . $link . '</span>';
 		}
 
-		$pagelink = Linker::link( $page );
+		$pagelink = Linker::link(
+			$page,
+			null,
+			array( 'class' => 'mw-changeslist-title' )
+		);
 
 		if( $rev->isMinor() ) {
 			$mflag = ChangesList::flag( 'minor' );
@@ -221,7 +227,8 @@ class DeletedContribsPager extends IndexPager {
 				array( $last, $dellog, $reviewlink ) ) )->escaped()
 		);
 
-		$ret = "{$del}{$link} {$tools} . . {$mflag} {$pagelink} {$comment}";
+		$separator = '<span class="mw-changeslist-separator">. .</span>';
+		$ret = "{$del}{$link} {$tools} {$separator} {$mflag} {$pagelink} {$comment}";
 
 		# Denote if username is redacted for this edit
 		if( $rev->isDeleted( Revision::DELETED_USER ) ) {
@@ -237,7 +244,7 @@ class DeletedContribsPager extends IndexPager {
 	/**
 	 * Get the Database object in use
 	 *
-	 * @return Database
+	 * @return DatabaseBase
 	 */
 	public function getDatabase() {
 		return $this->mDb;
@@ -254,12 +261,12 @@ class DeletedContributionsPage extends SpecialPage {
 	 * Special page "deleted user contributions".
 	 * Shows a list of the deleted contributions of a user.
 	 *
-	 * @return	none
-	 * @param	$par	String: (optional) user name of the user for which to show the contributions
+	 * @param string $par (optional) user name of the user for which to show the contributions
 	 */
 	function execute( $par ) {
 		global $wgQueryPageDefaultLimit;
 		$this->setHeaders();
+		$this->outputHeader();
 
 		$user = $this->getUser();
 
@@ -293,6 +300,7 @@ class DeletedContributionsPage extends SpecialPage {
 			$out->addHTML( $this->getForm( '' ) );
 			return;
 		}
+		$this->getSkin()->setRelevantUser( $userObj );
 
 		$target = $userObj->getName();
 		$out->addSubtitle( $this->getSubTitle( $userObj ) );
@@ -346,6 +354,7 @@ class DeletedContributionsPage extends SpecialPage {
 		} else {
 			$user = Linker::link( $userObj->getUserPage(), htmlspecialchars( $userObj->getName() ) );
 		}
+		$links = '';
 		$nt = $userObj->getUserPage();
 		$id = $userObj->getID();
 		$talk = $nt->getTalkPage();
@@ -387,6 +396,13 @@ class DeletedContributionsPage extends SpecialPage {
 					)
 				);
 			}
+
+			# Uploads
+			$tools[] = Linker::linkKnown(
+				SpecialPage::getTitleFor( 'Listfiles', $userObj->getName() ),
+				$this->msg( 'sp-contributions-uploads' )->escaped()
+			);
+
 			# Other logs link
 			$tools[] = Linker::linkKnown(
 				SpecialPage::getTitleFor( 'Log' ),
@@ -403,7 +419,7 @@ class DeletedContributionsPage extends SpecialPage {
 			# Add a link to change user rights for privileged users
 			$userrightsPage = new UserrightsPage();
 			$userrightsPage->setContext( $this->getContext() );
-			if( $id !== null && $userrightsPage->userCanChangeRights( User::newFromId( $id ) ) ) {
+			if( $userrightsPage->userCanChangeRights( $userObj ) ) {
 				$tools[] = Linker::linkKnown(
 					SpecialPage::getTitleFor( 'Userrights', $nt->getDBkey() ),
 					$this->msg( 'sp-contributions-userrights' )->escaped()
@@ -449,7 +465,8 @@ class DeletedContributionsPage extends SpecialPage {
 
 	/**
 	 * Generates the namespace selector form with hidden attributes.
-	 * @param $options Array: the options to be included.
+	 * @param array $options the options to be included.
+	 * @return string
 	 */
 	function getForm( $options ) {
 		global $wgScript;
@@ -458,7 +475,7 @@ class DeletedContributionsPage extends SpecialPage {
 		if ( !isset( $options['target'] ) ) {
 			$options['target'] = '';
 		} else {
-			$options['target'] = str_replace( '_' , ' ' , $options['target'] );
+			$options['target'] = str_replace( '_', ' ', $options['target'] );
 		}
 
 		if ( !isset( $options['namespace'] ) ) {
@@ -482,18 +499,31 @@ class DeletedContributionsPage extends SpecialPage {
 			$f .= "\t" . Html::hidden( $name, $value ) . "\n";
 		}
 
-		$f .=  Xml::openElement( 'fieldset' ) .
+		$f .= Xml::openElement( 'fieldset' ) .
 			Xml::element( 'legend', array(), $this->msg( 'sp-contributions-search' )->text() ) .
 			Xml::tags( 'label', array( 'for' => 'target' ), $this->msg( 'sp-contributions-username' )->parse() ) . ' ' .
 			Html::input( 'target', $options['target'], 'text', array(
 				'size' => '20',
 				'required' => ''
 			) + ( $options['target'] ? array() : array( 'autofocus' ) ) ) . ' '.
-			Xml::label( $this->msg( 'namespace' )->text(), 'namespace' ) . ' ' .
-			Xml::namespaceSelector( $options['namespace'], '' ) . ' ' .
+			Html::namespaceSelector(
+				array(
+					'selected' => $options['namespace'],
+					'all' => '',
+					'label' => $this->msg( 'namespace' )->text()
+				), array(
+					'name'  => 'namespace',
+					'id'    => 'namespace',
+					'class' => 'namespaceselector',
+				)
+			) . ' ' .
 			Xml::submitButton( $this->msg( 'sp-contributions-submit' )->text() ) .
 			Xml::closeElement( 'fieldset' ) .
 			Xml::closeElement( 'form' );
 		return $f;
+	}
+
+	protected function getGroupName() {
+		return 'users';
 	}
 }

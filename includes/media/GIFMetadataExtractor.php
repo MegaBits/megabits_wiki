@@ -7,6 +7,21 @@
  * Deliberately not using MWExceptions to avoid external dependencies, encouraging
  * redistribution.
  *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * http://www.gnu.org/copyleft/gpl.html
+ *
  * @file
  * @ingroup Media
  */
@@ -34,16 +49,16 @@ class GIFMetadataExtractor {
 	 * @return array
 	 */
 	static function getMetadata( $filename ) {
-		self::$gif_frame_sep = pack( "C", ord("," ) );
-		self::$gif_extension_sep = pack( "C", ord("!" ) );
-		self::$gif_term = pack( "C", ord(";" ) );
+		self::$gif_frame_sep = pack( "C", ord( "," ) );
+		self::$gif_extension_sep = pack( "C", ord( "!" ) );
+		self::$gif_term = pack( "C", ord( ";" ) );
 
 		$frameCount = 0;
 		$duration = 0.0;
 		$isLooped = false;
 		$xmp = "";
 		$comment = array();
-		
+
 		if ( !$filename ) {
 			throw new Exception( "No file name specified" );
 		} elseif ( !file_exists( $filename ) || is_dir( $filename ) ) {
@@ -58,7 +73,7 @@ class GIFMetadataExtractor {
 
 		// Check for the GIF header
 		$buf = fread( $fh, 6 );
-		if ( !($buf == 'GIF87a' || $buf == 'GIF89a') ) {
+		if ( !( $buf == 'GIF87a' || $buf == 'GIF89a' ) ) {
 			throw new Exception( "Not a valid GIF file; header: $buf" );
 		}
 
@@ -78,7 +93,7 @@ class GIFMetadataExtractor {
 		while( !feof( $fh ) ) {
 			$buf = fread( $fh, 1 );
 
-			if ($buf == self::$gif_frame_sep) {
+			if ( $buf == self::$gif_frame_sep ) {
 				// Found a frame
 				$frameCount++;
 
@@ -92,14 +107,14 @@ class GIFMetadataExtractor {
 				## Read GCT
 				self::readGCT( $fh, $bpp );
 				fread( $fh, 1 );
-				self::skipBlock( $fh );	
+				self::skipBlock( $fh );
 			} elseif ( $buf == self::$gif_extension_sep ) {
 				$buf = fread( $fh, 1 );
 				if ( strlen( $buf ) < 1 ) throw new Exception( "Ran out of input" );
 				$extension_code = unpack( 'C', $buf );
 				$extension_code = $extension_code[1];
 
-				if ($extension_code == 0xF9) {
+				if ( $extension_code == 0xF9 ) {
 					// Graphics Control Extension.
 					fread( $fh, 1 ); // Block size
 
@@ -117,10 +132,10 @@ class GIFMetadataExtractor {
 					if ( strlen( $term ) < 1 ) throw new Exception( "Ran out of input" );
 					$term = unpack( 'C', $term );
 					$term = $term[1];
-					if ($term != 0 ) {
+					if ( $term != 0 ) {
 						throw new Exception( "Malformed Graphics Control Extension block" );
 					}
-				} elseif ($extension_code == 0xFE) {
+				} elseif ( $extension_code == 0xFE ) {
 					// Comment block(s).
 					$data = self::readBlock( $fh );
 					if ( $data === "" ) {
@@ -149,7 +164,7 @@ class GIFMetadataExtractor {
 						// is identical to the last, only extract once.
 						$comment[] = $data;
 					}
-				} elseif ($extension_code == 0xFF) {
+				} elseif ( $extension_code == 0xFF ) {
 					// Application extension (Netscape info about the animated gif)
 					// or XMP (or theoretically any other type of extension block)
 					$blockLength = fread( $fh, 1 );
@@ -158,7 +173,7 @@ class GIFMetadataExtractor {
 					$blockLength = $blockLength[1];
 					$data = fread( $fh, $blockLength );
 
-					if ($blockLength != 11 ) {
+					if ( $blockLength != 11 ) {
 						wfDebug( __METHOD__ . ' GIF application block with wrong length' );
 						fseek( $fh, -($blockLength + 1), SEEK_CUR );
 						self::skipBlock( $fh );
@@ -167,23 +182,22 @@ class GIFMetadataExtractor {
 
 					// NETSCAPE2.0 (application name for animated gif)
 					if ( $data == 'NETSCAPE2.0' ) {
-					
 						$data = fread( $fh, 2 ); // Block length and introduction, should be 03 01
 
-						if ($data != "\x03\x01") {
+						if ( $data != "\x03\x01" ) {
 							throw new Exception( "Expected \x03\x01, got $data" );
 						}
-						
+
 						// Unsigned little-endian integer, loop count or zero for "forever"
 						$loopData = fread( $fh, 2 );
 						if ( strlen( $loopData ) < 2 ) throw new Exception( "Ran out of input" );
 						$loopData = unpack( 'v', $loopData );
 						$loopCount = $loopData[1];
-						
-						if ($loopCount != 1) {
+
+						if ( $loopCount != 1 ) {
 							$isLooped = true;
 						}
-						
+
 						// Read out terminator byte
 						fread( $fh, 1 );
 					} elseif ( $data == 'XMP DataXMP' ) {
@@ -217,7 +231,7 @@ class GIFMetadataExtractor {
 				if ( strlen( $buf ) < 1 ) throw new Exception( "Ran out of input" );
 				$byte = unpack( 'C', $buf );
 				$byte = $byte[1];
-				throw new Exception( "At position: ".ftell($fh). ", Unknown byte ".$byte );
+				throw new Exception( "At position: " . ftell( $fh ) . ", Unknown byte " . $byte );
 			}
 		}
 
@@ -237,7 +251,7 @@ class GIFMetadataExtractor {
 	 */
 	static function readGCT( $fh, $bpp ) {
 		if ( $bpp > 0 ) {
-			for( $i=1; $i<=pow( 2, $bpp ); ++$i ) {
+			for( $i = 1; $i <= pow( 2, $bpp ); ++$i ) {
 				fread( $fh, 3 );
 			}
 		}
@@ -245,6 +259,7 @@ class GIFMetadataExtractor {
 
 	/**
 	 * @param $data
+	 * @throws Exception
 	 * @return int
 	 */
 	static function decodeBPP( $data ) {
@@ -261,7 +276,7 @@ class GIFMetadataExtractor {
 
 	/**
 	 * @param $fh
-	 * @return
+	 * @throws Exception
 	 */
 	static function skipBlock( $fh ) {
 		while ( !feof( $fh ) ) {
@@ -269,12 +284,13 @@ class GIFMetadataExtractor {
 			if ( strlen( $buf ) < 1 ) throw new Exception( "Ran out of input" );
 			$block_len = unpack( 'C', $buf );
 			$block_len = $block_len[1];
-			if ($block_len == 0) {
+			if ( $block_len == 0 ) {
 				return;
 			}
 			fread( $fh, $block_len );
 		}
 	}
+
 	/**
 	 * Read a block. In the GIF format, a block is made up of
 	 * several sub-blocks. Each sub block starts with one byte
@@ -286,7 +302,8 @@ class GIFMetadataExtractor {
 	 *  sub-blocks in the returned value. Normally this is false,
 	 *  except XMP is weird and does a hack where you need to keep
 	 *  these length bytes.
-	 * @return The data.
+	 * @throws Exception
+	 * @return string The data.
 	 */
 	static function readBlock( $fh, $includeLengths = false ) {
 		$data = '';

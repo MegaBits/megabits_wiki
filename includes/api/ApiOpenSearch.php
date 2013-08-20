@@ -4,7 +4,7 @@
  *
  * Created on Oct 13, 2006
  *
- * Copyright © 2006 Yuri Astrakhan <Firstname><Lastname>@gmail.com
+ * Copyright © 2006 Yuri Astrakhan "<Firstname><Lastname>@gmail.com"
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,10 +29,6 @@
  */
 class ApiOpenSearch extends ApiBase {
 
-	public function __construct( $main, $action ) {
-		parent::__construct( $main, $action );
-	}
-
 	public function getCustomPrinter() {
 		return $this->getMain()->createPrinterByName( 'json' );
 	}
@@ -45,7 +41,7 @@ class ApiOpenSearch extends ApiBase {
 		$namespaces = $params['namespace'];
 		$suggest = $params['suggest'];
 
-		// MWSuggest or similar hit
+		// Some script that was loaded regardless of wgEnableOpenSearchSuggest, likely cached.
 		if ( $suggest && !$wgEnableOpenSearchSuggest ) {
 			$searches = array();
 		} else {
@@ -122,9 +118,5 @@ class ApiOpenSearch extends ApiBase {
 
 	public function getHelpUrls() {
 		return 'https://www.mediawiki.org/wiki/API:Opensearch';
-	}
-
-	public function getVersion() {
-		return __CLASS__ . ': $Id$';
 	}
 }

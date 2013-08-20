@@ -2,6 +2,21 @@
 /**
  * Oracle-specific installer.
  *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * http://www.gnu.org/copyleft/gpl.html
+ *
  * @file
  * @ingroup Deployment
  */
@@ -25,7 +40,7 @@ class OracleInstaller extends DatabaseInstaller {
 	protected $internalDefaults = array(
 		'_OracleDefTS' => 'USERS',
 		'_OracleTempTS' => 'TEMP',
-		'_InstallUser' => 'SYSDBA',
+		'_InstallUser' => 'SYSTEM',
 	);
 
 	public $minimumVersion = '9.0.1'; // 9iR1
@@ -47,12 +62,12 @@ class OracleInstaller extends DatabaseInstaller {
 		return
 			$this->getTextBox( 'wgDBserver', 'config-db-host-oracle', array(), $this->parent->getHelpBox( 'config-db-host-oracle-help' ) ) .
 			Html::openElement( 'fieldset' ) .
-			Html::element( 'legend', array(), wfMsg( 'config-db-wiki-settings' ) ) .
+			Html::element( 'legend', array(), wfMessage( 'config-db-wiki-settings' )->text() ) .
 			$this->getTextBox( 'wgDBprefix', 'config-db-prefix' ) .
 			$this->getTextBox( '_OracleDefTS', 'config-oracle-def-ts' ) .
 			$this->getTextBox( '_OracleTempTS', 'config-oracle-temp-ts', array(), $this->parent->getHelpBox( 'config-db-oracle-help' ) ) .
 			Html::closeElement( 'fieldset' ) .
-			$this->parent->getWarningBox( wfMsg( 'config-db-account-oracle-warn' ) ).
+			$this->parent->getWarningBox( wfMessage( 'config-db-account-oracle-warn' )->text() ).
 			$this->getInstallUserBox().
 			$this->getWebUserBox();
 	}
@@ -104,7 +119,7 @@ class OracleInstaller extends DatabaseInstaller {
 					return $status;
 				}
 				if ( !$this->getVar( '_CreateDBAccount' ) ) {
-					$status->fatal('config-db-sys-create-oracle');
+					$status->fatal( 'config-db-sys-create-oracle' );
 				}
 			} else {
 				return $status;
@@ -187,7 +202,6 @@ class OracleInstaller extends DatabaseInstaller {
 		$this->parent->addInstallStep( $callback, 'database' );
 	}
 
-
 	public function setupDatabase() {
 		$status = Status::newGood();
 		return $status;
@@ -226,7 +240,7 @@ class OracleInstaller extends DatabaseInstaller {
 			$status->fatal( 'config-db-sys-user-exists-oracle', $this->getVar( 'wgDBuser' ) );
 		}
 
-		if ($status->isOK()) {
+		if ( $status->isOK() ) {
 			// user created or already existing, switching back to a normal connection
 			// as the new user has all needed privileges to setup the rest of the schema
 			// i will be using that user as _InstallUser from this point on
@@ -243,6 +257,7 @@ class OracleInstaller extends DatabaseInstaller {
 
 	/**
 	 * Overload: after this action field info table has to be rebuilt
+	 * @return Status
 	 */
 	public function createTables() {
 		$this->setupSchemaVars();
@@ -278,7 +293,7 @@ class OracleInstaller extends DatabaseInstaller {
 		$prefix = $this->getVar( 'wgDBprefix' );
 		return
 "# Oracle specific settings
-\$wgDBprefix         = \"{$prefix}\";
+\$wgDBprefix = \"{$prefix}\";
 ";
 	}
 
