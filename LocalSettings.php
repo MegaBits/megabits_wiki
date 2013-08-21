@@ -158,7 +158,7 @@ $wgScribuntoDefaultEngine = 'luastandalone';
 $wgUseMathJax = true;
 $wgDefaultUserOptions['math'] = MW_MATH_MATHJAX;
 $wgAllowExternalImages = true;
-$wgRawHTML = true;
+$wgRawHtml = true;
 
 # Enabled Skins.
 require_once( "$IP/skins/strapping/strapping.php" );
