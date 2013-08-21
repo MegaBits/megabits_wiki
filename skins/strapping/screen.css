@@ -232,6 +232,7 @@ input + label {
 /* Hide the [] around edit */
 .editsection {
   font-size: 0;
+  padding-right: 10px;
 }
 .editsection a {
   font-size: 14px;
