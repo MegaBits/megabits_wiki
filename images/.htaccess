@@ -1,3 +1,8 @@
+Order deny,allow
+Deny from all
+Allow from 127.0.0.1
+Allow from ::1
+
 # Protect against bug 28235
 <IfModule rewrite_module>
 	RewriteEngine On

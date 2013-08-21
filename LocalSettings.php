@@ -67,7 +67,7 @@ $wgMemCachedServers = array();
 
 ## To enable image uploads, make sure the 'images' directory
 ## is writable, then set this to true:
-$wgEnableUploads = true;
+$wgEnableUploads = false;
 $wgUseImageMagick = true;
 $wgUseImageResize = true;
 $wgImageMagickConvertCommand = "/usr/bin/convert";
