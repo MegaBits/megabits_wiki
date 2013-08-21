@@ -157,6 +157,7 @@ $wgPFEnableStringFunctions = true;
 $wgScribuntoDefaultEngine = 'luastandalone';
 $wgUseMathJax = true;
 $wgDefaultUserOptions['math'] = MW_MATH_MATHJAX;
+$wgAllowExternalImages = true;
 
 # Enabled Skins.
 require_once( "$IP/skins/strapping/strapping.php" );
