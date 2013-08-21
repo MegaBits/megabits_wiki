@@ -150,7 +150,7 @@ require_once( "$IP/extensions/WikiEditor/WikiEditor.php" );
 require_once( "$IP/extensions/Scribunto/Scribunto.php" );
 require_once( "$IP/extensions/UserMerge/UserMerge.php" );
 require_once( "$IP/extensions/MassEditRegex/MassEditRegex.php" );
-//require_once( "$IP/extensions/Math/Math.php" );
+require_once( "$IP/extensions/Math/Math.php" );
 
 $wgPFEnableStringFunctions = true;
 $wgScribuntoDefaultEngine = 'luastandalone';
