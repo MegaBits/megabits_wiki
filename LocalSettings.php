@@ -154,6 +154,8 @@ require_once( "$IP/extensions/Math/Math.php" );
 
 $wgPFEnableStringFunctions = true;
 $wgScribuntoDefaultEngine = 'luastandalone';
+$wgUseMathJax = true;
+$wgDefaultUserOptions['math'] = MW_MATH_MATHJAX;
 
 # Enabled Skins.
 require_once( "$IP/skins/strapping/strapping.php" );
