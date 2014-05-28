@@ -137,7 +137,7 @@ require_once( "$IP/extensions/Gadgets/Gadgets.php" );
 require_once( "$IP/extensions/ImageMap/ImageMap.php" );
 require_once( "$IP/extensions/InputBox/InputBox.php" );
 require_once( "$IP/extensions/Interwiki/Interwiki.php" );
-require_once( "$IP/extensions/LocalisationUpdate/LocalisationUpdate.php" );
+//require_once( "$IP/extensions/LocalisationUpdate/LocalisationUpdate.php" );
 require_once( "$IP/extensions/Nuke/Nuke.php" );
 require_once( "$IP/extensions/ParserFunctions/ParserFunctions.php" );
 require_once( "$IP/extensions/PdfHandler/PdfHandler.php" );
